@@ -1,0 +1,12 @@
+# Fichiers à exclure du zip de distribution WP.org
+.distignore
+.gitignore
+.git
+composer.json
+composer.lock
+lib/CHANGELOG.md
+lib/CONTRIBUTING.md
+lib/README.md
+lib/justfile
+lib/OPENAPI_VERSION
+lib/composer.json

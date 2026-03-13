@@ -1,0 +1,703 @@
+<?php
+
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+class ServiceFlow_Orders {
+
+    const STATUS_PENDING   = 'pending';
+    const STATUS_PAID      = 'paid';
+    const STATUS_STARTED   = 'started';
+    const STATUS_COMPLETED = 'completed';
+    const STATUS_REVISION  = 'revision';
+    const STATUS_ACCEPTED  = 'accepted';
+
+    private static array $transitions = [
+        'pending'   => [ 'started' ],
+        'paid'      => [ 'started' ],
+        'started'   => [ 'completed' ],
+        'completed' => [ 'revision', 'accepted' ],
+        'revision'  => [ 'started' ],
+    ];
+
+    public static function init(): void {
+        add_action( 'wp_ajax_serviceflow_create_order',     [ __CLASS__, 'ajax_create_order' ] );
+        add_action( 'wp_ajax_serviceflow_order_transition',  [ __CLASS__, 'ajax_order_transition' ] );
+        add_action( 'wp_ajax_serviceflow_get_clients',       [ __CLASS__, 'ajax_get_clients' ] );
+    }
+
+    public static function table_name(): string {
+        global $wpdb;
+        return $wpdb->prefix . 'serviceflow_orders';
+    }
+
+    public static function create_table(): void {
+        global $wpdb;
+
+        $table   = self::table_name();
+        $charset = $wpdb->get_charset_collate();
+
+        $sql = "CREATE TABLE {$table} (
+            id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            post_id         BIGINT UNSIGNED NOT NULL,
+            client_id       BIGINT UNSIGNED NOT NULL,
+            status          VARCHAR(20)     NOT NULL DEFAULT 'pending',
+            base_offer      TEXT            NOT NULL,
+            selected_options TEXT           NOT NULL,
+            total_price     DECIMAL(10,2)   NOT NULL DEFAULT 0.00,
+            total_delay     INT UNSIGNED    NOT NULL DEFAULT 0,
+            estimated_date  DATE            DEFAULT NULL,
+            stripe_session_id     VARCHAR(255) DEFAULT NULL,
+            stripe_payment_intent VARCHAR(255) DEFAULT NULL,
+            payment_mode    VARCHAR(20)     NOT NULL DEFAULT 'single',
+            deposit_percent TINYINT UNSIGNED NOT NULL DEFAULT 50,
+            installments_count TINYINT UNSIGNED NOT NULL DEFAULT 0,
+            created_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY post_client (post_id, client_id),
+            KEY status (status)
+        ) {$charset};";
+
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        dbDelta( $sql );
+    }
+
+    /**
+     * Crée une commande ou met à jour une commande en attente existante.
+     * Si la commande existante est « pending », elle est mise à jour (modification de sélection).
+     * Sinon (accepted, completed, etc.), une nouvelle commande est créée.
+     */
+    public static function create_order( int $post_id, int $client_id, array $base_offer, array $selected_options, float $total_price, int $total_delay ): int|false {
+        global $wpdb;
+
+        $table    = self::table_name();
+        $existing = self::get_order_for_client( $post_id, $client_id );
+
+        $data = [
+            'post_id'          => $post_id,
+            'client_id'        => $client_id,
+            'status'           => self::STATUS_PENDING,
+            'base_offer'       => wp_json_encode( $base_offer ),
+            'selected_options' => wp_json_encode( $selected_options ),
+            'total_price'      => $total_price,
+            'total_delay'      => $total_delay,
+            'estimated_date'   => null,
+            'updated_at'       => current_time( 'mysql' ),
+        ];
+
+        // Seule une commande « en attente » peut être modifiée (mise à jour).
+        // Les autres statuts (accepted, etc.) entraînent une nouvelle commande.
+        if ( $existing && $existing->status === self::STATUS_PENDING ) {
+            $wpdb->update( $table, $data, [ 'id' => $existing->id ] );
+            return (int) $existing->id;
+        }
+
+        $data['created_at'] = current_time( 'mysql' );
+        $inserted = $wpdb->insert( $table, $data );
+
+        return $inserted ? (int) $wpdb->insert_id : false;
+    }
+
+    /**
+     * Crée une commande avec statut « paid » (via Stripe).
+     */
+    public static function create_order_paid( int $post_id, int $client_id, array $base_offer, array $selected_options, float $total_price, int $total_delay, string $stripe_session_id, string $stripe_payment_intent, array $payment_context = [] ): int|false {
+        global $wpdb;
+
+        $table    = self::table_name();
+        $existing = self::get_order_for_client( $post_id, $client_id );
+
+        $data = [
+            'post_id'               => $post_id,
+            'client_id'             => $client_id,
+            'status'                => self::STATUS_STARTED,
+            'base_offer'            => wp_json_encode( $base_offer ),
+            'selected_options'      => wp_json_encode( $selected_options ),
+            'total_price'           => $total_price,
+            'total_delay'           => $total_delay,
+            'estimated_date'        => gmdate( 'Y-m-d', strtotime( '+' . $total_delay . ' days' ) ),
+            'stripe_session_id'     => $stripe_session_id,
+            'stripe_payment_intent' => $stripe_payment_intent,
+            'payment_mode'          => $payment_context['payment_mode'] ?? 'single',
+            'deposit_percent'       => $payment_context['deposit_percent'] ?? 50,
+            'installments_count'    => $payment_context['installments_count'] ?? 0,
+            'updated_at'            => current_time( 'mysql' ),
+        ];
+
+        if ( $existing && $existing->status === self::STATUS_PENDING ) {
+            $wpdb->update( $table, $data, [ 'id' => $existing->id ] );
+            return (int) $existing->id;
+        }
+
+        $data['created_at'] = current_time( 'mysql' );
+        $inserted = $wpdb->insert( $table, $data );
+
+        return $inserted ? (int) $wpdb->insert_id : false;
+    }
+
+    /**
+     * Récupère une commande par ID.
+     */
+    public static function get_order( int $order_id ): ?object {
+        global $wpdb;
+
+        $table = self::table_name();
+        $row   = $wpdb->get_row( $wpdb->prepare(
+            "SELECT o.*, u.display_name AS client_name
+             FROM {$table} o
+             LEFT JOIN {$wpdb->users} u ON o.client_id = u.ID
+             WHERE o.id = %d",
+            $order_id
+        ) );
+
+        return $row ?: null;
+    }
+
+    /**
+     * Commande la plus récente d'un client sur un post.
+     */
+    public static function get_order_for_client( int $post_id, int $client_id ): ?object {
+        global $wpdb;
+
+        $table = self::table_name();
+        $row   = $wpdb->get_row( $wpdb->prepare(
+            "SELECT o.*, u.display_name AS client_name
+             FROM {$table} o
+             LEFT JOIN {$wpdb->users} u ON o.client_id = u.ID
+             WHERE o.post_id = %d AND o.client_id = %d
+             ORDER BY o.created_at DESC LIMIT 1",
+            $post_id,
+            $client_id
+        ) );
+
+        return $row ?: null;
+    }
+
+    /**
+     * Alias pour compatibilité.
+     */
+    public static function get_active_order_for_client( int $post_id, int $client_id ): ?object {
+        return self::get_order_for_client( $post_id, $client_id );
+    }
+
+    /**
+     * Toutes les commandes d'un post (pour l'admin).
+     */
+    public static function get_active_orders_for_post( int $post_id ): array {
+        global $wpdb;
+
+        $table = self::table_name();
+        return $wpdb->get_results( $wpdb->prepare(
+            "SELECT o.*, u.display_name AS client_name
+             FROM {$table} o
+             LEFT JOIN {$wpdb->users} u ON o.client_id = u.ID
+             WHERE o.post_id = %d
+             ORDER BY o.created_at DESC",
+            $post_id
+        ) );
+    }
+
+    /**
+     * Toutes les commandes (admin — tous clients).
+     */
+    public static function get_all_orders(): array {
+        global $wpdb;
+        $table = self::table_name();
+        return $wpdb->get_results(
+            "SELECT o.*, p.post_title AS service_name
+             FROM {$table} o
+             LEFT JOIN {$wpdb->posts} p ON o.post_id = p.ID
+             ORDER BY o.created_at DESC"
+        );
+    }
+
+    /**
+     * Toutes les commandes d'un client (tous posts confondus).
+     */
+    public static function get_all_orders_for_client( int $client_id, string $status = '' ): array {
+        global $wpdb;
+
+        $table = self::table_name();
+        $sql   = $wpdb->prepare(
+            "SELECT o.*, p.post_title AS service_name
+             FROM {$table} o
+             LEFT JOIN {$wpdb->posts} p ON o.post_id = p.ID
+             WHERE o.client_id = %d",
+            $client_id
+        );
+
+        $valid = [ 'pending', 'paid', 'started', 'completed', 'revision', 'accepted' ];
+        if ( $status !== '' && in_array( $status, $valid, true ) ) {
+            $sql .= $wpdb->prepare( ' AND o.status = %s', $status );
+        }
+
+        $sql .= ' ORDER BY o.created_at DESC';
+
+        return $wpdb->get_results( $sql );
+    }
+
+    /**
+     * Liste des clients distincts ayant une conversation sur un post.
+     */
+    public static function get_clients_for_post( int $post_id ): array {
+        global $wpdb;
+
+        $msg_table   = ServiceFlow_DB::table_name();
+        $order_table = self::table_name();
+
+        $sql = $wpdb->prepare(
+            "SELECT DISTINCT u.ID AS client_id, u.display_name, u.user_email
+             FROM {$wpdb->users} u
+             WHERE u.ID IN (
+                 SELECT DISTINCT m.client_id FROM {$msg_table} m
+                 WHERE m.post_id = %d AND m.client_id > 0
+                 UNION
+                 SELECT DISTINCT o.client_id FROM {$order_table} o
+                 WHERE o.post_id = %d
+             )
+             ORDER BY u.display_name ASC",
+            $post_id,
+            $post_id
+        );
+
+        $results = $wpdb->get_results( $sql );
+
+        // Exclure les administrateurs
+        return array_values( array_filter( $results, function ( $user ) {
+            return ! user_can( (int) $user->client_id, 'manage_options' );
+        } ) );
+    }
+
+    /**
+     * Effectue une transition de statut.
+     */
+    public static function transition_status( int $order_id, string $new_status, int $acting_user_id, int $revision_delay = 0 ): bool {
+        $order = self::get_order( $order_id );
+        if ( ! $order ) {
+            return false;
+        }
+
+        if ( ! self::can_transition( $order, $new_status, $acting_user_id ) ) {
+            return false;
+        }
+
+        $old_status = $order->status;
+
+        global $wpdb;
+        $table = self::table_name();
+
+        $update_data = [
+            'status'     => $new_status,
+            'updated_at' => current_time( 'mysql' ),
+        ];
+
+        // Date estimée : premier démarrage (pending/paid → started)
+        if ( $new_status === self::STATUS_STARTED && in_array( $old_status, [ self::STATUS_PENDING, self::STATUS_PAID ], true ) ) {
+            $update_data['estimated_date'] = gmdate( 'Y-m-d', strtotime( '+' . (int) $order->total_delay . ' days' ) );
+        }
+
+        // Retouche acceptée (revision → started) : mise à jour du délai si fourni
+        if ( $new_status === self::STATUS_STARTED && $old_status === self::STATUS_REVISION ) {
+            if ( $revision_delay > 0 ) {
+                $update_data['estimated_date'] = gmdate( 'Y-m-d', strtotime( '+' . $revision_delay . ' days' ) );
+                $update_data['total_delay']    = $revision_delay;
+            } else {
+                // Pas de délai précisé : réinitialiser à aujourd'hui (retouche immédiate)
+                $update_data['estimated_date'] = gmdate( 'Y-m-d' );
+            }
+        }
+
+        $wpdb->update( $table, $update_data, [ 'id' => $order_id ] );
+
+        // Recharger pour avoir estimated_date à jour
+        $order = self::get_order( $order_id );
+
+        // Poster un message système dans le chat, scopé au client
+        $actor      = get_userdata( $acting_user_id );
+        $actor_name = $actor ? $actor->display_name : __( 'Utilisateur', 'serviceflow' );
+        $message    = self::format_status_message( $new_status, $order, $actor_name, $old_status );
+
+        if ( ! empty( $message ) ) {
+            ServiceFlow_DB::insert_message( (int) $order->post_id, 0, $message, (int) $order->client_id );
+        }
+
+        // Déclencher la notification
+        do_action( 'serviceflow_order_status_changed', $order_id, $new_status, $old_status, $acting_user_id );
+
+        return true;
+    }
+
+    /**
+     * Vérifie si une transition est autorisée.
+     */
+    public static function can_transition( object $order, string $new_status, int $acting_user_id ): bool {
+        $current = $order->status;
+
+        if ( ! isset( self::$transitions[ $current ] ) ) {
+            return false;
+        }
+
+        if ( ! in_array( $new_status, self::$transitions[ $current ], true ) ) {
+            return false;
+        }
+
+        // Qui peut faire quoi ?
+        if ( $new_status === self::STATUS_REVISION || $new_status === self::STATUS_ACCEPTED ) {
+            // Seul le client auteur de la commande
+            return (int) $order->client_id === $acting_user_id;
+        }
+
+        // started, completed : admin uniquement
+        return current_user_can( 'manage_options' );
+    }
+
+    /**
+     * Génère le message système pour un changement de statut.
+     */
+    public static function format_status_message( string $new_status, object $order, string $actor_name, string $old_status = '' ): string {
+        $order_num = '#CMD-' . (int) $order->id;
+
+        switch ( $new_status ) {
+            case self::STATUS_PAID:
+                return sprintf(
+                    "--- %s %s ---\n%s",
+                    $order_num,
+                    __( 'Paiement reçu', 'serviceflow' ),
+                    sprintf(
+                        __( 'Le paiement de %s a été reçu via Stripe. Commande confirmée.', 'serviceflow' ),
+                        number_format( (float) $order->total_price, 2, ',', ' ' ) . ' €'
+                    )
+                );
+
+            case self::STATUS_STARTED:
+                if ( $order->estimated_date ) {
+                    $date = date_i18n( 'd/m/Y', strtotime( $order->estimated_date ) );
+                }
+
+                if ( isset( $date ) && $order->total_delay > 0 ) {
+                    $delay_info = sprintf(
+                        __( "Délai total : %d jour(s)\nLivraison estimée : %s", 'serviceflow' ),
+                        (int) $order->total_delay,
+                        $date
+                    );
+                } else {
+                    $delay_info = '';
+                }
+
+                // Distinguer premier démarrage et reprise après retouche
+                if ( $old_status === self::STATUS_REVISION ) {
+                    return sprintf(
+                        "--- %s %s ---\n%s",
+                        $order_num,
+                        __( 'Retouche validée', 'serviceflow' ),
+                        sprintf( __( '%s a validé la retouche et repris la commande.', 'serviceflow' ), $actor_name )
+                    ) . ( $delay_info ? "\n" . $delay_info : '' );
+                }
+
+                // Paiement Stripe automatique (pas d'acteur)
+                if ( empty( $actor_name ) ) {
+                    $total        = (float) $order->total_price;
+                    $payment_mode = $order->payment_mode ?? 'single';
+                    $n_months     = max( 1, (int) ( $order->installments_count ?? 1 ) );
+
+                    // Calcul de l'upfront selon le mode
+                    if ( $payment_mode === 'monthly' ) {
+                        $upfront = round( $total / $n_months, 2 );
+                    } else {
+                        $ratio   = match ( $payment_mode ) {
+                            'deposit'      => 0.50,
+                            'installments' => 0.40,
+                            default        => 1.0,
+                        };
+                        $upfront = round( $total * $ratio, 2 );
+                    }
+
+                    if ( $payment_mode === 'single' ) {
+                        $payment_line = sprintf(
+                            __( 'Le paiement de %s a été reçu via Stripe. Commande démarrée.', 'serviceflow' ),
+                            number_format( $upfront, 2, ',', ' ' ) . ' €'
+                        );
+                    } elseif ( $payment_mode === 'monthly' ) {
+                        $payment_line = sprintf(
+                            __( 'Mois 1 / %d — %s reçu via Stripe. Commande démarrée.', 'serviceflow' ),
+                            $n_months,
+                            number_format( $upfront, 2, ',', ' ' ) . ' €'
+                        ) . "\n" . sprintf(
+                            __( 'Total abonnement (%d mois) : %s', 'serviceflow' ),
+                            $n_months,
+                            number_format( $total, 2, ',', ' ' ) . ' €'
+                        );
+                    } else {
+                        $label = $payment_mode === 'deposit'
+                            ? __( 'Acompte (50%)', 'serviceflow' )
+                            : __( 'Premier versement (40%)', 'serviceflow' );
+                        $payment_line = sprintf(
+                            __( '%s de %s reçu via Stripe. Commande démarrée.', 'serviceflow' ),
+                            $label,
+                            number_format( $upfront, 2, ',', ' ' ) . ' €'
+                        ) . "\n" . sprintf(
+                            __( 'Total du contrat : %s', 'serviceflow' ),
+                            number_format( $total, 2, ',', ' ' ) . ' €'
+                        );
+                    }
+
+                    return sprintf(
+                        "--- %s %s ---\n%s",
+                        $order_num,
+                        __( 'Paiement reçu', 'serviceflow' ),
+                        $payment_line
+                    ) . ( $delay_info ? "\n" . $delay_info : '' );
+                }
+
+                return sprintf(
+                    "--- %s %s ---\n%s",
+                    $order_num,
+                    __( 'Commande démarrée', 'serviceflow' ),
+                    sprintf( __( '%s a démarré la commande.', 'serviceflow' ), $actor_name )
+                ) . ( $delay_info ? "\n" . $delay_info : '' );
+
+            case self::STATUS_COMPLETED:
+                return sprintf(
+                    "--- %s %s ---\n%s",
+                    $order_num,
+                    __( 'Commande terminée', 'serviceflow' ),
+                    sprintf( __( '%s a marqué la commande comme terminée.', 'serviceflow' ), $actor_name )
+                );
+
+            case self::STATUS_REVISION:
+                return sprintf(
+                    "--- %s %s ---\n%s",
+                    $order_num,
+                    __( 'Retouche demandée', 'serviceflow' ),
+                    sprintf( __( '%s a demandé une retouche.', 'serviceflow' ), $actor_name )
+                );
+
+            case self::STATUS_ACCEPTED:
+                return sprintf(
+                    "--- %s %s ---\n%s",
+                    $order_num,
+                    __( 'Livraison acceptée', 'serviceflow' ),
+                    sprintf( __( '%s a accepté la livraison. Commande terminée.', 'serviceflow' ), $actor_name )
+                );
+
+            default:
+                return '';
+        }
+    }
+
+    /**
+     * AJAX : Créer une commande.
+     */
+    public static function ajax_create_order(): void {
+        check_ajax_referer( 'serviceflow_nonce', 'nonce' );
+
+        // Si Stripe est activé, les commandes doivent passer par Stripe Checkout
+        if ( ServiceFlow_Stripe::is_enabled() ) {
+            wp_send_json_error( [ 'message' => __( 'Le paiement en ligne est requis.', 'serviceflow' ), 'stripe_required' => true ], 400 );
+        }
+
+        if ( ! is_user_logged_in() ) {
+            wp_send_json_error( [ 'message' => __( 'Non connecté.', 'serviceflow' ) ], 403 );
+        }
+
+        // Les administrateurs ne peuvent pas commander
+        if ( current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( [ 'message' => __( 'Les administrateurs ne peuvent pas commander.', 'serviceflow' ) ], 403 );
+        }
+
+        $post_id           = absint( $_POST['post_id'] ?? 0 );
+        $selected_pack_idx = absint( $_POST['selected_pack'] ?? 0 );
+        $selected_indices  = json_decode( stripslashes( $_POST['selected_indices'] ?? '[]' ), true );
+        $extra_pages       = absint( $_POST['extra_pages'] ?? 0 );
+        $maintenance       = absint( $_POST['maintenance'] ?? 0 );
+
+        if ( ! $post_id || ! is_array( $selected_indices ) ) {
+            wp_send_json_error( [ 'message' => __( 'Données manquantes.', 'serviceflow' ) ], 400 );
+        }
+
+        $post = get_post( $post_id );
+        if ( ! $post || $post->post_type !== ServiceFlow_Admin::get_post_type() ) {
+            wp_send_json_error( [ 'message' => __( 'Post invalide.', 'serviceflow' ) ], 400 );
+        }
+
+        $client_id = get_current_user_id();
+
+        // Vérifier que la commande existante est modifiable (pending ou accepted = nouvelle commande)
+        $existing = self::get_order_for_client( $post_id, $client_id );
+        if ( $existing && $existing->status !== self::STATUS_PENDING && $existing->status !== self::STATUS_ACCEPTED ) {
+            wp_send_json_error( [ 'message' => __( 'La commande ne peut plus être modifiée.', 'serviceflow' ) ], 403 );
+        }
+
+        // Récupérer le pack sélectionné
+        $packs    = ServiceFlow_Options::get_packs( $post_id );
+        $all_opts = ServiceFlow_Options::get_options( $post_id );
+
+        if ( empty( $packs ) || ! isset( $packs[ $selected_pack_idx ] ) ) {
+            wp_send_json_error( [ 'message' => __( 'Pack invalide.', 'serviceflow' ) ], 400 );
+        }
+
+        $base_offer = $packs[ $selected_pack_idx ];
+
+        $selected = [];
+        foreach ( $selected_indices as $idx ) {
+            $idx = absint( $idx );
+            if ( isset( $all_opts[ $idx ] ) ) {
+                $selected[] = $all_opts[ $idx ];
+            }
+        }
+
+        $total_price = floatval( $base_offer['price'] ?? 0 );
+        $total_delay = absint( $base_offer['delay'] ?? 0 );
+        foreach ( $selected as $opt ) {
+            $total_price += floatval( $opt['price'] ?? 0 );
+            $total_delay += absint( $opt['delay'] ?? 0 );
+        }
+
+        // Pages supplémentaires
+        if ( $extra_pages > 0 && ServiceFlow_Admin::is_extra_pages_enabled() ) {
+            $extra_page_price = (float) get_post_meta( $post_id, '_serviceflow_extra_page_price', true );
+            $total_price += $extra_pages * $extra_page_price;
+        }
+
+        // Maintenance mensuelle
+        if ( $maintenance && ServiceFlow_Admin::is_maintenance_enabled() ) {
+            $maintenance_price = (float) get_post_meta( $post_id, '_serviceflow_maintenance_price', true );
+            $total_price += $maintenance_price;
+        }
+
+        // Livraison express (le délai ne peut pas descendre sous 45% du délai initial)
+        $express_days = absint( $_POST['express_days'] ?? 0 );
+        if ( $express_days > 0 && ServiceFlow_Admin::is_express_enabled() ) {
+            $min_delay    = (int) ceil( $total_delay * 0.45 );
+            $max_days_off = $total_delay - $min_delay;
+            $express_days = min( $express_days, $max_days_off );
+            $express_price_per_day = (float) get_post_meta( $post_id, '_serviceflow_express_price', true );
+            $total_price += $express_days * $express_price_per_day;
+            $total_delay -= $express_days;
+        }
+
+        // Appliquer la TVA pour stocker le total TTC (premium uniquement)
+        $tax_rate    = serviceflow_is_premium() ? floatval( ServiceFlow_Invoices::get_settings()['tax_rate'] ?? 0 ) : 0;
+        $total_price = round( $total_price * ( 1 + $tax_rate / 100 ), 2 );
+
+        $order_id = self::create_order( $post_id, $client_id, $base_offer, $selected, $total_price, $total_delay );
+
+        if ( ! $order_id ) {
+            wp_send_json_error( [ 'message' => __( 'Erreur création commande.', 'serviceflow' ) ], 500 );
+        }
+
+        // Déclencher la notification
+        do_action( 'serviceflow_order_created', $order_id, $post_id, $client_id );
+
+        $active_order = self::build_order_response( $post_id );
+        wp_send_json_success( [ 'order_id' => $order_id, 'active_order' => $active_order ] );
+    }
+
+    /**
+     * AJAX : Transition de statut.
+     */
+    public static function ajax_order_transition(): void {
+        check_ajax_referer( 'serviceflow_nonce', 'nonce' );
+
+        if ( ! is_user_logged_in() ) {
+            wp_send_json_error( [ 'message' => __( 'Non connecté.', 'serviceflow' ) ], 403 );
+        }
+
+        $order_id   = absint( $_POST['order_id'] ?? 0 );
+        $new_status = sanitize_text_field( $_POST['new_status'] ?? '' );
+        $post_id    = absint( $_POST['post_id'] ?? 0 );
+
+        if ( ! $order_id || ! $new_status || ! $post_id ) {
+            wp_send_json_error( [ 'message' => __( 'Données manquantes.', 'serviceflow' ) ], 400 );
+        }
+
+        $user_id        = get_current_user_id();
+        $revision_delay = absint( $_POST['revision_delay'] ?? 0 );
+        $result         = self::transition_status( $order_id, $new_status, $user_id, $revision_delay );
+
+        if ( ! $result ) {
+            wp_send_json_error( [ 'message' => __( 'Transition non autorisée.', 'serviceflow' ) ], 403 );
+        }
+
+        $active_order = self::build_order_response( $post_id );
+        wp_send_json_success( [ 'active_order' => $active_order ] );
+    }
+
+    /**
+     * AJAX : Liste des clients pour un post (admin uniquement).
+     */
+    public static function ajax_get_clients(): void {
+        check_ajax_referer( 'serviceflow_nonce', 'nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( [], 403 );
+        }
+
+        $post_id = absint( $_GET['post_id'] ?? 0 );
+        if ( ! $post_id ) {
+            wp_send_json_error( [], 400 );
+        }
+
+        $clients = self::get_clients_for_post( $post_id );
+
+        $data = array_map( function ( $c ) use ( $post_id ) {
+            $order = self::get_order_for_client( $post_id, (int) $c->client_id );
+            return [
+                'client_id'    => (int) $c->client_id,
+                'display_name' => $c->display_name,
+                'avatar'       => get_avatar_url( $c->client_id, [ 'size' => 40 ] ),
+                'has_order'    => $order !== null,
+                'order_status' => $order ? $order->status : null,
+                'order_id'     => $order ? (int) $order->id : null,
+            ];
+        }, $clients );
+
+        wp_send_json_success( $data );
+    }
+
+    /**
+     * Construit la réponse order pour le JS (selon le rôle de l'utilisateur courant).
+     */
+    public static function build_order_response( int $post_id ): mixed {
+        $is_premium = function_exists( 'serviceflow_is_premium' ) && serviceflow_is_premium();
+
+        if ( current_user_can( 'manage_options' ) ) {
+            $orders = self::get_active_orders_for_post( $post_id );
+            if ( empty( $orders ) ) {
+                return null;
+            }
+            return array_values( array_map( function ( $o ) use ( $is_premium ) {
+                return [
+                    'id'             => (int) $o->id,
+                    'order_number'   => '#CMD-' . (int) $o->id,
+                    'client_id'      => (int) $o->client_id,
+                    'client_name'    => $o->client_name ?? '',
+                    'status'         => $o->status,
+                    'total_price'    => (float) $o->total_price,
+                    'total_delay'    => (int) $o->total_delay,
+                    'estimated_date' => $o->estimated_date,
+                    'created_at'     => $o->created_at,
+                    'todos'          => $is_premium ? ServiceFlow_Todos::build_todos_response( (int) $o->id ) : null,
+                ];
+            }, $orders ) );
+        }
+
+        $order = self::get_order_for_client( $post_id, get_current_user_id() );
+        if ( ! $order ) {
+            return null;
+        }
+        return [
+            'id'             => (int) $order->id,
+            'order_number'   => '#CMD-' . (int) $order->id,
+            'client_id'      => (int) $order->client_id,
+            'status'         => $order->status,
+            'total_price'    => (float) $order->total_price,
+            'total_delay'    => (int) $order->total_delay,
+            'estimated_date' => $order->estimated_date,
+            'created_at'     => $order->created_at,
+            'todos'          => $is_premium ? ServiceFlow_Todos::build_todos_response( (int) $order->id ) : null,
+        ];
+    }
+}

@@ -1,0 +1,25 @@
+# Distribution
+dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Claude Code
+.claude/
+
+# Stripe SDK — fichiers docs inutiles (contiennent des clés d'exemple)
+lib/README.md
+lib/CHANGELOG.md
+lib/CONTRIBUTING.md
+lib/justfile
+lib/OPENAPI_VERSION
+lib/composer.json
+lib/.gitignore
+
+# WordPress
+*.log

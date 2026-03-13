@@ -1,0 +1,209 @@
+<?php
+
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+class ServiceFlow_Ajax {
+
+    public static function init(): void {
+        // Envoi de message (utilisateurs connectés uniquement)
+        add_action( 'wp_ajax_serviceflow_send', [ __CLASS__, 'send_message' ] );
+
+        // Récupération des nouveaux messages (polling)
+        add_action( 'wp_ajax_serviceflow_poll', [ __CLASS__, 'poll_messages' ] );
+
+        // Chargement initial des messages
+        add_action( 'wp_ajax_serviceflow_load', [ __CLASS__, 'load_messages' ] );
+    }
+
+    /**
+     * Envoie un message.
+     */
+    public static function send_message(): void {
+        check_ajax_referer( 'serviceflow_nonce', 'nonce' );
+
+        if ( ! is_user_logged_in() ) {
+            wp_send_json_error( [ 'message' => __( 'Vous devez être connecté.', 'serviceflow' ) ], 403 );
+        }
+
+        $post_id = absint( $_POST['post_id'] ?? 0 );
+        $message = sanitize_textarea_field( $_POST['message'] ?? '' );
+
+        if ( ! $post_id || empty( $message ) ) {
+            wp_send_json_error( [ 'message' => __( 'Données manquantes.', 'serviceflow' ) ], 400 );
+        }
+
+        // Vérifier que le post existe et est du bon CPT
+        $post = get_post( $post_id );
+        if ( ! $post || $post->post_type !== ServiceFlow_Admin::get_post_type() ) {
+            wp_send_json_error( [ 'message' => __( 'Post invalide.', 'serviceflow' ) ], 400 );
+        }
+
+        $user_id   = get_current_user_id();
+        $client_id = absint( $_POST['client_id'] ?? 0 );
+
+        // Déterminer le client_id
+        if ( current_user_can( 'manage_options' ) ) {
+            // Admin : client_id obligatoire (le client sélectionné)
+            if ( ! $client_id ) {
+                wp_send_json_error( [ 'message' => __( 'Client non sélectionné.', 'serviceflow' ) ], 400 );
+            }
+        } else {
+            // Client : forcé à son propre ID
+            $client_id = $user_id;
+        }
+
+        $inserted = ServiceFlow_DB::insert_message( $post_id, $user_id, $message, $client_id );
+
+        if ( ! $inserted ) {
+            wp_send_json_error( [ 'message' => __( 'Erreur lors de l\'envoi.', 'serviceflow' ) ], 500 );
+        }
+
+        // Déclencher la notification
+        do_action( 'serviceflow_message_sent', $post_id, $user_id, $client_id, $inserted );
+
+        $user = wp_get_current_user();
+
+        wp_send_json_success( [
+            'id'           => $inserted,
+            'post_id'      => $post_id,
+            'user_id'      => $user_id,
+            'client_id'    => $client_id,
+            'display_name' => $user->display_name,
+            'message'      => $message,
+            'created_at'   => current_time( 'mysql' ),
+            'avatar'       => ServiceFlow_Account::get_user_avatar( $user_id, 40 ),
+        ] );
+    }
+
+    /**
+     * Récupère les nouveaux messages depuis le dernier ID connu.
+     */
+    public static function poll_messages(): void {
+        check_ajax_referer( 'serviceflow_nonce', 'nonce' );
+
+        if ( ! is_user_logged_in() ) {
+            wp_send_json_error( [], 403 );
+        }
+
+        $post_id   = absint( $_GET['post_id'] ?? 0 );
+        $last_id   = absint( $_GET['last_id'] ?? 0 );
+        $client_id = absint( $_GET['client_id'] ?? 0 );
+
+        if ( ! $post_id ) {
+            wp_send_json_error( [], 400 );
+        }
+
+        // Client : forcé à son propre ID
+        if ( ! current_user_can( 'manage_options' ) ) {
+            $client_id = get_current_user_id();
+        }
+
+        $messages = ServiceFlow_DB::get_new_messages( $post_id, $last_id, $client_id );
+        $data     = self::format_messages( $messages );
+
+        // Inclure active_order pour garder l'en-tête du chat synchronisé
+        $active_order = ServiceFlow_Orders::build_order_response( $post_id );
+
+        wp_send_json_success( [
+            'messages'             => $data,
+            'active_order'         => $active_order,
+            'paid_schedule_ids'    => self::paid_schedule_ids_for_post( $post_id ),
+            'expired_schedule_ids' => self::expired_schedule_ids_for_post( $post_id ),
+        ] );
+    }
+
+    /**
+     * Charge les messages initiaux d'un post.
+     */
+    public static function load_messages(): void {
+        check_ajax_referer( 'serviceflow_nonce', 'nonce' );
+
+        if ( ! is_user_logged_in() ) {
+            wp_send_json_error( [], 403 );
+        }
+
+        $post_id   = absint( $_GET['post_id'] ?? 0 );
+        $client_id = absint( $_GET['client_id'] ?? 0 );
+
+        if ( ! $post_id ) {
+            wp_send_json_error( [], 400 );
+        }
+
+        // Client : forcé à son propre ID
+        if ( ! current_user_can( 'manage_options' ) ) {
+            $client_id = get_current_user_id();
+        }
+
+        $messages = ServiceFlow_DB::get_messages( $post_id, $client_id );
+        $data     = self::format_messages( $messages );
+
+        wp_send_json_success( [
+            'messages'             => $data,
+            'paid_schedule_ids'    => self::paid_schedule_ids_for_post( $post_id ),
+            'expired_schedule_ids' => self::expired_schedule_ids_for_post( $post_id ),
+        ] );
+    }
+
+    /**
+     * Formate les messages pour la réponse JSON.
+     * Enrichit les messages système liés à un échéancier avec schedule_id + schedule_paid.
+     */
+    private static function format_messages( array $messages ): array {
+        $current_user_id = get_current_user_id();
+
+        // Collecter tous les schedule_ids présents dans les messages système
+        $sched_ids = [];
+        foreach ( $messages as $msg ) {
+            if ( (int) $msg->user_id === 0 && preg_match( '/\[SF_SCHED:(\d+)\]/', $msg->message, $m ) ) {
+                $sched_ids[] = (int) $m[1];
+            }
+        }
+        $paid_sched_ids = class_exists( 'ServiceFlow_Payments' ) && ! empty( $sched_ids )
+            ? ServiceFlow_Payments::get_paid_by_ids( $sched_ids )
+            : [];
+
+        return array_map( function ( $msg ) use ( $current_user_id, $paid_sched_ids ) {
+            $is_system   = (int) $msg->user_id === 0;
+            $schedule_id = null;
+            $schedule_paid = false;
+
+            if ( $is_system && preg_match( '/\[SF_SCHED:(\d+)\]/', $msg->message, $m ) ) {
+                $schedule_id   = (int) $m[1];
+                $schedule_paid = in_array( $schedule_id, $paid_sched_ids, true );
+            }
+
+            return [
+                'id'            => (int) $msg->id,
+                'post_id'       => (int) $msg->post_id,
+                'user_id'       => (int) $msg->user_id,
+                'display_name'  => $is_system ? __( 'Système', 'serviceflow' ) : ( $msg->display_name ?? '' ),
+                'message'       => $msg->message,
+                'created_at'    => $msg->created_at,
+                'avatar'        => $is_system ? '' : ServiceFlow_Account::get_user_avatar( (int) $msg->user_id, 40 ),
+                'is_mine'       => (int) $msg->user_id === $current_user_id,
+                'is_system'     => $is_system,
+                'schedule_id'   => $schedule_id,
+                'schedule_paid' => $schedule_paid,
+            ];
+        }, $messages );
+    }
+
+    /**
+     * Retourne les IDs d'échéancier payés pour un post donné.
+     */
+    private static function paid_schedule_ids_for_post( int $post_id ): array {
+        if ( ! class_exists( 'ServiceFlow_Payments' ) ) {
+            return [];
+        }
+        return ServiceFlow_Payments::get_paid_schedule_ids_for_post( $post_id );
+    }
+
+    private static function expired_schedule_ids_for_post( int $post_id ): array {
+        if ( ! class_exists( 'ServiceFlow_Payments' ) ) {
+            return [];
+        }
+        return ServiceFlow_Payments::get_expired_schedule_ids_for_post( $post_id );
+    }
+}
