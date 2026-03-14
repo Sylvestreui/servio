@@ -146,11 +146,6 @@ add_action( 'admin_notices', function () {
     }
 } );
 
-// Traductions
-add_action( 'init', function () {
-    load_plugin_textdomain( 'serviceflow', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
-}, 5 );
-
 // Initialisation
 add_action( 'init', function () {
     ServiceFlow_Dashboard::init();
@@ -188,7 +183,7 @@ add_action( 'elementor/widgets/register', function ( $widgets_manager ) {
             require_once SERVICEFLOW_PLUGIN_DIR . 'includes/class-serviceflow-elementor-widgets.php';
         }
         ServiceFlow_Elementor_Widgets::register_widgets( $widgets_manager );
-    } catch ( \Throwable $e ) {
-        error_log( 'ServiceFlow widgets error: ' . $e->getMessage() );
+    } catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+        // Elementor widget registration failure — silently ignored to avoid fatal errors.
     }
 } );

@@ -210,8 +210,8 @@ class ServiceFlow_Todos {
 
         $todo_id   = absint( $_POST['todo_id'] ?? 0 );
         $order_id  = absint( $_POST['order_id'] ?? 0 );
-        $completed = (bool) ( $_POST['completed'] ?? false );
-        $note      = sanitize_textarea_field( $_POST['note'] ?? '' );
+        $completed = (bool) wp_unslash( $_POST['completed'] ?? false );
+        $note      = sanitize_textarea_field( wp_unslash( $_POST['note'] ?? '' ) );
 
         if ( ! $todo_id || ! $order_id ) {
             wp_send_json_error( [ 'message' => __( 'Données manquantes.', 'serviceflow' ) ], 400 );
@@ -236,8 +236,9 @@ class ServiceFlow_Todos {
                     $msg .= "\n" . sprintf( __( '📝 Note : %s', 'serviceflow' ), $note );
                 }
 
+                /* translators: %1$d: completed tasks, %2$d: total tasks, %3$d: percentage */
                 $msg .= "\n" . sprintf(
-                    __( '📊 Progression : %d/%d (%d%%)', 'serviceflow' ),
+                    __( '📊 Progression : %1$d/%2$d (%3$d%%)', 'serviceflow' ),
                     $progress['completed'],
                     $progress['total'],
                     $progress['percent']

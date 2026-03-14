@@ -114,7 +114,7 @@ class ServiceFlow_Stripe {
         ?>
         <div class="wrap" style="max-width:750px">
             <h1 style="display:flex;align-items:center;gap:10px;margin-bottom:24px">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="<?php echo $color; ?>" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="<?php echo esc_attr( $color ); ?>" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
                 <?php esc_html_e( 'Paiement Stripe', 'serviceflow' ); ?>
             </h1>
 
@@ -239,7 +239,7 @@ class ServiceFlow_Stripe {
         ?>
         <div style="margin-bottom:16px">
             <label style="display:block;font-size:13px;font-weight:600;color:#555;margin-bottom:6px"><?php echo esc_html( $label ); ?></label>
-            <input type="<?php echo $type; ?>" name="serviceflow_stripe_settings[<?php echo esc_attr( $key ); ?>]"
+            <input type="<?php echo esc_attr( $type ); ?>" name="serviceflow_stripe_settings[<?php echo esc_attr( $key ); ?>]"
                    value="<?php echo esc_attr( $value ); ?>"
                    style="width:100%;padding:8px 12px;border:1px solid #d0d5dd;border-radius:6px;font-family:monospace;font-size:13px" />
         </div>
@@ -261,7 +261,7 @@ class ServiceFlow_Stripe {
 
         $post_id           = absint( $_POST['post_id'] ?? 0 );
         $selected_pack_idx = absint( $_POST['selected_pack'] ?? 0 );
-        $selected_indices  = json_decode( stripslashes( $_POST['selected_indices'] ?? '[]' ), true );
+        $selected_indices  = json_decode( wp_unslash( $_POST['selected_indices'] ?? '[]' ), true );
         $extra_pages       = absint( $_POST['extra_pages'] ?? 0 );
         $maintenance       = absint( $_POST['maintenance'] ?? 0 );
         $express_days      = absint( $_POST['express_days'] ?? 0 );
@@ -349,7 +349,8 @@ class ServiceFlow_Stripe {
         $upfront_label = match ( $payment_mode ) {
             'deposit'      => sprintf( __( '%s — Acompte 50%%', 'serviceflow' ), $service_name ),
             'installments' => sprintf( __( '%s — Premier versement 40%%', 'serviceflow' ), $service_name ),
-            'monthly'      => sprintf( __( '%s — Mois 1 / %d', 'serviceflow' ), $service_name, $installments_count ),
+            /* translators: %1$s: service name, %2$d: total number of installments */
+            'monthly'      => sprintf( __( '%1$s — Mois 1 / %2$d', 'serviceflow' ), $service_name, $installments_count ),
             default        => $service_name,
         };
 
@@ -496,7 +497,7 @@ class ServiceFlow_Stripe {
     /** Entrée REST (compatibilité) */
     public static function handle_webhook_rest( WP_REST_Request $request ): WP_REST_Response {
         $payload    = $request->get_body();
-        $sig_header = $_SERVER['HTTP_STRIPE_SIGNATURE'] ?? '';
+        $sig_header = isset( $_SERVER['HTTP_STRIPE_SIGNATURE'] ) ? wp_unslash( $_SERVER['HTTP_STRIPE_SIGNATURE'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Stripe signature is validated by the Stripe SDK
         $result     = self::process_webhook_payload( $payload, $sig_header );
 
         return new WP_REST_Response( $result['body'], $result['status'] );
@@ -504,8 +505,8 @@ class ServiceFlow_Stripe {
 
     /** Entrée admin-ajax (principal) — fonctionne sans pretty permalinks ni REST API */
     public static function handle_webhook_ajax(): void {
-        $payload    = file_get_contents( 'php://input' );
-        $sig_header = $_SERVER['HTTP_STRIPE_SIGNATURE'] ?? '';
+        $payload    = file_get_contents( 'php://input' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- php://input required for Stripe webhook signature verification
+        $sig_header = isset( $_SERVER['HTTP_STRIPE_SIGNATURE'] ) ? wp_unslash( $_SERVER['HTTP_STRIPE_SIGNATURE'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Stripe signature is validated by the Stripe SDK
         $result     = self::process_webhook_payload( $payload, $sig_header );
 
         status_header( $result['status'] );
@@ -599,8 +600,9 @@ class ServiceFlow_Stripe {
         // Pages supplémentaires
         if ( $extra_pages > 0 && $extra_page_price > 0 ) {
             $pages_total = $extra_pages * $extra_page_price;
+            /* translators: %1$d: number of pages, %2$s: unit price, %3$s: total price */
             $lines[] = "\xF0\x9F\x93\x84 " . sprintf(
-                __( 'Pages supplémentaires : %d × %s = %s', 'serviceflow' ),
+                __( 'Pages supplémentaires : %1$d × %2$s = %3$s', 'serviceflow' ),
                 $extra_pages,
                 number_format( $extra_page_price, 2, ',', ' ' ) . " \xE2\x82\xAC",
                 number_format( $pages_total, 2, ',', ' ' ) . " \xE2\x82\xAC"
@@ -610,8 +612,9 @@ class ServiceFlow_Stripe {
         // Livraison express
         if ( $express_days > 0 && $express_price > 0 ) {
             $express_total = $express_days * $express_price;
+            /* translators: %1$d: number of days saved, %2$s: express delivery total cost */
             $lines[] = "\xE2\x9A\xA1 " . sprintf(
-                __( 'Livraison express : -%d jour(s) — %s', 'serviceflow' ),
+                __( 'Livraison express : -%1$d jour(s) — %2$s', 'serviceflow' ),
                 $express_days,
                 number_format( $express_total, 2, ',', ' ' ) . " \xE2\x82\xAC"
             );
@@ -632,7 +635,8 @@ class ServiceFlow_Stripe {
         } elseif ( $payment_mode === 'monthly' ) {
             $n_months = $upfront_paid > 0 ? (int) round( $total_price / $upfront_paid ) : 1;
             $lines[] = "\xF0\x9F\x92\xB0 " . sprintf( __( 'Tarif mensuel : %s', 'serviceflow' ), number_format( $upfront_paid, 2, ',', ' ' ) . " \xE2\x82\xAC" );
-            $lines[] = "\xF0\x9F\x93\x85 " . sprintf( __( 'Durée : %d mois (total : %s)', 'serviceflow' ), $n_months, number_format( $total_price, 2, ',', ' ' ) . " \xE2\x82\xAC" );
+            /* translators: %1$d: number of months, %2$s: total price */
+            $lines[] = "\xF0\x9F\x93\x85 " . sprintf( __( 'Durée : %1$d mois (total : %2$s)', 'serviceflow' ), $n_months, number_format( $total_price, 2, ',', ' ' ) . " \xE2\x82\xAC" );
             $lines[] = "\xE2\x9C\x85 " . __( 'Mois 1 payé via Stripe', 'serviceflow' );
         } else {
             $lines[] = "\xF0\x9F\x92\xB0 " . __( 'Total contrat :', 'serviceflow' ) . ' ' . number_format( $total_price, 2, ',', ' ' ) . " \xE2\x82\xAC";
@@ -652,11 +656,12 @@ class ServiceFlow_Stripe {
     /* ─── Retour client depuis Stripe ─────────────────────── */
 
     public static function handle_return_redirect(): void {
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Stripe return URL, nonce not applicable (redirect from Stripe).
         if ( empty( $_GET['stripe_success'] ) ) {
             return;
         }
 
-        $session_id = sanitize_text_field( $_GET['session_id'] ?? '' );
+        $session_id = sanitize_text_field( wp_unslash( $_GET['session_id'] ?? '' ) );
         if ( ! $session_id ) {
             return;
         }
@@ -687,6 +692,7 @@ class ServiceFlow_Stripe {
         } catch ( \Exception $e ) {
             // silent — fallback non critique
         }
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
     }
 
     /* ─── Logique commune webhook + fallback ───────────────── */

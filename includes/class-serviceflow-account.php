@@ -28,11 +28,11 @@ class ServiceFlow_Account {
         $user_id = get_current_user_id();
         $data    = [ 'ID' => $user_id ];
 
-        $display_name = sanitize_text_field( $_POST['display_name'] ?? '' );
-        $first_name   = sanitize_text_field( $_POST['first_name'] ?? '' );
-        $last_name    = sanitize_text_field( $_POST['last_name'] ?? '' );
-        $user_email   = sanitize_email( $_POST['user_email'] ?? '' );
-        $new_password = $_POST['new_password'] ?? '';
+        $display_name = sanitize_text_field( wp_unslash( $_POST['display_name'] ?? '' ) );
+        $first_name   = sanitize_text_field( wp_unslash( $_POST['first_name'] ?? '' ) );
+        $last_name    = sanitize_text_field( wp_unslash( $_POST['last_name'] ?? '' ) );
+        $user_email   = sanitize_email( wp_unslash( $_POST['user_email'] ?? '' ) );
+        $new_password = wp_unslash( $_POST['new_password'] ?? '' );
 
         if ( ! empty( $display_name ) ) {
             $data['display_name'] = $display_name;
@@ -299,8 +299,8 @@ class ServiceFlow_Account {
             .serviceflow-ma-sidebar nav{display:flex!important;flex-direction:column!important;gap:4px!important;position:sticky!important;top:100px!important}
             .serviceflow-ma-tab{display:flex!important;align-items:center!important;gap:10px!important;padding:10px 14px!important;border:none!important;background:none!important;font-size:14px!important;font-weight:500!important;cursor:pointer!important;color:#555!important;border-radius:8px!important;text-align:left!important;font-family:inherit!important;transition:all .15s!important;width:100%!important;box-sizing:border-box!important}
             .serviceflow-ma-tab:hover{background:#f5f5f5!important;color:#333!important}
-            .serviceflow-ma-tab.serviceflow-tab-active{background:<?php echo $esc_color; ?>!important;color:#fff!important;font-weight:600!important}
-            .serviceflow-ma-tab.serviceflow-tab-active:hover{background:<?php echo $esc_color; ?>!important;color:#fff!important}
+            .serviceflow-ma-tab.serviceflow-tab-active{background:<?php echo esc_attr( $esc_color ); ?>!important;color:#fff!important;font-weight:600!important}
+            .serviceflow-ma-tab.serviceflow-tab-active:hover{background:<?php echo esc_attr( $esc_color ); ?>!important;color:#fff!important}
             .serviceflow-ma-tab.serviceflow-tab-logout{color:#ef4444!important;margin-top:12px!important;border-top:1px solid #f0f0f0!important;padding-top:14px!important;border-radius:8px!important}
             .serviceflow-ma-tab.serviceflow-tab-logout:hover{background:#fef2f2!important;color:#dc2626!important}
             .serviceflow-ma-content{flex:1 1 0%!important;min-width:0!important;max-width:calc(100% - 252px)!important;width:100%!important;box-sizing:border-box!important}
@@ -348,16 +348,16 @@ class ServiceFlow_Account {
                 <!-- Contenu principal -->
                 <div class="serviceflow-ma-content" style="flex:1 1 0% !important;min-width:0 !important;max-width:calc(100% - 252px) !important;box-sizing:border-box !important">
                     <div id="serviceflow-ma-panel-dashboard" class="serviceflow-ma-panel" style="display:block">
-                        <?php echo $dashboard_html; ?>
+                        <?php echo $dashboard_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML generated internally by render_dashboard_section(). ?>
                     </div>
                     <div id="serviceflow-ma-panel-commandes" class="serviceflow-ma-panel" style="display:none">
-                        <?php echo $orders_html; ?>
+                        <?php echo $orders_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML generated internally by render_orders_section(). ?>
                     </div>
                     <div id="serviceflow-ma-panel-factures" class="serviceflow-ma-panel" style="display:none">
                         <?php echo self::render_invoices_section( $color ); ?>
                     </div>
                     <div id="serviceflow-ma-panel-profil" class="serviceflow-ma-panel" style="display:none">
-                        <?php echo $profile_html; ?>
+                        <?php echo $profile_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML generated internally by render_profile_section(). ?>
                     </div>
                 </div>
             </div>
@@ -489,7 +489,7 @@ class ServiceFlow_Account {
         ?>
         <!-- Bienvenue -->
         <div style="background:#fff !important;border:1px solid #e0e0e0 !important;border-radius:12px !important;padding:24px !important;margin:0 0 20px 0 !important;display:flex !important;align-items:center !important;gap:16px !important">
-            <img src="<?php echo esc_url( $avatar_url ); ?>" style="width:56px !important;height:56px !important;border-radius:50% !important;object-fit:cover !important;border:2px solid <?php echo $esc_color; ?> !important;flex-shrink:0 !important" />
+            <img src="<?php echo esc_url( $avatar_url ); ?>" style="width:56px !important;height:56px !important;border-radius:50% !important;object-fit:cover !important;border:2px solid <?php echo esc_attr( $esc_color ); ?> !important;flex-shrink:0 !important" />
             <div>
                 <div style="font-size:18px !important;font-weight:700 !important;color:#222 !important;margin:0 0 4px 0 !important"><?php printf( esc_html__( 'Bonjour, %s', 'serviceflow' ), esc_html( $user->display_name ) ); ?></div>
                 <div style="font-size:13px !important;color:#888 !important"><?php echo esc_html( $user->user_email ); ?> &middot; <?php esc_html_e( 'Membre depuis', 'serviceflow' ); ?> <?php echo esc_html( date_i18n( 'd/m/Y', strtotime( $user->user_registered ) ) ); ?></div>
@@ -513,8 +513,8 @@ class ServiceFlow_Account {
             foreach ( $stats as $st ) :
             ?>
             <div style="background:#fff !important;border:1px solid #e0e0e0 !important;border-radius:10px !important;padding:16px !important;text-align:center !important">
-                <div style="margin:0 auto 8px !important;width:36px !important;height:36px !important;border-radius:50% !important;background:<?php echo $st['color']; ?>15 !important;display:flex !important;align-items:center !important;justify-content:center !important">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="<?php echo $st['color']; ?>" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><?php echo $st['icon']; ?></svg>
+                <div style="margin:0 auto 8px !important;width:36px !important;height:36px !important;border-radius:50% !important;background:<?php echo esc_attr( $st['color'] ); ?>15 !important;display:flex !important;align-items:center !important;justify-content:center !important">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="<?php echo esc_attr( $st['color'] ); ?>" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><?php echo $st['icon']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG path defined in plugin code. ?></svg>
                 </div>
                 <div style="font-size:24px !important;font-weight:700 !important;color:#222 !important;line-height:1.2 !important"><?php echo esc_html( $st['value'] ); ?></div>
                 <div style="font-size:12px !important;color:#888 !important;margin-top:4px !important"><?php echo esc_html( $st['label'] ); ?></div>
@@ -526,17 +526,17 @@ class ServiceFlow_Account {
         <div class="serviceflow-dash-quick" style="display:grid !important;grid-template-columns:repeat(3,1fr) !important;gap:12px !important;margin:0 0 20px 0 !important">
             <button type="button" class="serviceflow-dash-goto" data-goto="commandes"
                     style="background:#fff !important;border:1px solid #e0e0e0 !important;border-radius:10px !important;padding:16px !important;cursor:pointer !important;text-align:center !important;font-family:inherit !important;transition:border-color .15s !important">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="<?php echo $esc_color; ?>" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block !important;margin:0 auto 8px !important"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="<?php echo esc_attr( $esc_color ); ?>" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block !important;margin:0 auto 8px !important"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
                 <span style="font-size:13px !important;font-weight:600 !important;color:#333 !important"><?php esc_html_e( 'Mes commandes', 'serviceflow' ); ?></span>
             </button>
             <button type="button" class="serviceflow-dash-goto" data-goto="factures"
                     style="background:#fff !important;border:1px solid #e0e0e0 !important;border-radius:10px !important;padding:16px !important;cursor:pointer !important;text-align:center !important;font-family:inherit !important;transition:border-color .15s !important">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="<?php echo $esc_color; ?>" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block !important;margin:0 auto 8px !important"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="<?php echo esc_attr( $esc_color ); ?>" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block !important;margin:0 auto 8px !important"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                 <span style="font-size:13px !important;font-weight:600 !important;color:#333 !important"><?php esc_html_e( 'Mes factures', 'serviceflow' ); ?></span>
             </button>
             <button type="button" class="serviceflow-dash-goto" data-goto="profil"
                     style="background:#fff !important;border:1px solid #e0e0e0 !important;border-radius:10px !important;padding:16px !important;cursor:pointer !important;text-align:center !important;font-family:inherit !important;transition:border-color .15s !important">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="<?php echo $esc_color; ?>" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block !important;margin:0 auto 8px !important"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="<?php echo esc_attr( $esc_color ); ?>" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block !important;margin:0 auto 8px !important"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 <span style="font-size:13px !important;font-weight:600 !important;color:#333 !important"><?php esc_html_e( 'Mon profil', 'serviceflow' ); ?></span>
             </button>
         </div>
@@ -546,7 +546,7 @@ class ServiceFlow_Account {
             <div style="display:flex !important;justify-content:space-between !important;align-items:center !important;margin:0 0 16px 0 !important">
                 <h3 style="font-size:15px !important;font-weight:700 !important;color:#222 !important;margin:0 !important"><?php esc_html_e( 'Dernières commandes', 'serviceflow' ); ?></h3>
                 <?php if ( $total_orders > 3 ) : ?>
-                <button type="button" class="serviceflow-dash-goto" data-goto="commandes" style="background:none !important;border:none !important;cursor:pointer !important;font-size:12px !important;font-weight:600 !important;color:<?php echo $esc_color; ?> !important;font-family:inherit !important;padding:0 !important"><?php esc_html_e( 'Tout voir', 'serviceflow' ); ?> &rarr;</button>
+                <button type="button" class="serviceflow-dash-goto" data-goto="commandes" style="background:none !important;border:none !important;cursor:pointer !important;font-size:12px !important;font-weight:600 !important;color:<?php echo esc_attr( $esc_color ); ?> !important;font-family:inherit !important;padding:0 !important"><?php esc_html_e( 'Tout voir', 'serviceflow' ); ?> &rarr;</button>
                 <?php endif; ?>
             </div>
             <?php if ( empty( $recent_orders ) ) : ?>
@@ -649,7 +649,7 @@ class ServiceFlow_Account {
                 <!-- Service -->
                 <div style="margin:0 0 8px 0 !important">
                     <?php if ( $permalink ) : ?>
-                        <a href="<?php echo esc_url( $permalink ); ?>" style="font-size:14px !important;font-weight:500 !important;color:<?php echo $esc_color; ?> !important;text-decoration:none !important"><?php echo esc_html( $o->service_name ?: '—' ); ?></a>
+                        <a href="<?php echo esc_url( $permalink ); ?>" style="font-size:14px !important;font-weight:500 !important;color:<?php echo esc_attr( $esc_color ); ?> !important;text-decoration:none !important"><?php echo esc_html( $o->service_name ?: '—' ); ?></a>
                     <?php else : ?>
                         <span style="font-size:14px !important;font-weight:500 !important;color:#333 !important"><?php echo esc_html( $o->service_name ?: '—' ); ?></span>
                     <?php endif; ?>
@@ -677,12 +677,12 @@ class ServiceFlow_Account {
                         <span><?php echo esc_html( $todos_data['progress']['completed'] . '/' . $todos_data['progress']['total'] ); ?> (<?php echo esc_html( $pct ); ?>%)</span>
                     </div>
                     <div style="height:6px !important;background:#e5e7eb !important;border-radius:3px !important;overflow:hidden !important;margin:0 0 8px 0 !important">
-                        <div style="height:100% !important;width:<?php echo esc_attr( $pct ); ?>% !important;background:<?php echo $esc_color; ?> !important;border-radius:3px !important"></div>
+                        <div style="height:100% !important;width:<?php echo esc_attr( $pct ); ?>% !important;background:<?php echo esc_attr( $esc_color ); ?> !important;border-radius:3px !important"></div>
                     </div>
                     <?php foreach ( $todos_data['items'] as $item ) : ?>
                     <div style="display:flex !important;align-items:flex-start !important;gap:6px !important;padding:2px 0 !important;font-size:12px !important">
                         <?php if ( $item['is_completed'] ) : ?>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="<?php echo $esc_color; ?>" stroke-width="2.5" style="flex-shrink:0 !important;margin-top:1px"><path d="M20 6L9 17l-5-5"/></svg>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="<?php echo esc_attr( $esc_color ); ?>" stroke-width="2.5" style="flex-shrink:0 !important;margin-top:1px"><path d="M20 6L9 17l-5-5"/></svg>
                         <?php else : ?>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2" style="flex-shrink:0 !important;margin-top:1px"><circle cx="12" cy="12" r="10"/></svg>
                         <?php endif; ?>
@@ -705,7 +705,7 @@ class ServiceFlow_Account {
                 <!-- Lien chat -->
                 <?php if ( $permalink ) : ?>
                 <div style="margin:10px 0 0 0 !important">
-                    <a href="<?php echo esc_url( $permalink ); ?>" style="display:inline-flex !important;align-items:center !important;gap:4px !important;font-size:12px !important;color:<?php echo $esc_color; ?> !important;text-decoration:none !important;font-weight:600 !important">
+                    <a href="<?php echo esc_url( $permalink ); ?>" style="display:inline-flex !important;align-items:center !important;gap:4px !important;font-size:12px !important;color:<?php echo esc_attr( $esc_color ); ?> !important;text-decoration:none !important;font-weight:600 !important">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                         <?php esc_html_e( 'Accéder au chat', 'serviceflow' ); ?>
                     </a>
@@ -732,7 +732,7 @@ class ServiceFlow_Account {
             <div style="display:flex;align-items:center;gap:16px;margin:0 0 24px 0">
                 <div id="serviceflow-avatar-wrap" style="position:relative;width:68px;height:68px;flex-shrink:0;cursor:pointer">
                     <img src="<?php echo esc_url( $avatar_url ); ?>" id="serviceflow-profile-avatar"
-                         style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid <?php echo $esc_color; ?>" />
+                         style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid <?php echo esc_attr( $esc_color ); ?>" />
                     <div id="serviceflow-avatar-overlay"
                          style="position:absolute;top:0;left:0;width:64px;height:64px;border-radius:50%;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;border:2px solid transparent">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
@@ -789,7 +789,7 @@ class ServiceFlow_Account {
                 <div id="serviceflow-profile-msg" style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:500;margin-bottom:12px"></div>
 
                 <button type="submit" id="serviceflow-profile-save"
-                        style="display:inline-flex;align-items:center;gap:8px;padding:10px 24px;border:none;border-radius:8px;background:<?php echo $esc_color; ?>;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">
+                        style="display:inline-flex;align-items:center;gap:8px;padding:10px 24px;border:none;border-radius:8px;background:<?php echo esc_attr( $esc_color ); ?>;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
                     <?php esc_html_e( 'Enregistrer', 'serviceflow' ); ?>
                 </button>
@@ -881,7 +881,7 @@ class ServiceFlow_Account {
         <script>
         (function(){
             var ajaxUrl = '<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>';
-            var nonce   = '<?php echo wp_create_nonce( 'serviceflow_nonce' ); ?>';
+            var nonce   = '<?php echo esc_js( wp_create_nonce( 'serviceflow_nonce' ) ); ?>';
 
             function sfPaymentAjax( action, scheduleId, btn ){
                 btn.disabled = true;
@@ -986,7 +986,7 @@ class ServiceFlow_Account {
                 <div style="background:#fff !important;border:1px solid #e0e0e0 !important;border-radius:10px !important;padding:16px !important;margin:0 0 10px 0 !important;box-shadow:0 1px 3px rgba(0,0,0,0.04) !important">
                     <div style="display:flex !important;justify-content:space-between !important;align-items:center !important;margin:0 0 8px 0 !important">
                         <strong style="font-size:14px !important;color:#222 !important"><?php echo esc_html( $inv->invoice_number ); ?></strong>
-                        <span style="display:inline-block !important;padding:3px 10px !important;border-radius:12px !important;font-size:11px !important;font-weight:600 !important;color:#fff !important;background:<?php echo $badge_color; ?> !important"><?php echo esc_html( $status_text ); ?></span>
+                        <span style="display:inline-block !important;padding:3px 10px !important;border-radius:12px !important;font-size:11px !important;font-weight:600 !important;color:#fff !important;background:<?php echo esc_attr( $badge_color ); ?> !important"><?php echo esc_html( $status_text ); ?></span>
                     </div>
                     <div style="display:flex !important;gap:16px !important;flex-wrap:wrap !important;font-size:12px !important;color:#888 !important;margin:0 0 10px 0 !important">
                         <span style="font-weight:600 !important;color:#333 !important;font-size:14px !important"><?php echo esc_html( number_format( (float) $inv->total, 2, ',', ' ' ) ); ?> &euro;</span>
@@ -996,7 +996,7 @@ class ServiceFlow_Account {
                         <?php endif; ?>
                     </div>
                     <a href="<?php echo esc_url( $view_url ); ?>" target="_blank"
-                       style="display:inline-flex !important;align-items:center !important;gap:4px !important;font-size:12px !important;color:<?php echo $esc_color; ?> !important;text-decoration:none !important;font-weight:600 !important">
+                       style="display:inline-flex !important;align-items:center !important;gap:4px !important;font-size:12px !important;color:<?php echo esc_attr( $esc_color ); ?> !important;text-decoration:none !important;font-weight:600 !important">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                         <?php esc_html_e( 'Voir / Imprimer', 'serviceflow' ); ?>
                     </a>

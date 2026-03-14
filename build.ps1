@@ -19,6 +19,8 @@ $exclude = @(
     "dist",
     "composer.json",
     "composer.lock",
+    "phpcs.xml",
+    "CLAUDE.md",
     "lib\.gitignore",
     "lib\CHANGELOG.md",
     "lib\CONTRIBUTING.md",
@@ -54,9 +56,25 @@ foreach ($exc in $exclude) {
     }
 }
 
-# Créer le zip
+# Créer le zip avec forward slashes (compatibilité Linux/serveur)
 Write-Host "Creating zip: $zipPath" -ForegroundColor Cyan
-Compress-Archive -Path $buildDir -DestinationPath $zipPath -Force
+Add-Type -AssemblyName System.IO.Compression
+
+$zipStream = [System.IO.File]::Open($zipPath, [System.IO.FileMode]::Create)
+$archive   = New-Object System.IO.Compression.ZipArchive($zipStream, [System.IO.Compression.ZipArchiveMode]::Create)
+
+Get-ChildItem -Path $buildDir -Recurse -File | ForEach-Object {
+    $rel   = $_.FullName.Substring($buildDir.Length).TrimStart('\', '/').Replace('\', '/')
+    $entry = $archive.CreateEntry("$pluginSlug/$rel", [System.IO.Compression.CompressionLevel]::Optimal)
+    $dst   = $entry.Open()
+    $src   = [System.IO.File]::OpenRead($_.FullName)
+    $src.CopyTo($dst)
+    $src.Close()
+    $dst.Close()
+}
+
+$archive.Dispose()
+$zipStream.Close()
 
 # Stats
 $zipSize = [math]::Round((Get-Item $zipPath).Length / 1MB, 2)

@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<ruleset name="ServiceFlow">
+    <description>ServiceFlow WordPress Plugin Coding Standards</description>
+
+    <rule ref="WordPress"/>
+
+    <!-- Exclude third-party vendor libraries -->
+    <exclude-pattern>lib/</exclude-pattern>
+    <exclude-pattern>vendor/</exclude-pattern>
+    <exclude-pattern>node_modules/</exclude-pattern>
+</ruleset>

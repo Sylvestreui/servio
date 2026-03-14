@@ -34,7 +34,7 @@ class ServiceFlow_Payments {
         $table        = self::table_name();
         $placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
         $results      = $wpdb->get_col(
-            $wpdb->prepare( "SELECT id FROM {$table} WHERE id IN ({$placeholders}) AND status = 'paid'", ...$ids )
+            $wpdb->prepare( "SELECT id FROM {$table} WHERE id IN ({$placeholders}) AND status = 'paid'", ...$ids ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table is a plugin-defined constant; $placeholders is a sanitized list of %d tokens.
         );
         return array_map( 'intval', $results ?: [] );
     }
@@ -46,6 +46,7 @@ class ServiceFlow_Payments {
         global $wpdb;
         $sched = self::table_name();
         $ord   = ServiceFlow_Orders::table_name();
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table names are plugin-defined constants.
         $ids   = $wpdb->get_col( $wpdb->prepare(
             "SELECT s.id FROM {$sched} s
              INNER JOIN {$ord} o ON o.id = s.order_id
@@ -64,6 +65,7 @@ class ServiceFlow_Payments {
         $sched    = self::table_name();
         $ord      = ServiceFlow_Orders::table_name();
         $deadline = gmdate( 'Y-m-d H:i:s', strtotime( '-24 hours' ) );
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table names are plugin-defined constants.
         $ids      = $wpdb->get_col( $wpdb->prepare(
             "SELECT s.id FROM {$sched} s
              INNER JOIN {$ord} o ON o.id = s.order_id
@@ -84,6 +86,7 @@ class ServiceFlow_Payments {
         $today = gmdate( 'Y-m-d' );
 
         // 1. Envoyer les liens de paiement pour les échéances du jour
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table name is a plugin-defined constant.
         $due_rows = $wpdb->get_results( $wpdb->prepare(
             "SELECT * FROM {$table} WHERE status = 'pending' AND due_date = %s AND type != 'deposit_balance'",
             $today
@@ -98,6 +101,7 @@ class ServiceFlow_Payments {
             $days_before  = (int) ( $settings['reminder_days_before'] ?? 3 );
             if ( $days_before > 0 && ( $settings['email_payment_reminder'] ?? '0' ) === '1' ) {
                 $reminder_date = gmdate( 'Y-m-d', strtotime( "+{$days_before} days" ) );
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table name is a plugin-defined constant.
                 $reminder_rows = $wpdb->get_results( $wpdb->prepare(
                     "SELECT * FROM {$table} WHERE status = 'pending' AND due_date = %s AND type != 'deposit_balance' AND sent_at IS NULL",
                     $reminder_date
@@ -315,6 +319,7 @@ class ServiceFlow_Payments {
         $table = self::table_name();
         $ord   = ServiceFlow_Orders::table_name();
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Static migration query, no user input, table names are plugin-defined constants.
         $rows = $wpdb->get_results(
             "SELECT s.id, s.installment_no, o.payment_mode, o.created_at
              FROM {$table} s
@@ -341,6 +346,7 @@ class ServiceFlow_Payments {
     public static function get_schedule_for_order( int $order_id ): array {
         global $wpdb;
         $table = self::table_name();
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table name is a plugin-defined constant.
         return $wpdb->get_results( $wpdb->prepare(
             "SELECT * FROM {$table} WHERE order_id = %d ORDER BY installment_no ASC",
             $order_id
@@ -350,6 +356,7 @@ class ServiceFlow_Payments {
     public static function get_row( int $id ): ?object {
         global $wpdb;
         $table = self::table_name();
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table name is a plugin-defined constant.
         return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $id ) ) ?: null;
     }
 
@@ -419,6 +426,7 @@ class ServiceFlow_Payments {
             $amount_fmt = number_format( floatval( $row->amount_ttc ), 2, ',', ' ' );
             $msg  = sprintf( "[SF_SCHED:%d]\n", $schedule_id );
             $msg .= sprintf( "--- %s ---\n", $label );
+            /* translators: %s: formatted payment amount */
             $msg .= sprintf( __( '💳 Montant : %s €', 'serviceflow' ), $amount_fmt ) . "\n";
             $msg .= $checkout_url;
 
@@ -707,6 +715,7 @@ class ServiceFlow_Payments {
         return match ( $type ) {
             'upfront'         => __( 'Acompte versé', 'serviceflow' ),
             'deposit_balance' => __( 'Solde à régler', 'serviceflow' ),
+            /* translators: %d: installment number */
             'installment'     => sprintf( __( 'Mensualité %d', 'serviceflow' ), $installment_no ),
             default           => ucfirst( $type ),
         };

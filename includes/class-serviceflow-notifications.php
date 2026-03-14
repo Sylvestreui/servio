@@ -1029,9 +1029,9 @@ class ServiceFlow_Notifications {
             wp_send_json_error( [], 403 );
         }
 
-        $type    = sanitize_key( $_POST['type'] ?? '' );
-        $subject = sanitize_text_field( $_POST['subject'] ?? '' );
-        $body    = sanitize_textarea_field( $_POST['body'] ?? '' );
+        $type    = sanitize_key( wp_unslash( $_POST['type'] ?? '' ) );
+        $subject = sanitize_text_field( wp_unslash( $_POST['subject'] ?? '' ) );
+        $body    = sanitize_textarea_field( wp_unslash( $_POST['body'] ?? '' ) );
 
         $allowed = [ 'new_message', 'new_order', 'order_status', 'payment_link', 'payment_reminder' ];
         if ( ! in_array( $type, $allowed, true ) ) {
@@ -1191,21 +1191,24 @@ class ServiceFlow_Notifications {
     private static function format_notification_text( string $type, array $data ): string {
         switch ( $type ) {
             case 'new_message':
+                /* translators: %1$s: sender name, %2$s: service name */
                 return sprintf(
-                    __( '%s vous a envoyé un message sur « %s »', 'serviceflow' ),
+                    __( '%1$s vous a envoyé un message sur « %2$s »', 'serviceflow' ),
                     $data['sender_name'] ?? '',
                     $data['service_name'] ?? ''
                 );
             case 'new_order':
+                /* translators: %1$s: client name, %2$s: service name, %3$s: total price */
                 return sprintf(
-                    __( 'Nouvelle commande de %s sur « %s » — %s €', 'serviceflow' ),
+                    __( 'Nouvelle commande de %1$s sur « %2$s » — %3$s €', 'serviceflow' ),
                     $data['client_name'] ?? '',
                     $data['service_name'] ?? '',
                     number_format( (float) ( $data['total_price'] ?? 0 ), 2, ',', ' ' )
                 );
             case 'order_status':
+                /* translators: %1$s: order number, %2$s: status label */
                 return sprintf(
-                    __( 'Commande %s — Statut : %s', 'serviceflow' ),
+                    __( 'Commande %1$s — Statut : %2$s', 'serviceflow' ),
                     $data['order_number'] ?? '',
                     $data['status_label'] ?? ''
                 );
@@ -1263,22 +1266,22 @@ class ServiceFlow_Notifications {
 
         ob_start();
         ?>
-        <div id="serviceflow-notif-wrap-<?php echo $n; ?>" style="position:relative !important;display:inline-block !important;vertical-align:middle !important">
+        <div id="serviceflow-notif-wrap-<?php echo absint( $n ); ?>" style="position:relative !important;display:inline-block !important;vertical-align:middle !important">
             <!-- Bouton cloche -->
-            <button id="serviceflow-notif-btn-<?php echo $n; ?>" type="button" style="background:none !important;border:none !important;cursor:pointer !important;padding:6px !important;position:relative !important;display:flex !important;align-items:center !important;justify-content:center !important;line-height:1 !important">
+            <button id="serviceflow-notif-btn-<?php echo absint( $n ); ?>" type="button" style="background:none !important;border:none !important;cursor:pointer !important;padding:6px !important;position:relative !important;display:flex !important;align-items:center !important;justify-content:center !important;line-height:1 !important">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="<?php echo esc_attr( $color ); ?>" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block !important"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                <span id="serviceflow-notif-badge-<?php echo $n; ?>" style="position:absolute !important;top:0 !important;right:0 !important;background:#ef4444 !important;color:#fff !important;font-size:10px !important;font-weight:700 !important;min-width:18px !important;height:18px !important;line-height:18px !important;text-align:center !important;border-radius:9px !important;padding:0 4px !important;box-sizing:border-box !important;display:<?php echo $count > 0 ? 'block' : 'none'; ?> !important"><?php echo $count; ?></span>
+                <span id="serviceflow-notif-badge-<?php echo absint( $n ); ?>" style="position:absolute !important;top:0 !important;right:0 !important;background:#ef4444 !important;color:#fff !important;font-size:10px !important;font-weight:700 !important;min-width:18px !important;height:18px !important;line-height:18px !important;text-align:center !important;border-radius:9px !important;padding:0 4px !important;box-sizing:border-box !important;display:<?php echo $count > 0 ? 'block' : 'none'; ?> !important"><?php echo absint( $count ); ?></span>
             </button>
 
             <!-- Dropdown -->
-            <div id="serviceflow-notif-drop-<?php echo $n; ?>" style="display:none !important;position:absolute !important;top:calc(100% + 6px) !important;right:0 !important;width:360px !important;max-width:calc(100vw - 32px) !important;background:#fff !important;border:1px solid #e0e0e0 !important;border-radius:10px !important;box-shadow:0 8px 30px rgba(0,0,0,0.12) !important;z-index:999999 !important;overflow:hidden !important">
+            <div id="serviceflow-notif-drop-<?php echo absint( $n ); ?>" style="display:none !important;position:absolute !important;top:calc(100% + 6px) !important;right:0 !important;width:360px !important;max-width:calc(100vw - 32px) !important;background:#fff !important;border:1px solid #e0e0e0 !important;border-radius:10px !important;box-shadow:0 8px 30px rgba(0,0,0,0.12) !important;z-index:999999 !important;overflow:hidden !important">
                 <!-- Header -->
                 <div style="padding:14px 16px !important;border-bottom:1px solid #eee !important;display:flex !important;align-items:center !important;justify-content:space-between !important">
                     <span style="font-size:15px !important;font-weight:700 !important;color:#222 !important"><?php esc_html_e( 'Notifications', 'serviceflow' ); ?></span>
-                    <button id="serviceflow-notif-readall-<?php echo $n; ?>" type="button" style="background:none !important;border:none !important;color:<?php echo esc_attr( $color ); ?> !important;font-size:12px !important;font-weight:600 !important;cursor:pointer !important;padding:0 !important"><?php esc_html_e( 'Tout marquer comme lu', 'serviceflow' ); ?></button>
+                    <button id="serviceflow-notif-readall-<?php echo absint( $n ); ?>" type="button" style="background:none !important;border:none !important;color:<?php echo esc_attr( $color ); ?> !important;font-size:12px !important;font-weight:600 !important;cursor:pointer !important;padding:0 !important"><?php esc_html_e( 'Tout marquer comme lu', 'serviceflow' ); ?></button>
                 </div>
                 <!-- Liste -->
-                <div id="serviceflow-notif-list-<?php echo $n; ?>" style="max-height:360px !important;overflow-y:auto !important">
+                <div id="serviceflow-notif-list-<?php echo absint( $n ); ?>" style="max-height:360px !important;overflow-y:auto !important">
                     <div style="padding:30px 16px !important;text-align:center !important;color:#999 !important;font-size:13px !important"><?php esc_html_e( 'Chargement…', 'serviceflow' ); ?></div>
                 </div>
             </div>
@@ -1286,7 +1289,7 @@ class ServiceFlow_Notifications {
 
         <script>
         (function(){
-            var n=<?php echo $n; ?>,
+            var n=<?php echo absint( $n ); ?>,
                 ajax='<?php echo esc_js( $ajax ); ?>',
                 nonce='<?php echo esc_js( $nonce ); ?>',
                 color='<?php echo esc_js( $color ); ?>';

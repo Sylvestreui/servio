@@ -19,9 +19,9 @@ class ServiceFlow_Elementor_Widgets {
     }
 
     public static function register_widgets( $widgets_manager ): void {
-        $widgets_manager->register( new SF_Widget_Pack() );
-        $widgets_manager->register( new SF_Widget_Option() );
-        $widgets_manager->register( new SF_Widget_Advanced_Price() );
+        $widgets_manager->register( new ServiceFlow_Widget_Pack() );
+        $widgets_manager->register( new ServiceFlow_Widget_Option() );
+        $widgets_manager->register( new ServiceFlow_Widget_Advanced_Price() );
     }
 }
 
@@ -29,7 +29,7 @@ class ServiceFlow_Elementor_Widgets {
  *  BASE WIDGET
  * ================================================================ */
 
-abstract class SF_Widget_Base extends \Elementor\Widget_Base {
+abstract class ServiceFlow_Widget_Base extends \Elementor\Widget_Base {
 
     public function get_categories(): array {
         return [ 'serviceflow' ];
@@ -101,7 +101,7 @@ abstract class SF_Widget_Base extends \Elementor\Widget_Base {
  *  WIDGET PACK
  * ================================================================ */
 
-class SF_Widget_Pack extends SF_Widget_Base {
+class ServiceFlow_Widget_Pack extends ServiceFlow_Widget_Base {
 
     public function get_name(): string  { return 'sf_pack'; }
     public function get_title(): string { return __( 'SF — Pack', 'serviceflow' ); }
@@ -274,7 +274,7 @@ class SF_Widget_Pack extends SF_Widget_Base {
  *  WIDGET OPTION
  * ================================================================ */
 
-class SF_Widget_Option extends SF_Widget_Base {
+class ServiceFlow_Widget_Option extends ServiceFlow_Widget_Base {
 
     public function get_name(): string  { return 'sf_option'; }
     public function get_title(): string { return __( 'SF — Option', 'serviceflow' ); }
@@ -366,7 +366,7 @@ class SF_Widget_Option extends SF_Widget_Base {
  *  WIDGET PRIX AVANCÉS (Premium)
  * ================================================================ */
 
-class SF_Widget_Advanced_Price extends SF_Widget_Base {
+class ServiceFlow_Widget_Advanced_Price extends ServiceFlow_Widget_Base {
 
     public function get_name(): string  { return 'sf_advanced_price'; }
     public function get_title(): string { return __( 'SF — Prix avancé', 'serviceflow' ); }

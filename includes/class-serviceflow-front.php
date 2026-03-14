@@ -18,9 +18,16 @@ class ServiceFlow_Front {
         }
 
         wp_enqueue_style(
+            'serviceflow-inter',
+            'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap',
+            [],
+            null
+        );
+
+        wp_enqueue_style(
             'serviceflow-style',
             SERVICEFLOW_PLUGIN_URL . 'assets/css/serviceflow.css',
-            [],
+            [ 'serviceflow-inter' ],
             SERVICEFLOW_VERSION
         );
     }
@@ -73,7 +80,6 @@ class ServiceFlow_Front {
         $c_light = sprintf( 'rgba(%d,%d,%d,0.12)', $r_int, $g_int, $b_int );
         $c_muted = sprintf( 'rgba(%d,%d,%d,0.7)', $r_int, $g_int, $b_int );
         ?>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
         <style>
             .serviceflow-info-tip{position:relative !important;cursor:help !important;display:inline-flex !important;align-items:center !important;color:#aaa !important}
             .serviceflow-info-tip .serviceflow-tip-text{visibility:hidden !important;opacity:0 !important;position:absolute !important;left:50% !important;bottom:calc(100% + 8px) !important;transform:translateX(-50%) !important;background:#333 !important;color:#fff !important;font-size:12px !important;font-weight:400 !important;line-height:1.4 !important;padding:8px 12px !important;border-radius:6px !important;max-width:350px !important;width:max-content !important;z-index:100 !important;pointer-events:none !important;transition:opacity .15s !important;box-shadow:0 2px 8px rgba(0,0,0,0.15) !important;text-align:left !important}
@@ -81,7 +87,7 @@ class ServiceFlow_Front {
             .serviceflow-info-tip:hover .serviceflow-tip-text{visibility:visible !important;opacity:1 !important}
             /* Checkbox custom avec la couleur du plugin */
             .serviceflow-sc-check{-webkit-appearance:none !important;-moz-appearance:none !important;appearance:none !important;width:18px !important;height:18px !important;min-width:18px !important;border:2px solid #ccc !important;border-radius:4px !important;background:#fff !important;cursor:pointer !important;position:relative !important;transition:all .15s !important;margin:2px 0 0 0 !important;flex-shrink:0 !important}
-            .serviceflow-sc-check:checked{background:<?php echo $c; ?> !important;border-color:<?php echo $c; ?> !important}
+            .serviceflow-sc-check:checked{background:<?php echo esc_html( $c ); ?> !important;border-color:<?php echo esc_html( $c ); ?> !important}
             .serviceflow-sc-check:checked::after{content:'' !important;position:absolute !important;left:5px !important;top:1px !important;width:5px !important;height:10px !important;border:solid #fff !important;border-width:0 2px 2px 0 !important;transform:rotate(45deg) !important}
             /* Scrollbar fine et discrète */
             #serviceflow-sc-card{scrollbar-width:none !important}
@@ -89,10 +95,10 @@ class ServiceFlow_Front {
             #serviceflow-sc-card::-webkit-scrollbar-track{background:transparent !important}
             #serviceflow-sc-card::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.15) !important;border-radius:1px !important}
             #serviceflow-sc-card:hover::-webkit-scrollbar{width:2px !important}
-            #serviceflow-sc-card:hover::-webkit-scrollbar-thumb{background:<?php echo $c_muted; ?> !important}
+            #serviceflow-sc-card:hover::-webkit-scrollbar-thumb{background:<?php echo esc_html( $c_muted ); ?> !important}
         </style>
         <div id="serviceflow-sc-card" style="font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif !important;border:1px solid #e0e0e0 !important;border-radius:12px !important;overflow-x:hidden !important;overflow-y:auto !important;max-height:calc(100vh - 80px) !important;background:#fff !important;box-shadow:0 2px 8px rgba(0,0,0,0.06) !important;max-width:100% !important;padding:0 !important;margin:0 0 20px 0 !important">
-            <div style="display:flex !important;align-items:center !important;gap:8px !important;padding:12px 16px !important;background:<?php echo $c; ?> !important;color:#fff !important;font-size:14px !important;font-weight:600 !important;margin:0 !important;border-radius:0 !important;position:sticky !important;top:0 !important;z-index:2 !important">
+            <div style="display:flex !important;align-items:center !important;gap:8px !important;padding:12px 16px !important;background:<?php echo esc_attr( $c ); ?> !important;color:#fff !important;font-size:14px !important;font-weight:600 !important;margin:0 !important;border-radius:0 !important;position:sticky !important;top:0 !important;z-index:2 !important">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"></path><rect x="9" y="3" width="6" height="4" rx="1"></rect></svg>
                 <span style="color:#fff !important;font-size:14px !important;font-weight:600 !important"><?php esc_html_e( 'Options de service', 'serviceflow' ); ?></span>
             </div>
@@ -100,10 +106,10 @@ class ServiceFlow_Front {
             <!-- Packs -->
             <div style="padding:12px 16px 2px !important;font-size:12px !important;font-weight:600 !important;text-transform:uppercase !important;letter-spacing:0.5px !important;color:#888 !important;margin:0 !important"><?php esc_html_e( 'Choisissez votre pack', 'serviceflow' ); ?></div>
             <div style="padding:0 16px 8px !important;margin:0 !important">
-                <span style="display:inline-flex !important;align-items:center !important;gap:4px !important;font-size:11px !important;font-weight:500 !important;color:#fff !important;background:<?php echo $c; ?> !important;padding:2px 8px !important;border-radius:20px !important;opacity:0.85 !important">&#128179; <?php echo esc_html( $payment_mode_label ); ?></span>
+                <span style="display:inline-flex !important;align-items:center !important;gap:4px !important;font-size:11px !important;font-weight:500 !important;color:#fff !important;background:<?php echo esc_attr( $c ); ?> !important;padding:2px 8px !important;border-radius:20px !important;opacity:0.85 !important">&#128179; <?php echo esc_html( $payment_mode_label ); ?></span>
             </div>
 
-            <div id="serviceflow-sc-packs" data-color="<?php echo $c; ?>" style="display:flex !important;flex-direction:column !important;gap:10px !important;padding:8px 16px 16px !important;margin:0 !important">
+            <div id="serviceflow-sc-packs" data-color="<?php echo esc_attr( $c ); ?>" style="display:flex !important;flex-direction:column !important;gap:10px !important;padding:8px 16px 16px !important;margin:0 !important">
                 <?php foreach ( $packs as $i => $pack ) :
                     $pack_delay = absint( $pack['delay'] ?? 0 );
                     $is_sel     = ( $i === 0 );
@@ -114,8 +120,8 @@ class ServiceFlow_Front {
                     $features   = $pack['features'] ?? [];
                 ?>
                 <div class="serviceflow-sc-pack" data-index="<?php echo $i; ?>" data-price="<?php echo esc_attr( $pack['price'] ); ?>" data-delay="<?php echo esc_attr( $pack_delay ); ?>" <?php echo $is_sel ? 'data-selected="true"' : ''; ?>
-                     style="border:2px solid <?php echo $brd; ?> !important;border-radius:10px !important;padding:12px !important;cursor:pointer !important;background:<?php echo $bg; ?> !important;position:relative !important;box-sizing:border-box !important;margin:0 !important;transition:border-color .15s,background .15s !important">
-                    <div class="serviceflow-pack-dot" style="position:absolute !important;top:10px !important;right:10px !important;width:18px !important;height:18px !important;border-radius:50% !important;border:2px solid <?php echo $dot_brd; ?> !important;background:<?php echo $dot_bg; ?> !important;display:flex !important;align-items:center !important;justify-content:center !important"><?php if ( $is_sel ) : ?><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"></path></svg><?php endif; ?></div>
+                     style="border:2px solid <?php echo esc_attr( $brd ); ?> !important;border-radius:10px !important;padding:12px !important;cursor:pointer !important;background:<?php echo esc_attr( $bg ); ?> !important;position:relative !important;box-sizing:border-box !important;margin:0 !important;transition:border-color .15s,background .15s !important">
+                    <div class="serviceflow-pack-dot" style="position:absolute !important;top:10px !important;right:10px !important;width:18px !important;height:18px !important;border-radius:50% !important;border:2px solid <?php echo esc_attr( $dot_brd ); ?> !important;background:<?php echo esc_attr( $dot_bg ); ?> !important;display:flex !important;align-items:center !important;justify-content:center !important"><?php if ( $is_sel ) : ?><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"></path></svg><?php endif; ?></div>
                     <div style="display:flex !important;align-items:center !important;gap:6px !important;margin:0 0 4px 0 !important;padding-right:28px !important">
                         <span style="font-size:14px !important;font-weight:700 !important;color:#222 !important"><?php echo esc_html( $pack['name'] ); ?></span>
                         <?php if ( ! empty( $pack['description'] ) ) : ?>
@@ -126,7 +132,7 @@ class ServiceFlow_Front {
                         <?php endif; ?>
                     </div>
                     <div style="display:flex !important;align-items:baseline !important;gap:8px !important;margin:0 0 4px 0 !important">
-                        <span style="font-size:14px !important;font-weight:800 !important;color:<?php echo $c_muted; ?> !important"><?php echo esc_html( number_format( $pack['price'], 2, ',', ' ' ) ); ?> &euro;</span>
+                        <span style="font-size:14px !important;font-weight:800 !important;color:<?php echo esc_attr( $c_muted ); ?> !important"><?php echo esc_html( number_format( $pack['price'], 2, ',', ' ' ) ); ?> &euro;</span>
                         <?php if ( $pack_delay > 0 ) : ?>
                             <span style="font-size:11px !important;color:#888 !important">&#9201; <?php echo esc_html( $pack_delay ); ?> <?php esc_html_e( 'jour(s)', 'serviceflow' ); ?></span>
                         <?php endif; ?>
@@ -135,7 +141,7 @@ class ServiceFlow_Front {
                         <div style="margin:6px 0 0 0 !important;padding:0 !important">
                             <?php foreach ( $features as $feat ) : ?>
                                 <div style="display:flex !important;align-items:center !important;gap:6px !important;font-size:12px !important;color:#555 !important;line-height:1.6 !important;margin:0 !important;padding:0 !important">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="<?php echo $c_muted; ?>" stroke-width="2.5" style="flex-shrink:0 !important"><path d="M20 6L9 17l-5-5"></path></svg>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="<?php echo esc_attr( $c_muted ); ?>" stroke-width="2.5" style="flex-shrink:0 !important"><path d="M20 6L9 17l-5-5"></path></svg>
                                     <span style="font-size:12px !important;color:#555 !important"><?php echo esc_html( $feat ); ?></span>
                                 </div>
                             <?php endforeach; ?>
@@ -188,7 +194,7 @@ class ServiceFlow_Front {
 
             <?php if ( $extra_page_price > 0 ) : ?>
             <div style="display:flex !important;align-items:center !important;gap:10px !important;padding:10px 16px !important;margin:0 !important">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="<?php echo $c; ?>" stroke-width="2" style="flex-shrink:0 !important"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="<?php echo esc_attr( $c ); ?>" stroke-width="2" style="flex-shrink:0 !important"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 <div style="flex:1 !important;min-width:0 !important">
                     <div style="font-size:13px !important;font-weight:500 !important;color:#333 !important"><?php esc_html_e( 'Pages supplémentaires', 'serviceflow' ); ?></div>
                     <div style="font-size:11px !important;color:#999 !important"><?php echo esc_html( number_format( $extra_page_price, 2, ',', ' ' ) ); ?> &euro; / <?php esc_html_e( 'page', 'serviceflow' ); ?></div>
@@ -203,7 +209,7 @@ class ServiceFlow_Front {
 
             <?php if ( $express_price > 0 ) : ?>
             <div style="display:flex !important;align-items:center !important;gap:10px !important;padding:10px 16px !important;margin:0 !important">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="<?php echo $c; ?>" stroke-width="2" style="flex-shrink:0 !important"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="<?php echo esc_attr( $c ); ?>" stroke-width="2" style="flex-shrink:0 !important"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 <div style="flex:1 !important;min-width:0 !important">
                     <div style="font-size:13px !important;font-weight:500 !important;color:#333 !important"><?php esc_html_e( 'Livraison express', 'serviceflow' ); ?></div>
                     <div style="font-size:11px !important;color:#999 !important"><?php echo esc_html( number_format( $express_price, 2, ',', ' ' ) ); ?> &euro; / <?php esc_html_e( 'jour retiré', 'serviceflow' ); ?></div>
@@ -249,7 +255,7 @@ class ServiceFlow_Front {
                 </div>
                 <div style="display:flex !important;justify-content:space-between !important;align-items:center !important;font-size:16px !important;font-weight:700 !important;color:#222 !important;margin:0 0 4px 0 !important;padding:0 !important;border-top:1px solid #e8e8e8 !important;padding-top:6px !important">
                     <span style="font-size:16px !important;font-weight:700 !important;color:#222 !important"><?php esc_html_e( 'Total', 'serviceflow' ); ?></span>
-                    <span id="serviceflow-sc-total-val" style="font-size:16px !important;font-weight:700 !important;color:<?php echo $c_muted; ?> !important"><?php echo esc_html( number_format( $first_total, 2, ',', ' ' ) ); ?> &euro;</span>
+                    <span id="serviceflow-sc-total-val" style="font-size:16px !important;font-weight:700 !important;color:<?php echo esc_attr( $c_muted ); ?> !important"><?php echo esc_html( number_format( $first_total, 2, ',', ' ' ) ); ?> &euro;</span>
                 </div>
                 <div id="serviceflow-sc-delay-row" style="display:flex !important;justify-content:space-between !important;align-items:center !important;font-size:13px !important;color:#888 !important;margin:0 0 12px 0 !important;padding:0 !important">
                     <span style="font-size:13px !important;color:#888 !important">&#9201; <?php esc_html_e( 'Délai estimé', 'serviceflow' ); ?></span>
@@ -269,9 +275,9 @@ class ServiceFlow_Front {
             <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
                 <div style="flex-shrink:0">
                     <div style="font-size:11px;color:#888;text-transform:uppercase;font-weight:600;letter-spacing:0.3px"><?php esc_html_e( 'À partir de', 'serviceflow' ); ?></div>
-                    <div id="serviceflow-mobile-price" style="font-size:16px;font-weight:600;color:<?php echo $c; ?>"><?php echo esc_html( number_format( $first_price, 2, ',', ' ' ) ); ?> &euro;</div>
+                    <div id="serviceflow-mobile-price" style="font-size:16px;font-weight:600;color:<?php echo esc_attr( $c ); ?>"><?php echo esc_html( number_format( $first_price, 2, ',', ' ' ) ); ?> &euro;</div>
                 </div>
-                <button type="button" id="serviceflow-mobile-cta" style="flex:1;max-width:240px;padding:12px 16px;border:none;border-radius:8px;background:<?php echo $c; ?>;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;line-height:1.4">
+                <button type="button" id="serviceflow-mobile-cta" style="flex:1;max-width:240px;padding:12px 16px;border:none;border-radius:8px;background:<?php echo esc_attr( $c ); ?>;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;line-height:1.4">
                     <?php esc_html_e( 'Voir les offres', 'serviceflow' ); ?>
                 </button>
             </div>
@@ -582,7 +588,7 @@ class ServiceFlow_Front {
         ?>
 
         <!-- ServiceFlow : Bouton flottant -->
-        <button id="serviceflow-toggle" style="<?php echo $btn_style; ?>" aria-label="Chat">
+        <button id="serviceflow-toggle" style="<?php echo esc_attr( $btn_style ); ?>" aria-label="Chat">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
             <span id="serviceflow-badge" style="position:absolute;top:-2px;right:-2px;min-width:20px;height:20px;background:#e53e3e;color:#fff;border-radius:50%;font-size:11px;font-weight:700;align-items:center;justify-content:center;line-height:1;display:none"></span>
         </button>
@@ -594,9 +600,9 @@ class ServiceFlow_Front {
         </style>
 
         <!-- ServiceFlow : Popup -->
-        <div id="serviceflow-container" style="<?php echo $popup_style; ?>">
+        <div id="serviceflow-container" style="<?php echo esc_attr( $popup_style ); ?>">
             <!-- Header avec bouton retour -->
-            <div id="serviceflow-header" style="background:<?php echo $color; ?> !important;color:#fff !important;padding:14px 20px !important;flex-shrink:0 !important;display:flex !important;align-items:center !important;gap:10px !important;margin:0 !important">
+            <div id="serviceflow-header" style="background:<?php echo esc_attr( $color ); ?> !important;color:#fff !important;padding:14px 20px !important;flex-shrink:0 !important;display:flex !important;align-items:center !important;gap:10px !important;margin:0 !important">
                 <button id="serviceflow-back" type="button" style="display:none !important;background:none !important;border:none !important;color:#fff !important;cursor:pointer !important;padding:0 !important;margin:0 !important;flex-shrink:0 !important;line-height:1 !important">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg>
                 </button>
@@ -617,7 +623,7 @@ class ServiceFlow_Front {
                 <form id="serviceflow-form" class="serviceflow-form" onsubmit="return false;">
                     <div class="serviceflow-input-wrapper">
                         <textarea id="serviceflow-input" class="serviceflow-input" placeholder="<?php esc_attr_e( 'Votre message...', 'serviceflow' ); ?>" rows="1" maxlength="1000"></textarea>
-                        <button type="button" id="serviceflow-send" class="serviceflow-send" style="background:<?php echo $color; ?>">
+                        <button type="button" id="serviceflow-send" class="serviceflow-send" style="background:<?php echo esc_attr( $color ); ?>">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"></path><path d="M22 2L15 22L11 13L2 9L22 2Z"></path></svg>
                         </button>
                     </div>
@@ -637,7 +643,7 @@ class ServiceFlow_Front {
         <!-- ServiceFlow : Script -->
         <script>
         (function(){
-            var C = <?php echo $js_config; ?>;
+            var C = <?php echo $js_config; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- wp_json_encode() ensures safe JSON output ?>;
             var POLL = 5000;
             var lsKey = 'sf_last_seen_' + C.post_id + '_' + C.user_id;
             var lastId = parseInt(localStorage.getItem(lsKey) || '0', 10);

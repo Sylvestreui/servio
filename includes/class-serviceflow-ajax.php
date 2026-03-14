@@ -28,7 +28,7 @@ class ServiceFlow_Ajax {
         }
 
         $post_id = absint( $_POST['post_id'] ?? 0 );
-        $message = sanitize_textarea_field( $_POST['message'] ?? '' );
+        $message = sanitize_textarea_field( wp_unslash( $_POST['message'] ?? '' ) );
 
         if ( ! $post_id || empty( $message ) ) {
             wp_send_json_error( [ 'message' => __( 'Données manquantes.', 'serviceflow' ) ], 400 );

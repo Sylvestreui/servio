@@ -481,7 +481,8 @@ class ServiceFlow_Invoices {
         $label = match ( $invoice_type ) {
             'acompte'    => sprintf( __( 'Acompte — %s', 'serviceflow' ), $service_name ),
             'solde'      => sprintf( __( 'Solde — %s', 'serviceflow' ), $service_name ),
-            'mensualite' => sprintf( __( 'Mensualité %d — %s', 'serviceflow' ), $installment_no, $service_name ),
+            /* translators: %1$d: installment number, %2$s: service name */
+            'mensualite' => sprintf( __( 'Mensualité %1$d — %2$s', 'serviceflow' ), $installment_no, $service_name ),
             default      => $service_name,
         };
 
@@ -933,7 +934,7 @@ class ServiceFlow_Invoices {
             wp_die( __( 'Vous devez être connecté.', 'serviceflow' ) );
         }
 
-        $invoice_id = absint( $_GET['invoice_id'] ?? 0 );
+        $invoice_id = absint( $_GET['invoice_id'] ?? 0 ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only view; ownership verified below.
         if ( ! $invoice_id ) {
             wp_die( __( 'Facture introuvable.', 'serviceflow' ) );
         }
@@ -972,7 +973,7 @@ class ServiceFlow_Invoices {
         ?>
         <div class="wrap serviceflow-dashboard">
             <h1 style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
-                <span class="dashicons dashicons-media-text" style="font-size:28px;width:28px;height:28px;color:<?php echo $color; ?>"></span>
+                <span class="dashicons dashicons-media-text" style="font-size:28px;width:28px;height:28px;color:<?php echo esc_attr( $color ); ?>"></span>
                 <?php esc_html_e( 'ServiceFlow — Réglages facturation', 'serviceflow' ); ?>
             </h1>
 
@@ -1100,7 +1101,7 @@ class ServiceFlow_Invoices {
                     </div>
                 </div>
 
-                <button type="button" id="serviceflow-inv-save-settings" class="button button-primary" style="background:<?php echo $color; ?>;border-color:<?php echo $color; ?>;padding:8px 24px;font-size:14px">
+                <button type="button" id="serviceflow-inv-save-settings" class="button button-primary" style="background:<?php echo esc_attr( $color ); ?>;border-color:<?php echo esc_attr( $color ); ?>;padding:8px 24px;font-size:14px">
                     <?php esc_html_e( 'Enregistrer', 'serviceflow' ); ?>
                 </button>
             </div>
@@ -1108,7 +1109,7 @@ class ServiceFlow_Invoices {
             <script>
             (function(){
                 var ajaxUrl = '<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>';
-                var nonce   = '<?php echo $nonce; ?>';
+                var nonce   = '<?php echo esc_js( $nonce ); ?>';
 
                 // Logo uploader
                 var uploadBtn = document.getElementById('serviceflow-inv-upload-logo');
@@ -1212,7 +1213,7 @@ class ServiceFlow_Invoices {
         ?>
         <div class="wrap serviceflow-dashboard">
             <h1 style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
-                <span class="dashicons dashicons-groups" style="font-size:28px;width:28px;height:28px;color:<?php echo $color; ?>"></span>
+                <span class="dashicons dashicons-groups" style="font-size:28px;width:28px;height:28px;color:<?php echo esc_attr( $color ); ?>"></span>
                 <?php esc_html_e( 'ServiceFlow — Clients externes', 'serviceflow' ); ?>
             </h1>
 
@@ -1335,7 +1336,7 @@ class ServiceFlow_Invoices {
                             <label><?php esc_html_e( 'Notes', 'serviceflow' ); ?></label>
                             <textarea id="serviceflow-cl-notes"></textarea>
                         </div>
-                        <button type="button" id="serviceflow-cl-save" class="button button-primary" style="background:<?php echo $color; ?>;border-color:<?php echo $color; ?>;margin-right:8px">
+                        <button type="button" id="serviceflow-cl-save" class="button button-primary" style="background:<?php echo esc_attr( $color ); ?>;border-color:<?php echo esc_attr( $color ); ?>;margin-right:8px">
                             <?php esc_html_e( 'Enregistrer', 'serviceflow' ); ?>
                         </button>
                         <button type="button" id="serviceflow-cl-reset" class="button"><?php esc_html_e( 'Annuler', 'serviceflow' ); ?></button>
@@ -1346,7 +1347,7 @@ class ServiceFlow_Invoices {
             <script>
             (function(){
                 var ajaxUrl = '<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>';
-                var nonce   = '<?php echo $nonce; ?>';
+                var nonce   = '<?php echo esc_js( $nonce ); ?>';
 
                 function resetForm(){
                     document.getElementById('serviceflow-cl-id').value = '0';
@@ -1433,7 +1434,7 @@ class ServiceFlow_Invoices {
             return;
         }
 
-        $filter   = sanitize_text_field( $_GET['status'] ?? '' );
+        $filter   = sanitize_text_field( wp_unslash( $_GET['status'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Admin-only list filter, read-only.
         $invoices = self::get_invoices( $filter );
         $counts   = self::get_status_counts();
         $labels   = self::get_status_labels();
@@ -1444,7 +1445,7 @@ class ServiceFlow_Invoices {
         ?>
         <div class="wrap serviceflow-dashboard">
             <h1 style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
-                <span class="dashicons dashicons-media-text" style="font-size:28px;width:28px;height:28px;color:<?php echo $color; ?>"></span>
+                <span class="dashicons dashicons-media-text" style="font-size:28px;width:28px;height:28px;color:<?php echo esc_attr( $color ); ?>"></span>
                 <?php esc_html_e( 'ServiceFlow — Factures', 'serviceflow' ); ?>
                 <a href="<?php echo admin_url( 'admin.php?page=serviceflow-invoice-new' ); ?>" class="page-title-action"><?php esc_html_e( 'Nouvelle facture', 'serviceflow' ); ?></a>
             </h1>
@@ -1452,7 +1453,7 @@ class ServiceFlow_Invoices {
             <style>
                 .serviceflow-inv-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
                 .serviceflow-inv-filter{padding:6px 14px;border:1px solid #ddd;border-radius:20px;font-size:13px;font-weight:500;color:#555;text-decoration:none;background:#fff;cursor:pointer;transition:all .15s}
-                .serviceflow-inv-filter.active,.serviceflow-inv-filter:hover{border-color:<?php echo $color; ?>;color:<?php echo $color; ?>}
+                .serviceflow-inv-filter.active,.serviceflow-inv-filter:hover{border-color:<?php echo esc_attr( $color ); ?>;color:<?php echo esc_attr( $color ); ?>}
                 .serviceflow-inv-filter .count{font-size:11px;color:#999;margin-left:4px}
                 .serviceflow-inv-table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden}
                 .serviceflow-inv-table th{background:#f9f9f9;text-align:left;padding:10px 12px;font-size:12px;font-weight:600;color:#555;border-bottom:1px solid #e0e0e0}
@@ -1473,11 +1474,11 @@ class ServiceFlow_Invoices {
             <!-- Filtres -->
             <div class="serviceflow-inv-filters">
                 <a href="<?php echo esc_url( $page_url ); ?>" class="serviceflow-inv-filter <?php echo empty( $filter ) ? 'active' : ''; ?>">
-                    <?php esc_html_e( 'Toutes', 'serviceflow' ); ?> <span class="count">(<?php echo $counts['all']; ?>)</span>
+                    <?php esc_html_e( 'Toutes', 'serviceflow' ); ?> <span class="count">(<?php echo absint( $counts['all'] ); ?>)</span>
                 </a>
                 <?php foreach ( $labels as $key => $label ) : ?>
                     <a href="<?php echo esc_url( add_query_arg( 'status', $key, $page_url ) ); ?>" class="serviceflow-inv-filter <?php echo $filter === $key ? 'active' : ''; ?>">
-                        <?php echo esc_html( $label ); ?> <span class="count">(<?php echo $counts[ $key ] ?? 0; ?>)</span>
+                        <?php echo esc_html( $label ); ?> <span class="count">(<?php echo absint( $counts[ $key ] ?? 0 ); ?>)</span>
                     </a>
                 <?php endforeach; ?>
             </div>
@@ -1522,12 +1523,12 @@ class ServiceFlow_Invoices {
                             <td><?php echo $inv->order_id ? '#CMD-' . esc_html( $inv->order_id ) : '—'; ?></td>
                             <td>
                                 <div class="serviceflow-inv-status-wrap">
-                                    <span class="serviceflow-inv-badge <?php echo ! empty( $allowed_next ) ? 'clickable' : ''; ?>" style="background:<?php echo $badge_color; ?>" <?php if ( ! empty( $allowed_next ) ) : ?>data-toggle-dd="dd-<?php echo (int) $inv->id; ?>"<?php endif; ?>><?php echo esc_html( $status_text ); ?></span>
+                                    <span class="serviceflow-inv-badge <?php echo ! empty( $allowed_next ) ? 'clickable' : ''; ?>" style="background:<?php echo esc_attr( $badge_color ); ?>" <?php if ( ! empty( $allowed_next ) ) : ?>data-toggle-dd="dd-<?php echo (int) $inv->id; ?>"<?php endif; ?>><?php echo esc_html( $status_text ); ?></span>
                                     <?php if ( ! empty( $allowed_next ) ) : ?>
                                     <div class="serviceflow-inv-status-dd" id="dd-<?php echo (int) $inv->id; ?>">
                                         <?php foreach ( $allowed_next as $ns ) : ?>
                                             <a href="#" class="serviceflow-inv-set-status" data-id="<?php echo (int) $inv->id; ?>" data-status="<?php echo esc_attr( $ns ); ?>">
-                                                <span class="serviceflow-inv-status-dot" style="background:<?php echo $colors[ $ns ] ?? '#999'; ?>"></span>
+                                                <span class="serviceflow-inv-status-dot" style="background:<?php echo esc_attr( $colors[ $ns ] ?? '#999' ); ?>"></span>
                                                 <?php echo esc_html( $labels[ $ns ] ?? $ns ); ?>
                                             </a>
                                         <?php endforeach; ?>
@@ -1538,7 +1539,7 @@ class ServiceFlow_Invoices {
                             <td><strong><?php echo esc_html( number_format( (float) $inv->total, 2, ',', ' ' ) ); ?> &euro;</strong></td>
                             <td><?php echo esc_html( date_i18n( 'd/m/Y', strtotime( $inv->created_at ) ) ); ?></td>
                             <td>
-                                <a href="<?php echo esc_url( $view_url ); ?>" class="serviceflow-inv-act" style="color:<?php echo $color; ?>"><?php esc_html_e( 'Voir', 'serviceflow' ); ?></a>
+                                <a href="<?php echo esc_url( $view_url ); ?>" class="serviceflow-inv-act" style="color:<?php echo esc_attr( $color ); ?>"><?php esc_html_e( 'Voir', 'serviceflow' ); ?></a>
                                 <?php if ( $inv->status === self::STATUS_DRAFT ) : ?>
                                     <a href="<?php echo esc_url( admin_url( 'admin.php?page=serviceflow-invoice-edit&invoice_id=' . $inv->id ) ); ?>" class="serviceflow-inv-act" style="color:#f59e0b"><?php esc_html_e( 'Modifier', 'serviceflow' ); ?></a>
                                 <?php endif; ?>
@@ -1561,7 +1562,7 @@ class ServiceFlow_Invoices {
             <script>
             (function(){
                 var ajaxUrl = '<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>';
-                var nonce   = '<?php echo $nonce; ?>';
+                var nonce   = '<?php echo esc_js( $nonce ); ?>';
 
                 // Actions classiques (Valider, Payer, Annuler)
                 document.querySelectorAll('.serviceflow-inv-action').forEach(function(a){
@@ -1647,7 +1648,7 @@ class ServiceFlow_Invoices {
         ?>
         <div class="wrap serviceflow-dashboard">
             <h1 style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
-                <span class="dashicons dashicons-plus-alt" style="font-size:28px;width:28px;height:28px;color:<?php echo $color; ?>"></span>
+                <span class="dashicons dashicons-plus-alt" style="font-size:28px;width:28px;height:28px;color:<?php echo esc_attr( $color ); ?>"></span>
                 <?php esc_html_e( 'ServiceFlow — Nouvelle facture', 'serviceflow' ); ?>
             </h1>
 
@@ -1746,13 +1747,13 @@ class ServiceFlow_Invoices {
 
                 <!-- Actions -->
                 <button type="button" class="button serviceflow-newinv-save" data-status="draft" style="margin-right:8px"><?php esc_html_e( 'Enregistrer en brouillon', 'serviceflow' ); ?></button>
-                <button type="button" class="button button-primary serviceflow-newinv-save" data-status="validated" style="background:<?php echo $color; ?>;border-color:<?php echo $color; ?>"><?php esc_html_e( 'Enregistrer et valider', 'serviceflow' ); ?></button>
+                <button type="button" class="button button-primary serviceflow-newinv-save" data-status="validated" style="background:<?php echo esc_attr( $color ); ?>;border-color:<?php echo esc_attr( $color ); ?>"><?php esc_html_e( 'Enregistrer et valider', 'serviceflow' ); ?></button>
             </div>
 
             <script>
             (function(){
                 var ajaxUrl = '<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>';
-                var nonce   = '<?php echo $nonce; ?>';
+                var nonce   = '<?php echo esc_js( $nonce ); ?>';
 
                 // Toggle client type
                 document.querySelectorAll('input[name="serviceflow_client_type"]').forEach(function(r){
@@ -1856,7 +1857,7 @@ class ServiceFlow_Invoices {
             return;
         }
 
-        $invoice_id = absint( $_GET['invoice_id'] ?? 0 );
+        $invoice_id = absint( $_GET['invoice_id'] ?? 0 ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Admin-only render, capability checked above.
         $invoice    = $invoice_id ? self::get_invoice( $invoice_id ) : null;
 
         if ( ! $invoice || $invoice->status !== self::STATUS_DRAFT ) {
@@ -1874,7 +1875,7 @@ class ServiceFlow_Invoices {
         ?>
         <div class="wrap serviceflow-dashboard">
             <h1 style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
-                <span class="dashicons dashicons-edit" style="font-size:28px;width:28px;height:28px;color:<?php echo $color; ?>"></span>
+                <span class="dashicons dashicons-edit" style="font-size:28px;width:28px;height:28px;color:<?php echo esc_attr( $color ); ?>"></span>
                 <?php printf( esc_html__( 'Modifier — %s', 'serviceflow' ), esc_html( $invoice->invoice_number ) ); ?>
             </h1>
 
@@ -1974,14 +1975,14 @@ class ServiceFlow_Invoices {
 
                 <!-- Actions -->
                 <button type="button" class="button serviceflow-newinv-save" data-status="draft" style="margin-right:8px"><?php esc_html_e( 'Enregistrer en brouillon', 'serviceflow' ); ?></button>
-                <button type="button" class="button button-primary serviceflow-newinv-save" data-status="validated" style="background:<?php echo $color; ?>;border-color:<?php echo $color; ?>"><?php esc_html_e( 'Enregistrer et valider', 'serviceflow' ); ?></button>
+                <button type="button" class="button button-primary serviceflow-newinv-save" data-status="validated" style="background:<?php echo esc_attr( $color ); ?>;border-color:<?php echo esc_attr( $color ); ?>"><?php esc_html_e( 'Enregistrer et valider', 'serviceflow' ); ?></button>
                 <a href="<?php echo admin_url( 'admin.php?page=serviceflow-invoices' ); ?>" style="padding:8px 20px;font-size:13px;text-decoration:none;color:#555">&larr; <?php esc_html_e( 'Retour', 'serviceflow' ); ?></a>
             </div>
 
             <script>
             (function(){
                 var ajaxUrl = '<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>';
-                var nonce   = '<?php echo $nonce; ?>';
+                var nonce   = '<?php echo esc_js( $nonce ); ?>';
                 var invoiceId = <?php echo (int) $invoice->id; ?>;
 
                 document.querySelectorAll('input[name="serviceflow_client_type"]').forEach(function(r){
@@ -2082,7 +2083,7 @@ class ServiceFlow_Invoices {
             return;
         }
 
-        $invoice_id = absint( $_GET['invoice_id'] ?? 0 );
+        $invoice_id = absint( $_GET['invoice_id'] ?? 0 ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Admin-only render, capability checked above.
         if ( ! $invoice_id ) {
             echo '<div class="wrap"><p>' . esc_html__( 'Facture introuvable.', 'serviceflow' ) . '</p></div>';
             return;
@@ -2295,7 +2296,7 @@ class ServiceFlow_Invoices {
 
         <!-- Actions (non imprimables) -->
         <div class="serviceflow-inv-actions no-print" style="max-width:800px;margin:0 auto">
-            <button onclick="sfPrintInvoice()" style="background:<?php echo $color; ?>;color:#fff">
+            <button onclick="sfPrintInvoice()" style="background:<?php echo esc_attr( $color ); ?>;color:#fff">
                 <?php esc_html_e( 'Imprimer', 'serviceflow' ); ?>
             </button>
             <?php if ( $is_admin ) : ?>
@@ -2338,7 +2339,7 @@ class ServiceFlow_Invoices {
         <script>
         (function(){
             var ajaxUrl = '<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>';
-            var nonce   = '<?php echo $nonce; ?>';
+            var nonce   = '<?php echo esc_js( $nonce ); ?>';
             document.querySelectorAll('.serviceflow-inv-view-action').forEach(function(btn){
                 btn.addEventListener('click', function(){
                     if(!confirm('<?php echo esc_js( __( 'Confirmer cette action ?', 'serviceflow' ) ); ?>')) return;

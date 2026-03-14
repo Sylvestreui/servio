@@ -40,7 +40,7 @@ class ServiceFlow_Options {
             $cpt,
             $exclude_id
         );
-        return (int) $wpdb->get_var( $sql );
+        return (int) $wpdb->get_var( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Query built with wpdb::prepare() above.
     }
 
     public static function render_meta_box( \WP_Post $post ): void {
@@ -349,7 +349,7 @@ class ServiceFlow_Options {
         if ( ! isset( $_POST['serviceflow_options_nonce'] ) ) {
             return;
         }
-        if ( ! wp_verify_nonce( $_POST['serviceflow_options_nonce'], 'serviceflow_options_save' ) ) {
+        if ( ! wp_verify_nonce( wp_unslash( $_POST['serviceflow_options_nonce'] ), 'serviceflow_options_save' ) ) {
             return;
         }
         if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
@@ -371,7 +371,7 @@ class ServiceFlow_Options {
         }
 
         // Packs
-        $packs_raw = $_POST['serviceflow_packs'] ?? [];
+        $packs_raw = wp_unslash( $_POST['serviceflow_packs'] ?? [] );
         $packs = [];
         if ( is_array( $packs_raw ) ) {
             foreach ( $packs_raw as $pack ) {
@@ -395,7 +395,7 @@ class ServiceFlow_Options {
         update_post_meta( $post_id, '_serviceflow_packs', $packs );
 
         // Options supplémentaires
-        $opts_raw = $_POST['serviceflow_opts'] ?? [];
+        $opts_raw = wp_unslash( $_POST['serviceflow_opts'] ?? [] );
         $opts = [];
         if ( is_array( $opts_raw ) ) {
             foreach ( $opts_raw as $opt ) {
@@ -415,24 +415,24 @@ class ServiceFlow_Options {
 
         // Options avancées
         if ( isset( $_POST['serviceflow_extra_page_price'] ) ) {
-            update_post_meta( $post_id, '_serviceflow_extra_page_price', floatval( $_POST['serviceflow_extra_page_price'] ) );
+            update_post_meta( $post_id, '_serviceflow_extra_page_price', floatval( wp_unslash( $_POST['serviceflow_extra_page_price'] ) ) );
         }
         if ( isset( $_POST['serviceflow_maintenance_price'] ) ) {
-            update_post_meta( $post_id, '_serviceflow_maintenance_price', floatval( $_POST['serviceflow_maintenance_price'] ) );
+            update_post_meta( $post_id, '_serviceflow_maintenance_price', floatval( wp_unslash( $_POST['serviceflow_maintenance_price'] ) ) );
         }
         if ( isset( $_POST['serviceflow_express_price'] ) ) {
-            update_post_meta( $post_id, '_serviceflow_express_price', floatval( $_POST['serviceflow_express_price'] ) );
+            update_post_meta( $post_id, '_serviceflow_express_price', floatval( wp_unslash( $_POST['serviceflow_express_price'] ) ) );
         }
 
         // Mode de paiement
         if ( isset( $_POST['serviceflow_payment_mode'] ) ) {
-            $mode = sanitize_text_field( $_POST['serviceflow_payment_mode'] );
+            $mode = sanitize_text_field( wp_unslash( $_POST['serviceflow_payment_mode'] ) );
             if ( in_array( $mode, [ 'single', 'deposit', 'installments', 'monthly' ], true ) ) {
                 update_post_meta( $post_id, '_serviceflow_payment_mode', $mode );
             }
         }
         if ( isset( $_POST['serviceflow_installments_count'] ) ) {
-            update_post_meta( $post_id, '_serviceflow_installments_count', absint( $_POST['serviceflow_installments_count'] ) );
+            update_post_meta( $post_id, '_serviceflow_installments_count', absint( wp_unslash( $_POST['serviceflow_installments_count'] ) ) );
         }
     }
 

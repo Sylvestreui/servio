@@ -1,8 +1,8 @@
 === ServiceFlow ===
 Contributors: sylvestreui
-Tags: chat, orders, invoices, stripe, payments, service, client, account
+Tags: chat, orders, invoices, payments, client
 Requires at least: 5.8
-Tested up to: 6.7
+Tested up to: 6.8
 Stable tag: 1.0.0
 Requires PHP: 7.4
 License: GPLv2 or later

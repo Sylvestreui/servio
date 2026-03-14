@@ -48,6 +48,7 @@ class ServiceFlow_Dashboard {
      */
     private static function get_stats(): array {
         global $wpdb;
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table names are plugin-defined constants, no user input.
 
         $order_table = ServiceFlow_Orders::table_name();
         $msg_table   = ServiceFlow_DB::table_name();
@@ -82,6 +83,8 @@ class ServiceFlow_Dashboard {
             'pending'
         ) );
 
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
         return [
             'total_orders'     => $total_orders,
             'in_progress'      => $in_progress,
@@ -98,6 +101,7 @@ class ServiceFlow_Dashboard {
      */
     private static function get_recent_orders(): array {
         global $wpdb;
+        // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Static query, table names only, no user input.
 
         $order_table = ServiceFlow_Orders::table_name();
 
@@ -109,6 +113,7 @@ class ServiceFlow_Dashboard {
              ORDER BY o.created_at DESC
              LIMIT 15"
         );
+        // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     }
 
     /**
@@ -116,6 +121,7 @@ class ServiceFlow_Dashboard {
      */
     private static function get_recent_messages(): array {
         global $wpdb;
+        // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Static query, table names only, no user input.
 
         $msg_table = ServiceFlow_DB::table_name();
 
@@ -128,6 +134,7 @@ class ServiceFlow_Dashboard {
              ORDER BY m.created_at DESC
              LIMIT 10"
         );
+        // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     }
 
     public static function render_dashboard(): void {

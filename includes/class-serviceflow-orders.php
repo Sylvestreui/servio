@@ -235,7 +235,7 @@ class ServiceFlow_Orders {
 
         $sql .= ' ORDER BY o.created_at DESC';
 
-        return $wpdb->get_results( $sql );
+        return $wpdb->get_results( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Query built with wpdb::prepare() above.
     }
 
     /**
@@ -262,7 +262,7 @@ class ServiceFlow_Orders {
             $post_id
         );
 
-        $results = $wpdb->get_results( $sql );
+        $results = $wpdb->get_results( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Query built with wpdb::prepare() above.
 
         // Exclure les administrateurs
         return array_values( array_filter( $results, function ( $user ) {
@@ -377,8 +377,9 @@ class ServiceFlow_Orders {
                 }
 
                 if ( isset( $date ) && $order->total_delay > 0 ) {
+                    /* translators: %1$d: number of days, %2$s: estimated delivery date */
                     $delay_info = sprintf(
-                        __( "Délai total : %d jour(s)\nLivraison estimée : %s", 'serviceflow' ),
+                        __( "Délai total : %1$d jour(s)\nLivraison estimée : %2$s", 'serviceflow' ),
                         (int) $order->total_delay,
                         $date
                     );
@@ -420,12 +421,14 @@ class ServiceFlow_Orders {
                             number_format( $upfront, 2, ',', ' ' ) . ' €'
                         );
                     } elseif ( $payment_mode === 'monthly' ) {
+                        /* translators: %1$d: total number of months, %2$s: amount received */
                         $payment_line = sprintf(
-                            __( 'Mois 1 / %d — %s reçu via Stripe. Commande démarrée.', 'serviceflow' ),
+                            __( 'Mois 1 / %1$d — %2$s reçu via Stripe. Commande démarrée.', 'serviceflow' ),
                             $n_months,
                             number_format( $upfront, 2, ',', ' ' ) . ' €'
                         ) . "\n" . sprintf(
-                            __( 'Total abonnement (%d mois) : %s', 'serviceflow' ),
+                            /* translators: %1$d: number of months, %2$s: total amount */
+                            __( 'Total abonnement (%1$d mois) : %2$s', 'serviceflow' ),
                             $n_months,
                             number_format( $total, 2, ',', ' ' ) . ' €'
                         );
@@ -433,8 +436,9 @@ class ServiceFlow_Orders {
                         $label = $payment_mode === 'deposit'
                             ? __( 'Acompte (50%)', 'serviceflow' )
                             : __( 'Premier versement (40%)', 'serviceflow' );
+                        /* translators: %1$s: payment label (e.g. "Acompte"), %2$s: amount received */
                         $payment_line = sprintf(
-                            __( '%s de %s reçu via Stripe. Commande démarrée.', 'serviceflow' ),
+                            __( '%1$s de %2$s reçu via Stripe. Commande démarrée.', 'serviceflow' ),
                             $label,
                             number_format( $upfront, 2, ',', ' ' ) . ' €'
                         ) . "\n" . sprintf(
@@ -509,7 +513,7 @@ class ServiceFlow_Orders {
 
         $post_id           = absint( $_POST['post_id'] ?? 0 );
         $selected_pack_idx = absint( $_POST['selected_pack'] ?? 0 );
-        $selected_indices  = json_decode( stripslashes( $_POST['selected_indices'] ?? '[]' ), true );
+        $selected_indices  = json_decode( wp_unslash( $_POST['selected_indices'] ?? '[]' ), true );
         $extra_pages       = absint( $_POST['extra_pages'] ?? 0 );
         $maintenance       = absint( $_POST['maintenance'] ?? 0 );
 
@@ -606,7 +610,7 @@ class ServiceFlow_Orders {
         }
 
         $order_id   = absint( $_POST['order_id'] ?? 0 );
-        $new_status = sanitize_text_field( $_POST['new_status'] ?? '' );
+        $new_status = sanitize_text_field( wp_unslash( $_POST['new_status'] ?? '' ) );
         $post_id    = absint( $_POST['post_id'] ?? 0 );
 
         if ( ! $order_id || ! $new_status || ! $post_id ) {
