@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: WpServio
- * Plugin URI:  https://github.com/SylvestreUi/serviceflow
+ * Plugin URI:  https://github.com/SylvestreUi/wpservio
  * Description: Service management plugin with integrated chat, order tracking, invoicing, Stripe payments and client notifications for any Custom Post Type.
  * Version:     1.0.0
  * Author:      SylvestreUi
