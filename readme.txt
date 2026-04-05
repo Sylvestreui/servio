@@ -1,4 +1,4 @@
-=== ServiceFlow ===
+=== WpServio ===
 Contributors: sylvestreui
 Tags: chat, orders, invoices, payments, client
 Requires at least: 5.8
@@ -12,14 +12,14 @@ Turn any Custom Post Type into a complete client service platform — chat, orde
 
 == Description ==
 
-ServiceFlow turns any Custom Post Type into a full client service management system. Each post gets its own real-time chat, allowing clients and service providers to communicate directly, place orders, track progress and pay online.
+WpServio turns any Custom Post Type into a full client service management system. Each post gets its own real-time chat, allowing clients and service providers to communicate directly, place orders, track progress and pay online.
 
 **Core Features (Free)**
 
 * Real-time chat attached to any CPT post
 * Service packs and options management with pricing, delays and descriptions
 * Order workflow: pending → paid → started → completed → revision → accepted
-* Client account page with dashboard, orders, invoices and profile (`[serviceflow_my_account]` shortcode)
+* Client account page with dashboard, orders, invoices and profile (`[wpservio_my_account]` shortcode)
 * Admin dashboard with statistics and recent activity
 * In-app notification system
 * Customisable accent colour and chat button position
@@ -41,12 +41,12 @@ ServiceFlow turns any Custom Post Type into a full client service management sys
 
 == Installation ==
 
-1. Upload the `serviceflow` folder to `/wp-content/plugins/`
+1. Upload the `wpservio` folder to `/wp-content/plugins/`
 2. Activate the plugin through the **Plugins** menu in WordPress
-3. Go to **ServiceFlow → Settings** and choose your Custom Post Type
-4. Create a page and add the `[serviceflow_my_account]` shortcode for the client account dashboard (orders, invoices, profile). Optionally, add `[serviceflow_account]` in your header/navbar as a login/avatar widget.
-5. *(Premium)* Configure Stripe under **ServiceFlow → Stripe** — paste your API keys and webhook secret
-6. *(Premium)* Configure email notifications under **ServiceFlow → Notifications**
+3. Go to **WpServio → Settings** and choose your Custom Post Type
+4. Create a page and add the `[wpservio_my_account]` shortcode for the client account dashboard (orders, invoices, profile). Optionally, add `[wpservio_account]` in your header/navbar as a login/avatar widget.
+5. *(Premium)* Configure Stripe under **WpServio → Stripe** — paste your API keys and webhook secret
+6. *(Premium)* Configure email notifications under **WpServio → Notifications**
 
 **WP Cron (for automatic payment links)**
 
@@ -57,7 +57,7 @@ On low-traffic sites, add a real system cron job for reliable daily scheduling:
 
 = Which Custom Post Types are supported? =
 
-Any public Custom Post Type registered on your site. Configure it in ServiceFlow → Settings.
+Any public Custom Post Type registered on your site. Configure it in WpServio → Settings.
 
 = Is Stripe required? =
 
@@ -73,7 +73,7 @@ Four modes per service: single payment, 50% deposit + balance on delivery, insta
 
 = Where is the webhook URL for Stripe? =
 
-Go to **ServiceFlow → Stripe** in your admin. The webhook URL is displayed there — copy it into your Stripe Dashboard under Developers → Webhooks. Select the `checkout.session.completed` event.
+Go to **WpServio → Stripe** in your admin. The webhook URL is displayed there — copy it into your Stripe Dashboard under Developers → Webhooks. Select the `checkout.session.completed` event.
 
 == External Services ==
 

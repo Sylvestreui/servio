@@ -1,12 +1,23 @@
-# ServiceFlow — Build script (WordPress.org distribution zip)
-# Usage: .\build.ps1
+# WpServio — Build script
+# Usage:
+#   .\build.ps1              → zip WP.org (version gratuite)
+#   .\build.ps1 -Premium     → zip Freemius premium (wpservio-1.0.0-premium.zip)
 
-$pluginSlug    = "serviceflow"
+param(
+    [switch]$Premium
+)
+
+$pluginSlug    = "wpservio"
 $pluginVersion = "1.0.0"
 $rootDir       = $PSScriptRoot
 $distDir       = Join-Path $rootDir "dist"
 $buildDir      = Join-Path $distDir $pluginSlug
-$zipPath       = Join-Path $distDir "$pluginSlug-$pluginVersion.zip"
+
+if ($Premium) {
+    $zipPath = Join-Path $distDir "$pluginSlug-$pluginVersion-premium.zip"
+} else {
+    $zipPath = Join-Path $distDir "$pluginSlug-$pluginVersion.zip"
+}
 
 # Fichiers/dossiers à exclure
 $exclude = @(
@@ -30,8 +41,10 @@ $exclude = @(
     "lib\composer.json"
 )
 
-# Nettoyer
-if (Test-Path $distDir) { Remove-Item $distDir -Recurse -Force }
+# Nettoyer (dossier de build temporaire uniquement, pas les autres zips)
+if (Test-Path $buildDir) { Remove-Item $buildDir -Recurse -Force }
+if (Test-Path $zipPath)  { Remove-Item $zipPath -Force }
+if (-not (Test-Path $distDir)) { New-Item -ItemType Directory -Path $distDir | Out-Null }
 New-Item -ItemType Directory -Path $buildDir | Out-Null
 
 Write-Host "Copying plugin files..." -ForegroundColor Cyan
@@ -77,7 +90,8 @@ $archive.Dispose()
 $zipStream.Close()
 
 # Stats
-$zipSize = [math]::Round((Get-Item $zipPath).Length / 1MB, 2)
+$zipSize  = [math]::Round((Get-Item $zipPath).Length / 1MB, 2)
+$zipLabel = if ($Premium) { "$pluginSlug-$pluginVersion-premium.zip" } else { "$pluginSlug-$pluginVersion.zip" }
 Write-Host ""
-Write-Host "Done! $pluginSlug-$pluginVersion.zip ($zipSize MB)" -ForegroundColor Green
+Write-Host "Done! $zipLabel ($zipSize MB)" -ForegroundColor Green
 Write-Host "Path: $zipPath" -ForegroundColor Green

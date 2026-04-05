@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class ServiceFlow_Payments {
+class WpServio_Payments {
 
     /* ================================================================
      *  Utilitaires statut paiement
@@ -16,10 +16,12 @@ class ServiceFlow_Payments {
     public static function get_paid_schedule_ids( int $order_id ): array {
         global $wpdb;
         $table = self::table_name();
-        $ids   = $wpdb->get_col( $wpdb->prepare(
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $ids   = $wpdb->get_col( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             "SELECT id FROM {$table} WHERE order_id = %d AND status = 'paid'",
             $order_id
         ) );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         return array_map( 'intval', $ids ?: [] );
     }
 
@@ -33,9 +35,11 @@ class ServiceFlow_Payments {
         global $wpdb;
         $table        = self::table_name();
         $placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
-        $results      = $wpdb->get_col(
-            $wpdb->prepare( "SELECT id FROM {$table} WHERE id IN ({$placeholders}) AND status = 'paid'", ...$ids ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.UnfinishedPrepare -- $table is a plugin-defined constant; $placeholders contains %d tokens built from count($ids).
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $results      = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $wpdb->prepare( "SELECT id FROM {$table} WHERE id IN ({$placeholders}) AND status = 'paid'", ...$ids ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $placeholders contains %d tokens built from count($ids).
         );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         return array_map( 'intval', $results ?: [] );
     }
 
@@ -45,14 +49,15 @@ class ServiceFlow_Payments {
     public static function get_paid_schedule_ids_for_post( int $post_id ): array {
         global $wpdb;
         $sched = self::table_name();
-        $ord   = ServiceFlow_Orders::table_name();
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table names are plugin-defined constants.
-        $ids   = $wpdb->get_col( $wpdb->prepare(
+        $ord   = WpServio_Orders::table_name();
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $ids   = $wpdb->get_col( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             "SELECT s.id FROM {$sched} s
              INNER JOIN {$ord} o ON o.id = s.order_id
              WHERE o.post_id = %d AND s.status = 'paid'",
             $post_id
         ) );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         return array_map( 'intval', $ids ?: [] );
     }
 
@@ -63,16 +68,17 @@ class ServiceFlow_Payments {
     public static function get_expired_schedule_ids_for_post( int $post_id ): array {
         global $wpdb;
         $sched    = self::table_name();
-        $ord      = ServiceFlow_Orders::table_name();
+        $ord      = WpServio_Orders::table_name();
         $deadline = gmdate( 'Y-m-d H:i:s', strtotime( '-24 hours' ) );
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table names are plugin-defined constants.
-        $ids      = $wpdb->get_col( $wpdb->prepare(
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $ids      = $wpdb->get_col( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             "SELECT s.id FROM {$sched} s
              INNER JOIN {$ord} o ON o.id = s.order_id
              WHERE o.post_id = %d AND s.status = 'sent' AND s.sent_at < %s",
             $post_id,
             $deadline
         ) );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         return array_map( 'intval', $ids ?: [] );
     }
 
@@ -86,30 +92,32 @@ class ServiceFlow_Payments {
         $today = gmdate( 'Y-m-d' );
 
         // 1. Envoyer les liens de paiement pour les échéances du jour
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table name is a plugin-defined constant.
-        $due_rows = $wpdb->get_results( $wpdb->prepare(
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $due_rows = $wpdb->get_results( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             "SELECT * FROM {$table} WHERE status = 'pending' AND due_date = %s AND type != 'deposit_balance'",
             $today
         ) );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         foreach ( $due_rows as $row ) {
             self::send_payment_link( (int) $row->id, 0 );
         }
 
         // 2. Envoyer les rappels N jours avant l'échéance (si activé)
-        if ( class_exists( 'ServiceFlow_Notifications' ) ) {
-            $settings     = ServiceFlow_Notifications::get_settings();
+        if ( class_exists( 'WpServio_Notifications' ) ) {
+            $settings     = WpServio_Notifications::get_settings();
             $days_before  = (int) ( $settings['reminder_days_before'] ?? 3 );
             if ( $days_before > 0 && ( $settings['email_payment_reminder'] ?? '0' ) === '1' ) {
                 $reminder_date = gmdate( 'Y-m-d', strtotime( "+{$days_before} days" ) );
-                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table name is a plugin-defined constant.
-                $reminder_rows = $wpdb->get_results( $wpdb->prepare(
+                // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                $reminder_rows = $wpdb->get_results( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                     "SELECT * FROM {$table} WHERE status = 'pending' AND due_date = %s AND type != 'deposit_balance' AND sent_at IS NULL",
                     $reminder_date
                 ) );
+                // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 foreach ( $reminder_rows as $row ) {
-                    $order = ServiceFlow_Orders::get_order( (int) $row->order_id );
+                    $order = WpServio_Orders::get_order( (int) $row->order_id );
                     if ( $order ) {
-                        ServiceFlow_Notifications::on_payment_reminder( $row, $order );
+                        WpServio_Notifications::on_payment_reminder( $row, $order );
                     }
                 }
             }
@@ -117,16 +125,16 @@ class ServiceFlow_Payments {
     }
 
     public static function init(): void {
-        if ( ! serviceflow_is_premium() ) {
+        if ( ! wpservio_is_premium() ) {
             return;
         }
-        add_action( 'wp_ajax_serviceflow_send_payment_link',        [ __CLASS__, 'ajax_send_payment_link' ] );
-        add_action( 'wp_ajax_serviceflow_mark_payment_paid',        [ __CLASS__, 'ajax_mark_payment_paid' ] );
-        add_action( 'wp_ajax_serviceflow_rebuild_schedule',         [ __CLASS__, 'ajax_rebuild_schedule' ] );
-        add_action( 'wp_ajax_nopriv_serviceflow_schedule_check',    [ __CLASS__, 'ajax_schedule_check' ] );
-        add_action( 'wp_ajax_serviceflow_schedule_check',           [ __CLASS__, 'ajax_schedule_check' ] );
-        add_action( 'serviceflow_order_status_changed', [ __CLASS__, 'on_order_status_changed' ], 20, 4 );
-        add_action( 'serviceflow_daily_payments', [ __CLASS__, 'cron_send_due_links' ] );
+        add_action( 'wp_ajax_wpservio_send_payment_link',        [ __CLASS__, 'ajax_send_payment_link' ] );
+        add_action( 'wp_ajax_wpservio_mark_payment_paid',        [ __CLASS__, 'ajax_mark_payment_paid' ] );
+        add_action( 'wp_ajax_wpservio_rebuild_schedule',         [ __CLASS__, 'ajax_rebuild_schedule' ] );
+        add_action( 'wp_ajax_nopriv_wpservio_schedule_check',    [ __CLASS__, 'ajax_schedule_check' ] );
+        add_action( 'wp_ajax_wpservio_schedule_check',           [ __CLASS__, 'ajax_schedule_check' ] );
+        add_action( 'wpservio_order_status_changed', [ __CLASS__, 'on_order_status_changed' ], 20, 4 );
+        add_action( 'wpservio_daily_payments', [ __CLASS__, 'cron_send_due_links' ] );
     }
 
     /* ================================================================
@@ -135,7 +143,7 @@ class ServiceFlow_Payments {
 
     public static function table_name(): string {
         global $wpdb;
-        return $wpdb->prefix . 'serviceflow_payment_schedule';
+        return $wpdb->prefix . 'wpservio_payment_schedule';
     }
 
     public static function create_table(): void {
@@ -228,7 +236,7 @@ class ServiceFlow_Payments {
      */
     public static function create_schedule_for_order( int $order_id ): void {
         global $wpdb;
-        $order = ServiceFlow_Orders::get_order( $order_id );
+        $order = WpServio_Orders::get_order( $order_id );
         if ( ! $order || $order->payment_mode === 'single' ) {
             return;
         }
@@ -247,7 +255,7 @@ class ServiceFlow_Payments {
             for ( $i = 1; $i <= $n; $i++ ) {
                 $amount   = ( $i === $n ) ? $last_amount : $per_month;
                 $due_date = gmdate( 'Y-m-d', strtotime( '+' . ( $i - 1 ) . ' month', strtotime( gmdate( 'Y-m-01' ) ) ) );
-                $wpdb->insert( $table, [
+                $wpdb->insert( $table, [ // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                     'order_id'       => $order_id,
                     'type'           => 'installment',
                     'installment_no' => $i,
@@ -265,7 +273,7 @@ class ServiceFlow_Payments {
         $upfront   = self::get_upfront_amount( $total, $mode );
         $remaining = round( $total - $upfront, 2 );
 
-        $wpdb->insert( $table, [
+        $wpdb->insert( $table, [ // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             'order_id'       => $order_id,
             'type'           => 'upfront',
             'installment_no' => 0,
@@ -276,7 +284,7 @@ class ServiceFlow_Payments {
         ] );
 
         if ( $mode === 'deposit' ) {
-            $wpdb->insert( $table, [
+            $wpdb->insert( $table, [ // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                 'order_id'       => $order_id,
                 'type'           => 'deposit_balance',
                 'installment_no' => 1,
@@ -293,7 +301,7 @@ class ServiceFlow_Payments {
             for ( $i = 1; $i <= $n; $i++ ) {
                 $amount   = ( $i === $n ) ? $last_amount : $per_month;
                 $due_date = gmdate( 'Y-m-d', strtotime( '+' . $i . ' month', strtotime( gmdate( 'Y-m-01' ) ) ) );
-                $wpdb->insert( $table, [
+                $wpdb->insert( $table, [ // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                     'order_id'       => $order_id,
                     'type'           => 'installment',
                     'installment_no' => $i,
@@ -317,15 +325,16 @@ class ServiceFlow_Payments {
     public static function migrate_due_dates(): void {
         global $wpdb;
         $table = self::table_name();
-        $ord   = ServiceFlow_Orders::table_name();
+        $ord   = WpServio_Orders::table_name();
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Static migration query, no user input, table names are plugin-defined constants.
-        $rows = $wpdb->get_results(
+        // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             "SELECT s.id, s.installment_no, o.payment_mode, o.created_at
              FROM {$table} s
              INNER JOIN {$ord} o ON o.id = s.order_id
              WHERE s.due_date IS NULL AND s.status = 'pending' AND s.type != 'deposit_balance'"
         );
+        // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
         foreach ( $rows as $row ) {
             $base   = strtotime( gmdate( 'Y-m-01', strtotime( $row->created_at ) ) );
@@ -335,7 +344,7 @@ class ServiceFlow_Payments {
                 $offset = max( 0, $offset - 1 );
             }
             $due_date = gmdate( 'Y-m-d', strtotime( "+{$offset} month", $base ) );
-            $wpdb->update( $table, [ 'due_date' => $due_date ], [ 'id' => (int) $row->id ] );
+            $wpdb->update( $table, [ 'due_date' => $due_date ], [ 'id' => (int) $row->id ] ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         }
     }
 
@@ -346,18 +355,20 @@ class ServiceFlow_Payments {
     public static function get_schedule_for_order( int $order_id ): array {
         global $wpdb;
         $table = self::table_name();
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table name is a plugin-defined constant.
-        return $wpdb->get_results( $wpdb->prepare(
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        return $wpdb->get_results( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             "SELECT * FROM {$table} WHERE order_id = %d ORDER BY installment_no ASC",
             $order_id
         ) ) ?: [];
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
     }
 
     public static function get_row( int $id ): ?object {
         global $wpdb;
         $table = self::table_name();
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table name is a plugin-defined constant.
-        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $id ) ) ?: null;
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $id ) ) ?: null; // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
     }
 
     /* ================================================================
@@ -375,30 +386,43 @@ class ServiceFlow_Payments {
             return false;
         }
 
-        $order = ServiceFlow_Orders::get_order( (int) $row->order_id );
+        $order = WpServio_Orders::get_order( (int) $row->order_id );
         if ( ! $order ) {
             return false;
         }
 
         // Créer une session Stripe Checkout pour ce montant
         try {
-            $stripe   = ServiceFlow_Stripe::stripe();
-            $settings = ServiceFlow_Stripe::get_settings();
+            $stripe   = WpServio_Stripe::stripe();
+            $settings = WpServio_Stripe::get_settings();
             $currency = $settings['currency'];
             $label    = self::get_type_label( $row->type, (int) $row->installment_no );
-            $service  = get_the_title( (int) $order->post_id ) ?: 'ServiceFlow';
+
+            // Construire les lignes détaillées (pack + options proportionnels au montant de cette échéance)
+            $base_offer       = json_decode( $order->base_offer ?? '', true ) ?: [];
+            $selected_options = json_decode( $order->selected_options ?? '', true ) ?: [];
+            $adv_data         = json_decode( $order->advanced_options_data ?? '', true ) ?: [];
+            $tax_rate         = floatval( WpServio_Invoices::get_settings()['tax_rate'] ?? 0 );
+            $line_items = WpServio_Stripe::build_line_items(
+                $base_offer,
+                $selected_options,
+                $currency,
+                (int) ( $order->extra_pages ?? 0 ),
+                floatval( $order->extra_page_price ?? 0 ),
+                floatval( $order->maintenance_price ?? 0 ),
+                (int) ( $order->express_days ?? 0 ),
+                floatval( $order->express_price ?? 0 ),
+                $tax_rate,
+                (int) $order->post_id,
+                $adv_data,
+                floatval( $row->amount_ttc ),
+                $label
+            );
 
             $session = $stripe->checkout->sessions->create( [
                 'mode'          => 'payment',
                 'customer_email' => ( ( $u = get_userdata( (int) $order->client_id ) ) ? $u->user_email : '' ),
-                'line_items'    => [ [
-                    'price_data' => [
-                        'currency'     => $currency,
-                        'unit_amount'  => (int) round( floatval( $row->amount_ttc ) * 100 ),
-                        'product_data' => [ 'name' => $service . ' — ' . $label ],
-                    ],
-                    'quantity' => 1,
-                ] ],
+                'line_items'    => $line_items,
                 'metadata' => [
                     'sf_schedule_id' => $schedule_id,
                     'order_id'       => $row->order_id,
@@ -414,7 +438,7 @@ class ServiceFlow_Payments {
 
             // Mettre à jour la ligne
             $table = self::table_name();
-            $wpdb->update( $table, [
+            $wpdb->update( $table, [ // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                 'status'            => 'sent',
                 'stripe_session_id' => $session->id,
                 'checkout_url'      => $checkout_url,
@@ -427,14 +451,14 @@ class ServiceFlow_Payments {
             $msg  = sprintf( "[SF_SCHED:%d]\n", $schedule_id );
             $msg .= sprintf( "--- %s ---\n", $label );
             /* translators: %s: formatted payment amount */
-            $msg .= sprintf( __( '💳 Montant : %s €', 'serviceflow' ), $amount_fmt ) . "\n";
+            $msg .= sprintf( __( '💳 Montant : %s €', 'wpservio' ), $amount_fmt ) . "\n";
             $msg .= $checkout_url;
 
-            ServiceFlow_DB::insert_message( (int) $order->post_id, 0, $msg, (int) $order->client_id );
+            WpServio_DB::insert_message( (int) $order->post_id, 0, $msg, (int) $order->client_id );
 
             // Email au client avec le lien de paiement
-            if ( class_exists( 'ServiceFlow_Notifications' ) ) {
-                ServiceFlow_Notifications::on_payment_link_sent( $row, $order, $checkout_url );
+            if ( class_exists( 'WpServio_Notifications' ) ) {
+                WpServio_Notifications::on_payment_link_sent( $row, $order, $checkout_url );
             }
 
             return true;
@@ -450,10 +474,10 @@ class ServiceFlow_Payments {
 
     public static function on_order_status_changed( int $order_id, string $new_status, string $old_status, int $acting_user_id ): void {
         // Le solde est envoyé quand le client accepte la livraison (avec ou sans retouche)
-        if ( $new_status !== ServiceFlow_Orders::STATUS_ACCEPTED ) {
+        if ( $new_status !== WpServio_Orders::STATUS_ACCEPTED ) {
             return;
         }
-        $order = ServiceFlow_Orders::get_order( $order_id );
+        $order = WpServio_Orders::get_order( $order_id );
         if ( ! $order || $order->payment_mode !== 'deposit' ) {
             return;
         }
@@ -479,21 +503,21 @@ class ServiceFlow_Payments {
      * ================================================================ */
 
     public static function ajax_send_payment_link(): void {
-        check_ajax_referer( 'serviceflow_nonce', 'nonce' );
+        check_ajax_referer( 'wpservio_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'serviceflow' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'wpservio' ) ], 403 );
         }
 
         $schedule_id = absint( $_POST['schedule_id'] ?? 0 );
         if ( ! $schedule_id ) {
-            wp_send_json_error( [ 'message' => __( 'Données manquantes.', 'serviceflow' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Données manquantes.', 'wpservio' ) ], 400 );
         }
 
         $ok = self::send_payment_link( $schedule_id, get_current_user_id() );
         if ( $ok ) {
-            wp_send_json_success( [ 'message' => __( 'Lien envoyé dans le chat.', 'serviceflow' ) ] );
+            wp_send_json_success( [ 'message' => __( 'Lien envoyé dans le chat.', 'wpservio' ) ] );
         } else {
-            wp_send_json_error( [ 'message' => __( 'Erreur lors de l\'envoi.', 'serviceflow' ) ], 500 );
+            wp_send_json_error( [ 'message' => __( 'Erreur lors de l\'envoi.', 'wpservio' ) ], 500 );
         }
     }
 
@@ -502,7 +526,7 @@ class ServiceFlow_Payments {
      * ================================================================ */
 
     public static function ajax_schedule_check(): void {
-        check_ajax_referer( 'serviceflow_nonce', 'nonce' );
+        check_ajax_referer( 'wpservio_nonce', 'nonce' );
 
         $schedule_id = absint( $_GET['schedule_id'] ?? 0 );
         if ( ! $schedule_id ) {
@@ -522,9 +546,9 @@ class ServiceFlow_Payments {
         // Sinon : vérifier via Stripe API si la session est payée
         if ( ! empty( $row->stripe_session_id ) ) {
             try {
-                $session = ServiceFlow_Stripe::stripe()->checkout->sessions->retrieve( $row->stripe_session_id );
+                $session = WpServio_Stripe::stripe()->checkout->sessions->retrieve( $row->stripe_session_id );
                 if ( $session->payment_status === 'paid' ) {
-                    ServiceFlow_Stripe::process_completed_session( $session );
+                    WpServio_Stripe::process_completed_session( $session );
                     wp_send_json_success( [ 'paid' => true ] );
                 }
             } catch ( \Exception $e ) {
@@ -540,9 +564,9 @@ class ServiceFlow_Payments {
      * ================================================================ */
 
     public static function ajax_mark_payment_paid(): void {
-        check_ajax_referer( 'serviceflow_nonce', 'nonce' );
+        check_ajax_referer( 'wpservio_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'serviceflow' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'wpservio' ) ], 403 );
         }
 
         $schedule_id = absint( $_POST['schedule_id'] ?? 0 );
@@ -552,23 +576,23 @@ class ServiceFlow_Payments {
 
         $row = self::get_row( $schedule_id );
         if ( ! $row || $row->status === 'paid' ) {
-            wp_send_json_error( [ 'message' => __( 'Ligne introuvable ou déjà payée.', 'serviceflow' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Ligne introuvable ou déjà payée.', 'wpservio' ) ], 400 );
         }
 
         global $wpdb;
-        $wpdb->update( self::table_name(), [
+        $wpdb->update( self::table_name(), [ // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             'status'  => 'paid',
             'paid_at' => current_time( 'mysql' ),
         ], [ 'id' => $schedule_id ] );
 
         // Créer la facture partielle correspondante
-        if ( class_exists( 'ServiceFlow_Invoices' ) ) {
+        if ( class_exists( 'WpServio_Invoices' ) ) {
             $type = match ( $row->type ) {
                 'deposit_balance' => 'solde',
                 'installment'     => 'mensualite',
                 default           => 'solde',
             };
-            ServiceFlow_Invoices::create_partial_invoice(
+            WpServio_Invoices::create_partial_invoice(
                 (int) $row->order_id,
                 floatval( $row->amount_ttc ),
                 $type,
@@ -585,7 +609,7 @@ class ServiceFlow_Payments {
      * ================================================================ */
 
     public static function ajax_rebuild_schedule(): void {
-        check_ajax_referer( 'serviceflow_nonce', 'nonce' );
+        check_ajax_referer( 'wpservio_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_send_json_error( [], 403 );
         }
@@ -598,14 +622,14 @@ class ServiceFlow_Payments {
         // Ne recréer que si vraiment vide
         $existing = self::get_schedule_for_order( $order_id );
         if ( ! empty( $existing ) ) {
-            wp_send_json_error( [ 'message' => __( 'L\'échéancier existe déjà.', 'serviceflow' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'L\'échéancier existe déjà.', 'wpservio' ) ], 400 );
         }
 
         self::create_schedule_for_order( $order_id );
 
         // Si le client a déjà accepté la livraison et mode deposit → envoyer le solde immédiatement
-        $order = ServiceFlow_Orders::get_order( $order_id );
-        if ( $order && $order->payment_mode === 'deposit' && $order->status === ServiceFlow_Orders::STATUS_ACCEPTED ) {
+        $order = WpServio_Orders::get_order( $order_id );
+        if ( $order && $order->payment_mode === 'deposit' && $order->status === WpServio_Orders::STATUS_ACCEPTED ) {
             $schedule = self::get_schedule_for_order( $order_id );
             foreach ( $schedule as $row ) {
                 if ( $row->type === 'deposit_balance' && $row->status === 'pending' ) {
@@ -634,11 +658,11 @@ class ServiceFlow_Payments {
             ?>
             <div style="margin-top:12px !important;border-top:1px solid #e5e7eb !important;padding-top:12px !important">
                 <div style="font-size:11px !important;color:#888 !important;margin-bottom:8px !important">
-                    <?php esc_html_e( 'Échéancier introuvable pour cette commande.', 'serviceflow' ); ?>
+                    <?php esc_html_e( 'Échéancier introuvable pour cette commande.', 'wpservio' ); ?>
                 </div>
                 <button class="sf-rebuild-schedule" data-order-id="<?php echo (int) $order_id; ?>"
                     style="padding:4px 10px !important;border:none !important;border-radius:6px !important;font-size:11px !important;font-weight:600 !important;color:#fff !important;background:<?php echo esc_attr( $color ); ?> !important;cursor:pointer !important">
-                    <?php esc_html_e( 'Recréer l\'échéancier', 'serviceflow' ); ?>
+                    <?php esc_html_e( 'Recréer l\'échéancier', 'wpservio' ); ?>
                 </button>
             </div>
             <?php
@@ -646,9 +670,9 @@ class ServiceFlow_Payments {
         }
 
         $status_labels = [
-            'pending' => __( 'En attente', 'serviceflow' ),
-            'sent'    => __( 'Envoyé', 'serviceflow' ),
-            'paid'    => __( 'Payé', 'serviceflow' ),
+            'pending' => __( 'En attente', 'wpservio' ),
+            'sent'    => __( 'Envoyé', 'wpservio' ),
+            'paid'    => __( 'Payé', 'wpservio' ),
         ];
         $status_colors = [
             'pending' => '#f59e0b',
@@ -660,7 +684,7 @@ class ServiceFlow_Payments {
         ?>
         <div style="margin-top:12px !important;border-top:1px solid #e5e7eb !important;padding-top:12px !important">
             <div style="font-size:12px !important;font-weight:700 !important;color:#555 !important;margin-bottom:8px !important;text-transform:uppercase !important;letter-spacing:.5px !important">
-                <?php esc_html_e( 'Échéancier', 'serviceflow' ); ?>
+                <?php esc_html_e( 'Échéancier', 'wpservio' ); ?>
             </div>
             <?php foreach ( $schedule as $row ) :
                 $s_label = $status_labels[ $row->status ] ?? $row->status;
@@ -683,20 +707,20 @@ class ServiceFlow_Payments {
                                     data-schedule-id="<?php echo (int) $row->id; ?>"
                                     style="padding:3px 8px !important;border:none !important;border-radius:5px !important;font-size:10px !important;font-weight:600 !important;color:#fff !important;background:<?php echo esc_attr( $color ); ?> !important;cursor:pointer !important">
                                     <?php echo $row->status === 'sent'
-                                        ? esc_html__( 'Renvoyer', 'serviceflow' )
-                                        : esc_html__( 'Envoyer lien', 'serviceflow' ); ?>
+                                        ? esc_html__( 'Renvoyer', 'wpservio' )
+                                        : esc_html__( 'Envoyer lien', 'wpservio' ); ?>
                                 </button>
                                 <button
                                     class="sf-mark-payment-paid"
                                     data-schedule-id="<?php echo (int) $row->id; ?>"
                                     style="padding:3px 8px !important;border:none !important;border-radius:5px !important;font-size:10px !important;font-weight:600 !important;color:#fff !important;background:#10b981 !important;cursor:pointer !important">
-                                    <?php esc_html_e( '✓ Payé', 'serviceflow' ); ?>
+                                    <?php esc_html_e( '✓ Payé', 'wpservio' ); ?>
                                 </button>
                             <?php endif; ?>
                         <?php elseif ( ! $is_admin && $row->status === 'sent' && ! empty( $row->checkout_url ) ) : ?>
                             <a href="<?php echo esc_url( $row->checkout_url ); ?>"
                                style="padding:3px 8px !important;border-radius:5px !important;font-size:10px !important;font-weight:600 !important;color:#fff !important;background:<?php echo esc_attr( $color ); ?> !important;text-decoration:none !important;display:inline-block !important">
-                                <?php esc_html_e( 'Payer', 'serviceflow' ); ?>
+                                <?php esc_html_e( 'Payer', 'wpservio' ); ?>
                             </a>
                         <?php endif; ?>
                     </div>
@@ -713,10 +737,10 @@ class ServiceFlow_Payments {
 
     public static function get_type_label( string $type, int $installment_no = 0 ): string {
         return match ( $type ) {
-            'upfront'         => __( 'Acompte versé', 'serviceflow' ),
-            'deposit_balance' => __( 'Solde à régler', 'serviceflow' ),
+            'upfront'         => __( 'Acompte versé', 'wpservio' ),
+            'deposit_balance' => __( 'Solde à régler', 'wpservio' ),
             /* translators: %d: installment number */
-            'installment'     => sprintf( __( 'Mensualité %d', 'serviceflow' ), $installment_no ),
+            'installment'     => sprintf( __( 'Mensualité %d', 'wpservio' ), $installment_no ),
             default           => ucfirst( $type ),
         };
     }

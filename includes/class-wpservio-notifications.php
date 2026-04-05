@@ -4,27 +4,47 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class ServiceFlow_Notifications {
+class WpServio_Notifications {
 
     private static int $instance = 0;
 
     public static function init(): void {
-        add_shortcode( 'serviceflow_notifications', [ __CLASS__, 'shortcode_bell' ] );
+        add_shortcode( 'wpservio_notifications', [ __CLASS__, 'shortcode_bell' ] );
 
-        add_action( 'wp_ajax_serviceflow_notif_count',    [ __CLASS__, 'ajax_count' ] );
-        add_action( 'wp_ajax_serviceflow_notif_list',      [ __CLASS__, 'ajax_list' ] );
-        add_action( 'wp_ajax_serviceflow_notif_read_all',  [ __CLASS__, 'ajax_read_all' ] );
+        add_action( 'wp_ajax_wpservio_notif_count',    [ __CLASS__, 'ajax_count' ] );
+        add_action( 'wp_ajax_wpservio_notif_list',      [ __CLASS__, 'ajax_list' ] );
+        add_action( 'wp_ajax_wpservio_notif_read_all',  [ __CLASS__, 'ajax_read_all' ] );
 
         // Hooks sur les événements du plugin (in-app notifications = free, emails = premium)
-        add_action( 'serviceflow_message_sent',         [ __CLASS__, 'on_message_sent' ], 10, 4 );
-        add_action( 'serviceflow_order_created',         [ __CLASS__, 'on_order_created' ], 10, 3 );
-        add_action( 'serviceflow_order_status_changed',  [ __CLASS__, 'on_order_status_changed' ], 10, 4 );
+        add_action( 'wpservio_message_sent',         [ __CLASS__, 'on_message_sent' ], 10, 4 );
+        add_action( 'wpservio_order_created',         [ __CLASS__, 'on_order_created' ], 10, 3 );
+        add_action( 'wpservio_order_status_changed',  [ __CLASS__, 'on_order_status_changed' ], 10, 4 );
 
-        if ( serviceflow_is_premium() ) {
+        add_action( 'wp_enqueue_scripts',    [ __CLASS__, 'enqueue_frontend_assets' ] );
+        add_action( 'admin_enqueue_scripts', [ __CLASS__, 'enqueue_admin_assets' ] );
+
+        if ( wpservio_is_premium() ) {
             add_action( 'admin_menu', [ __CLASS__, 'add_menu' ] );
             add_action( 'admin_init', [ __CLASS__, 'register_settings' ] );
-            add_action( 'wp_ajax_serviceflow_preview_email', [ __CLASS__, 'ajax_preview_email' ] );
+            add_action( 'wp_ajax_wpservio_preview_email', [ __CLASS__, 'ajax_preview_email' ] );
         }
+    }
+
+    public static function enqueue_frontend_assets(): void {
+        if ( ! wp_script_is( 'wpservio-notif-js', 'registered' ) ) {
+            wp_register_script( 'wpservio-notif-js', false, [ 'jquery' ], WPSERVIO_VERSION, true ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
+        }
+        wp_enqueue_script( 'wpservio-notif-js' );
+    }
+
+    public static function enqueue_admin_assets( string $hook ): void {
+        if ( strpos( $hook, 'serviceflow-notifications' ) === false ) {
+            return;
+        }
+        if ( ! wp_script_is( 'wpservio-notif-admin-js', 'registered' ) ) {
+            wp_register_script( 'wpservio-notif-admin-js', false, [ 'jquery' ], WPSERVIO_VERSION, true ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
+        }
+        wp_enqueue_script( 'wpservio-notif-admin-js' );
     }
 
     /* ================================================================
@@ -33,7 +53,7 @@ class ServiceFlow_Notifications {
 
     public static function table_name(): string {
         global $wpdb;
-        return $wpdb->prefix . 'serviceflow_notifications';
+        return $wpdb->prefix . 'wpservio_notifications';
     }
 
     public static function create_table(): void {
@@ -88,7 +108,7 @@ class ServiceFlow_Notifications {
             'tpl_body_payment_link'    => "Votre {installment_label} de {amount} € pour le service « {service_name} » est disponible.\n\nCliquez sur le bouton ci-dessous pour procéder au règlement.",
             'tpl_body_payment_reminder' => "Rappel : votre {installment_label} de {amount} € pour le service « {service_name} » (commande {order_number}) est due le {due_date}.\n\nMerci de procéder au règlement.",
         ];
-        $saved = get_option( 'serviceflow_notif_settings', [] );
+        $saved = get_option( 'wpservio_notif_settings', [] );
         if ( ! is_array( $saved ) ) {
             $saved = [];
         }
@@ -97,9 +117,9 @@ class ServiceFlow_Notifications {
 
     public static function add_menu(): void {
         add_submenu_page(
-            'serviceflow',
-            __( 'Notifications', 'serviceflow' ),
-            __( 'Notifications', 'serviceflow' ),
+            'wpservio',
+            __( 'Notifications', 'wpservio' ),
+            __( 'Notifications', 'wpservio' ),
             'manage_options',
             'serviceflow-notifications',
             [ __CLASS__, 'render_settings_page' ]
@@ -107,7 +127,7 @@ class ServiceFlow_Notifications {
     }
 
     public static function register_settings(): void {
-        register_setting( 'serviceflow_notif_settings', 'serviceflow_notif_settings', [
+        register_setting( 'wpservio_notif_settings', 'wpservio_notif_settings', [
             'type'              => 'array',
             'sanitize_callback' => [ __CLASS__, 'sanitize_settings' ],
         ] );
@@ -149,138 +169,60 @@ class ServiceFlow_Notifications {
         }
 
         $settings = self::get_settings();
-        $color    = ServiceFlow_Admin::get_color();
+        $color    = WpServio_Admin::get_color();
         ?>
         <div class="wrap serviceflow-dashboard">
             <h1 style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
                 <span class="dashicons dashicons-bell" style="font-size:28px;width:28px;height:28px;color:<?php echo esc_attr( $color ); ?>"></span>
-                <?php esc_html_e( 'ServiceFlow — Notifications', 'serviceflow' ); ?>
+                <?php esc_html_e( 'WpServio — Notifications', 'wpservio' ); ?>
             </h1>
 
             <form method="post" action="options.php">
-                <?php settings_fields( 'serviceflow_notif_settings' ); ?>
+                <?php settings_fields( 'wpservio_notif_settings' ); ?>
 
-                <style>
-                    .serviceflow-notif-section {
-                        background: #fff;
-                        border: 1px solid #e0e0e0;
-                        border-radius: 8px;
-                        padding: 24px;
-                        margin-bottom: 20px;
-                        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-                    }
-                    .serviceflow-notif-section h2 {
-                        font-size: 15px;
-                        font-weight: 700;
-                        color: #222;
-                        margin: 0 0 16px 0;
-                        padding: 0 0 12px 0;
-                        border-bottom: 1px solid #eee;
-                        display: flex;
-                        align-items: center;
-                        gap: 8px;
-                    }
-                    .serviceflow-notif-row {
-                        display: flex;
-                        align-items: center;
-                        justify-content: space-between;
-                        padding: 12px 0;
-                        border-bottom: 1px solid #f5f5f5;
-                    }
-                    .serviceflow-notif-row:last-child { border-bottom: none; }
-                    .serviceflow-notif-row-label {
-                        font-size: 14px;
-                        color: #333;
-                        font-weight: 500;
-                    }
-                    .serviceflow-notif-row-desc {
-                        font-size: 12px;
-                        color: #888;
-                        margin-top: 2px;
-                    }
-                    .serviceflow-toggle-sw {
-                        position: relative;
-                        width: 44px;
-                        height: 24px;
-                        flex-shrink: 0;
-                    }
-                    .serviceflow-toggle-sw input {
-                        opacity: 0;
-                        width: 0;
-                        height: 0;
-                        position: absolute;
-                    }
-                    .serviceflow-toggle-slider {
-                        position: absolute;
-                        cursor: pointer;
-                        top: 0; left: 0; right: 0; bottom: 0;
-                        background: #ccc;
-                        border-radius: 24px;
-                        transition: .3s;
-                    }
-                    .serviceflow-toggle-slider:before {
-                        content: "";
-                        position: absolute;
-                        height: 18px;
-                        width: 18px;
-                        left: 3px;
-                        bottom: 3px;
-                        background: #fff;
-                        border-radius: 50%;
-                        transition: .3s;
-                    }
-                    .serviceflow-toggle-sw input:checked + .serviceflow-toggle-slider {
-                        background: <?php echo esc_attr( $color ); ?>;
-                    }
-                    .serviceflow-toggle-sw input:checked + .serviceflow-toggle-slider:before {
-                        transform: translateX(20px);
-                    }
-                    .serviceflow-notif-input {
-                        width: 100%;
-                        max-width: 400px;
-                        padding: 8px 12px;
-                        border: 1px solid #ddd;
-                        border-radius: 6px;
-                        font-size: 14px;
-                    }
-                    .serviceflow-notif-input:focus {
-                        border-color: <?php echo esc_attr( $color ); ?>;
-                        outline: none;
-                        box-shadow: 0 0 0 2px <?php echo esc_attr( $color ); ?>33;
-                    }
-                    .serviceflow-notif-field {
-                        margin-bottom: 16px;
-                    }
-                    .serviceflow-notif-field:last-child { margin-bottom: 0; }
-                    .serviceflow-notif-field label {
-                        display: block;
-                        font-size: 13px;
-                        font-weight: 600;
-                        color: #444;
-                        margin-bottom: 6px;
-                    }
-                </style>
+                <?php
+                wp_add_inline_style(
+                    'wp-admin',
+                    '.serviceflow-notif-section{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:24px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}' .
+                    '.serviceflow-notif-section h2{font-size:15px;font-weight:700;color:#222;margin:0 0 16px 0;padding:0 0 12px 0;border-bottom:1px solid #eee;display:flex;align-items:center;gap:8px}' .
+                    '.serviceflow-notif-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f5f5f5}' .
+                    '.serviceflow-notif-row:last-child{border-bottom:none}' .
+                    '.serviceflow-notif-row-label{font-size:14px;color:#333;font-weight:500}' .
+                    '.serviceflow-notif-row-desc{font-size:12px;color:#888;margin-top:2px}' .
+                    '.serviceflow-toggle-sw{position:relative;width:44px;height:24px;flex-shrink:0}' .
+                    '.serviceflow-toggle-sw input{opacity:0;width:0;height:0;position:absolute}' .
+                    '.serviceflow-toggle-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#ccc;border-radius:24px;transition:.3s}' .
+                    '.serviceflow-toggle-slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}' .
+                    '.serviceflow-toggle-sw input:checked + .serviceflow-toggle-slider{background:' . esc_attr( $color ) . '}' .
+                    '.serviceflow-toggle-sw input:checked + .serviceflow-toggle-slider:before{transform:translateX(20px)}' .
+                    '.serviceflow-notif-input{width:100%;max-width:400px;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px}' .
+                    '.serviceflow-notif-input:focus{border-color:' . esc_attr( $color ) . ';outline:none;box-shadow:0 0 0 2px ' . esc_attr( $color ) . '33}' .
+                    '.serviceflow-notif-field{margin-bottom:16px}' .
+                    '.serviceflow-notif-field:last-child{margin-bottom:0}' .
+                    '.serviceflow-notif-field label{display:block;font-size:13px;font-weight:600;color:#444;margin-bottom:6px}'
+                );
+                ?>
 
                 <!-- Section Expéditeur -->
                 <div class="serviceflow-notif-section">
                     <h2>
                         <span class="dashicons dashicons-email" style="color:<?php echo esc_attr( $color ); ?>"></span>
-                        <?php esc_html_e( 'Expéditeur des emails', 'serviceflow' ); ?>
+                        <?php esc_html_e( 'Expéditeur des emails', 'wpservio' ); ?>
                     </h2>
 
                     <div class="serviceflow-notif-field">
-                        <label for="serviceflow_sender_name"><?php esc_html_e( 'Nom de l\'expéditeur', 'serviceflow' ); ?></label>
-                        <input type="text" id="serviceflow_sender_name"
-                               name="serviceflow_notif_settings[sender_name]"
+                        <label for="wpservio_sender_name"><?php esc_html_e( 'Nom de l\'expéditeur', 'wpservio' ); ?></label>
+                        <input type="text" id="wpservio_sender_name"
+                               name="wpservio_notif_settings[sender_name]"
                                value="<?php echo esc_attr( $settings['sender_name'] ); ?>"
                                class="serviceflow-notif-input"
                                placeholder="<?php echo esc_attr( get_bloginfo( 'name' ) ); ?>">
                     </div>
 
                     <div class="serviceflow-notif-field">
-                        <label for="serviceflow_sender_email"><?php esc_html_e( 'Adresse email de l\'expéditeur', 'serviceflow' ); ?></label>
-                        <input type="email" id="serviceflow_sender_email"
-                               name="serviceflow_notif_settings[sender_email]"
+                        <label for="wpservio_sender_email"><?php esc_html_e( 'Adresse email de l\'expéditeur', 'wpservio' ); ?></label>
+                        <input type="email" id="wpservio_sender_email"
+                               name="wpservio_notif_settings[sender_email]"
                                value="<?php echo esc_attr( $settings['sender_email'] ); ?>"
                                class="serviceflow-notif-input"
                                placeholder="<?php echo esc_attr( get_bloginfo( 'admin_email' ) ); ?>">
@@ -291,62 +233,62 @@ class ServiceFlow_Notifications {
                 <div class="serviceflow-notif-section">
                     <h2>
                         <span class="dashicons dashicons-bell" style="color:<?php echo esc_attr( $color ); ?>"></span>
-                        <?php esc_html_e( 'Notifications par email', 'serviceflow' ); ?>
+                        <?php esc_html_e( 'Notifications par email', 'wpservio' ); ?>
                     </h2>
 
                     <div class="serviceflow-notif-row">
                         <div>
-                            <div class="serviceflow-notif-row-label"><?php esc_html_e( 'Nouveau message', 'serviceflow' ); ?></div>
-                            <div class="serviceflow-notif-row-desc"><?php esc_html_e( 'Envoyer un email lorsqu\'un nouveau message est reçu dans le chat.', 'serviceflow' ); ?></div>
+                            <div class="serviceflow-notif-row-label"><?php esc_html_e( 'Nouveau message', 'wpservio' ); ?></div>
+                            <div class="serviceflow-notif-row-desc"><?php esc_html_e( 'Envoyer un email lorsqu\'un nouveau message est reçu dans le chat.', 'wpservio' ); ?></div>
                         </div>
                         <label class="serviceflow-toggle-sw">
-                            <input type="checkbox" name="serviceflow_notif_settings[email_new_message]" value="1" <?php checked( $settings['email_new_message'], '1' ); ?>>
+                            <input type="checkbox" name="wpservio_notif_settings[email_new_message]" value="1" <?php checked( $settings['email_new_message'], '1' ); ?>>
                             <span class="serviceflow-toggle-slider"></span>
                         </label>
                     </div>
 
                     <div class="serviceflow-notif-row">
                         <div>
-                            <div class="serviceflow-notif-row-label"><?php esc_html_e( 'Nouvelle commande', 'serviceflow' ); ?></div>
-                            <div class="serviceflow-notif-row-desc"><?php esc_html_e( 'Envoyer un email à l\'administrateur lorsqu\'une nouvelle commande est passée.', 'serviceflow' ); ?></div>
+                            <div class="serviceflow-notif-row-label"><?php esc_html_e( 'Nouvelle commande', 'wpservio' ); ?></div>
+                            <div class="serviceflow-notif-row-desc"><?php esc_html_e( 'Envoyer un email à l\'administrateur lorsqu\'une nouvelle commande est passée.', 'wpservio' ); ?></div>
                         </div>
                         <label class="serviceflow-toggle-sw">
-                            <input type="checkbox" name="serviceflow_notif_settings[email_new_order]" value="1" <?php checked( $settings['email_new_order'], '1' ); ?>>
+                            <input type="checkbox" name="wpservio_notif_settings[email_new_order]" value="1" <?php checked( $settings['email_new_order'], '1' ); ?>>
                             <span class="serviceflow-toggle-slider"></span>
                         </label>
                     </div>
 
                     <div class="serviceflow-notif-row">
                         <div>
-                            <div class="serviceflow-notif-row-label"><?php esc_html_e( 'Changement de statut de commande', 'serviceflow' ); ?></div>
-                            <div class="serviceflow-notif-row-desc"><?php esc_html_e( 'Envoyer un email lorsque le statut d\'une commande change (démarrée, terminée, retouche, etc.).', 'serviceflow' ); ?></div>
+                            <div class="serviceflow-notif-row-label"><?php esc_html_e( 'Changement de statut de commande', 'wpservio' ); ?></div>
+                            <div class="serviceflow-notif-row-desc"><?php esc_html_e( 'Envoyer un email lorsque le statut d\'une commande change (démarrée, terminée, retouche, etc.).', 'wpservio' ); ?></div>
                         </div>
                         <label class="serviceflow-toggle-sw">
-                            <input type="checkbox" name="serviceflow_notif_settings[email_order_status]" value="1" <?php checked( $settings['email_order_status'], '1' ); ?>>
+                            <input type="checkbox" name="wpservio_notif_settings[email_order_status]" value="1" <?php checked( $settings['email_order_status'], '1' ); ?>>
                             <span class="serviceflow-toggle-slider"></span>
                         </label>
                     </div>
 
                     <div class="serviceflow-notif-row">
                         <div>
-                            <div class="serviceflow-notif-row-label"><?php esc_html_e( 'Lien de paiement mensualité', 'serviceflow' ); ?></div>
-                            <div class="serviceflow-notif-row-desc"><?php esc_html_e( 'Envoyer un email au client avec le lien de paiement Stripe lorsqu\'une mensualité est envoyée.', 'serviceflow' ); ?></div>
+                            <div class="serviceflow-notif-row-label"><?php esc_html_e( 'Lien de paiement mensualité', 'wpservio' ); ?></div>
+                            <div class="serviceflow-notif-row-desc"><?php esc_html_e( 'Envoyer un email au client avec le lien de paiement Stripe lorsqu\'une mensualité est envoyée.', 'wpservio' ); ?></div>
                         </div>
                         <label class="serviceflow-toggle-sw">
-                            <input type="checkbox" name="serviceflow_notif_settings[email_payment_link]" value="1" <?php checked( $settings['email_payment_link'], '1' ); ?>>
+                            <input type="checkbox" name="wpservio_notif_settings[email_payment_link]" value="1" <?php checked( $settings['email_payment_link'], '1' ); ?>>
                             <span class="serviceflow-toggle-slider"></span>
                         </label>
                     </div>
 
                     <div class="serviceflow-notif-row">
                         <div>
-                            <div class="serviceflow-notif-row-label"><?php esc_html_e( 'Rappel de paiement', 'serviceflow' ); ?></div>
+                            <div class="serviceflow-notif-row-label"><?php esc_html_e( 'Rappel de paiement', 'wpservio' ); ?></div>
                             <div class="serviceflow-notif-row-desc">
-                                <?php esc_html_e( 'Envoyer un rappel email avant la date d\'échéance d\'une mensualité.', 'serviceflow' ); ?>
+                                <?php esc_html_e( 'Envoyer un rappel email avant la date d\'échéance d\'une mensualité.', 'wpservio' ); ?>
                                 <br>
                                 <label style="margin-top:6px;display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#555">
-                                    <?php esc_html_e( 'Jours avant échéance :', 'serviceflow' ); ?>
-                                    <input type="number" name="serviceflow_notif_settings[reminder_days_before]"
+                                    <?php esc_html_e( 'Jours avant échéance :', 'wpservio' ); ?>
+                                    <input type="number" name="wpservio_notif_settings[reminder_days_before]"
                                            value="<?php echo (int) $settings['reminder_days_before']; ?>"
                                            min="0" max="30"
                                            style="width:60px;padding:2px 6px;border:1px solid #ddd;border-radius:4px;font-size:12px">
@@ -354,7 +296,7 @@ class ServiceFlow_Notifications {
                             </div>
                         </div>
                         <label class="serviceflow-toggle-sw">
-                            <input type="checkbox" name="serviceflow_notif_settings[email_payment_reminder]" value="1" <?php checked( $settings['email_payment_reminder'], '1' ); ?>>
+                            <input type="checkbox" name="wpservio_notif_settings[email_payment_reminder]" value="1" <?php checked( $settings['email_payment_reminder'], '1' ); ?>>
                             <span class="serviceflow-toggle-slider"></span>
                         </label>
                     </div>
@@ -364,76 +306,33 @@ class ServiceFlow_Notifications {
                 <div class="serviceflow-notif-section">
                     <h2>
                         <span class="dashicons dashicons-edit" style="color:<?php echo esc_attr( $color ); ?>"></span>
-                        <?php esc_html_e( 'Templates d\'emails', 'serviceflow' ); ?>
+                        <?php esc_html_e( 'Templates d\'emails', 'wpservio' ); ?>
                     </h2>
                     <p style="margin:0 0 16px 0;font-size:13px;color:#666;line-height:1.6">
-                        <?php esc_html_e( 'Personnalisez le contenu des emails envoyés automatiquement. Utilisez les variables entre accolades pour insérer des données dynamiques.', 'serviceflow' ); ?>
+                        <?php esc_html_e( 'Personnalisez le contenu des emails envoyés automatiquement. Utilisez les variables entre accolades pour insérer des données dynamiques.', 'wpservio' ); ?>
                     </p>
 
-                    <style>
-                        .serviceflow-tpl-block {
-                            background: #fafafa;
-                            border: 1px solid #eee;
-                            border-radius: 6px;
-                            padding: 16px;
-                            margin-bottom: 16px;
-                        }
-                        .serviceflow-tpl-block:last-child { margin-bottom: 0; }
-                        .serviceflow-tpl-block h3 {
-                            margin: 0 0 12px 0;
-                            font-size: 14px;
-                            font-weight: 600;
-                            color: #333;
-                        }
-                        .serviceflow-tpl-block label {
-                            display: block;
-                            font-size: 12px;
-                            font-weight: 600;
-                            color: #555;
-                            margin-bottom: 4px;
-                        }
-                        .serviceflow-tpl-block input[type="text"],
-                        .serviceflow-tpl-block textarea {
-                            width: 100%;
-                            padding: 8px 12px;
-                            border: 1px solid #ddd;
-                            border-radius: 6px;
-                            font-size: 13px;
-                            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-                            box-sizing: border-box;
-                        }
-                        .serviceflow-tpl-block input[type="text"]:focus,
-                        .serviceflow-tpl-block textarea:focus {
-                            border-color: <?php echo esc_attr( $color ); ?>;
-                            outline: none;
-                            box-shadow: 0 0 0 2px <?php echo esc_attr( $color ); ?>33;
-                        }
-                        .serviceflow-tpl-block textarea { min-height: 80px; resize: vertical; }
-                        .serviceflow-tpl-vars {
-                            display: flex;
-                            flex-wrap: wrap;
-                            gap: 4px;
-                            margin-bottom: 12px;
-                        }
-                        .serviceflow-tpl-var {
-                            display: inline-block;
-                            background: <?php echo esc_attr( $color ); ?>15;
-                            color: <?php echo esc_attr( $color ); ?>;
-                            font-size: 11px;
-                            font-weight: 600;
-                            padding: 2px 8px;
-                            border-radius: 4px;
-                            font-family: monospace;
-                            cursor: pointer;
-                        }
-                        .serviceflow-tpl-var:hover { background: <?php echo esc_attr( $color ); ?>25; }
-                        .serviceflow-tpl-field { margin-bottom: 10px; }
-                        .serviceflow-tpl-field:last-child { margin-bottom: 0; }
-                    </style>
+                    <?php
+                    wp_add_inline_style(
+                        'wp-admin',
+                        '.serviceflow-tpl-block{background:#fafafa;border:1px solid #eee;border-radius:6px;padding:16px;margin-bottom:16px}' .
+                        '.serviceflow-tpl-block:last-child{margin-bottom:0}' .
+                        '.serviceflow-tpl-block h3{margin:0 0 12px 0;font-size:14px;font-weight:600;color:#333}' .
+                        '.serviceflow-tpl-block label{display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:4px}' .
+                        '.serviceflow-tpl-block input[type="text"],.serviceflow-tpl-block textarea{width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;box-sizing:border-box}' .
+                        '.serviceflow-tpl-block input[type="text"]:focus,.serviceflow-tpl-block textarea:focus{border-color:' . esc_attr( $color ) . ';outline:none;box-shadow:0 0 0 2px ' . esc_attr( $color ) . '33}' .
+                        '.serviceflow-tpl-block textarea{min-height:80px;resize:vertical}' .
+                        '.serviceflow-tpl-vars{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px}' .
+                        '.serviceflow-tpl-var{display:inline-block;background:' . esc_attr( $color ) . '15;color:' . esc_attr( $color ) . ';font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;font-family:monospace;cursor:pointer}' .
+                        '.serviceflow-tpl-var:hover{background:' . esc_attr( $color ) . '25}' .
+                        '.serviceflow-tpl-field{margin-bottom:10px}' .
+                        '.serviceflow-tpl-field:last-child{margin-bottom:0}'
+                    );
+                    ?>
 
                     <!-- Template : Nouveau message -->
                     <div class="serviceflow-tpl-block" data-email-type="new_message">
-                        <h3><?php esc_html_e( 'Nouveau message', 'serviceflow' ); ?></h3>
+                        <h3><?php esc_html_e( 'Nouveau message', 'wpservio' ); ?></h3>
                         <div class="serviceflow-tpl-vars">
                             <span class="serviceflow-tpl-var" data-var="{sender_name}">{sender_name}</span>
                             <span class="serviceflow-tpl-var" data-var="{service_name}">{service_name}</span>
@@ -441,18 +340,18 @@ class ServiceFlow_Notifications {
                             <span class="serviceflow-tpl-var" data-var="{recipient_name}">{recipient_name}</span>
                         </div>
                         <div class="serviceflow-tpl-field">
-                            <label><?php esc_html_e( 'Sujet', 'serviceflow' ); ?></label>
-                            <input type="text" name="serviceflow_notif_settings[tpl_subject_new_message]" value="<?php echo esc_attr( $settings['tpl_subject_new_message'] ); ?>">
+                            <label><?php esc_html_e( 'Sujet', 'wpservio' ); ?></label>
+                            <input type="text" name="wpservio_notif_settings[tpl_subject_new_message]" value="<?php echo esc_attr( $settings['tpl_subject_new_message'] ); ?>">
                         </div>
                         <div class="serviceflow-tpl-field">
-                            <label><?php esc_html_e( 'Corps du message', 'serviceflow' ); ?></label>
-                            <textarea name="serviceflow_notif_settings[tpl_body_new_message]"><?php echo esc_textarea( $settings['tpl_body_new_message'] ); ?></textarea>
+                            <label><?php esc_html_e( 'Corps du message', 'wpservio' ); ?></label>
+                            <textarea name="wpservio_notif_settings[tpl_body_new_message]"><?php echo esc_textarea( $settings['tpl_body_new_message'] ); ?></textarea>
                         </div>
                     </div>
 
                     <!-- Template : Nouvelle commande -->
                     <div class="serviceflow-tpl-block" data-email-type="new_order">
-                        <h3><?php esc_html_e( 'Nouvelle commande', 'serviceflow' ); ?></h3>
+                        <h3><?php esc_html_e( 'Nouvelle commande', 'wpservio' ); ?></h3>
                         <div class="serviceflow-tpl-vars">
                             <span class="serviceflow-tpl-var" data-var="{client_name}">{client_name}</span>
                             <span class="serviceflow-tpl-var" data-var="{service_name}">{service_name}</span>
@@ -461,18 +360,18 @@ class ServiceFlow_Notifications {
                             <span class="serviceflow-tpl-var" data-var="{recipient_name}">{recipient_name}</span>
                         </div>
                         <div class="serviceflow-tpl-field">
-                            <label><?php esc_html_e( 'Sujet', 'serviceflow' ); ?></label>
-                            <input type="text" name="serviceflow_notif_settings[tpl_subject_new_order]" value="<?php echo esc_attr( $settings['tpl_subject_new_order'] ); ?>">
+                            <label><?php esc_html_e( 'Sujet', 'wpservio' ); ?></label>
+                            <input type="text" name="wpservio_notif_settings[tpl_subject_new_order]" value="<?php echo esc_attr( $settings['tpl_subject_new_order'] ); ?>">
                         </div>
                         <div class="serviceflow-tpl-field">
-                            <label><?php esc_html_e( 'Corps du message', 'serviceflow' ); ?></label>
-                            <textarea name="serviceflow_notif_settings[tpl_body_new_order]"><?php echo esc_textarea( $settings['tpl_body_new_order'] ); ?></textarea>
+                            <label><?php esc_html_e( 'Corps du message', 'wpservio' ); ?></label>
+                            <textarea name="wpservio_notif_settings[tpl_body_new_order]"><?php echo esc_textarea( $settings['tpl_body_new_order'] ); ?></textarea>
                         </div>
                     </div>
 
                     <!-- Template : Changement de statut -->
                     <div class="serviceflow-tpl-block" data-email-type="order_status">
-                        <h3><?php esc_html_e( 'Changement de statut de commande', 'serviceflow' ); ?></h3>
+                        <h3><?php esc_html_e( 'Changement de statut de commande', 'wpservio' ); ?></h3>
                         <div class="serviceflow-tpl-vars">
                             <span class="serviceflow-tpl-var" data-var="{order_number}">{order_number}</span>
                             <span class="serviceflow-tpl-var" data-var="{status_label}">{status_label}</span>
@@ -480,164 +379,165 @@ class ServiceFlow_Notifications {
                             <span class="serviceflow-tpl-var" data-var="{recipient_name}">{recipient_name}</span>
                         </div>
                         <div class="serviceflow-tpl-field">
-                            <label><?php esc_html_e( 'Sujet', 'serviceflow' ); ?></label>
-                            <input type="text" name="serviceflow_notif_settings[tpl_subject_order_status]" value="<?php echo esc_attr( $settings['tpl_subject_order_status'] ); ?>">
+                            <label><?php esc_html_e( 'Sujet', 'wpservio' ); ?></label>
+                            <input type="text" name="wpservio_notif_settings[tpl_subject_order_status]" value="<?php echo esc_attr( $settings['tpl_subject_order_status'] ); ?>">
                         </div>
                         <div class="serviceflow-tpl-field">
-                            <label><?php esc_html_e( 'Corps du message', 'serviceflow' ); ?></label>
-                            <textarea name="serviceflow_notif_settings[tpl_body_order_status]"><?php echo esc_textarea( $settings['tpl_body_order_status'] ); ?></textarea>
+                            <label><?php esc_html_e( 'Corps du message', 'wpservio' ); ?></label>
+                            <textarea name="wpservio_notif_settings[tpl_body_order_status]"><?php echo esc_textarea( $settings['tpl_body_order_status'] ); ?></textarea>
                         </div>
                     </div>
 
                     <!-- Lien de paiement -->
                     <div class="serviceflow-tpl-block" data-email-type="payment_link">
-                        <h3>💳 <?php esc_html_e( 'Lien de paiement mensualité', 'serviceflow' ); ?></h3>
+                        <h3>💳 <?php esc_html_e( 'Lien de paiement mensualité', 'wpservio' ); ?></h3>
                         <div class="serviceflow-tpl-vars">
                             <?php foreach ( [ '{service_name}', '{order_number}', '{installment_label}', '{amount}', '{recipient_name}' ] as $v ) : ?>
                                 <span class="serviceflow-tpl-var" data-var="<?php echo esc_attr( $v ); ?>"><?php echo esc_html( $v ); ?></span>
                             <?php endforeach; ?>
                         </div>
                         <div class="serviceflow-tpl-field">
-                            <label><?php esc_html_e( 'Sujet', 'serviceflow' ); ?></label>
-                            <input type="text" name="serviceflow_notif_settings[tpl_subject_payment_link]" value="<?php echo esc_attr( $settings['tpl_subject_payment_link'] ); ?>">
+                            <label><?php esc_html_e( 'Sujet', 'wpservio' ); ?></label>
+                            <input type="text" name="wpservio_notif_settings[tpl_subject_payment_link]" value="<?php echo esc_attr( $settings['tpl_subject_payment_link'] ); ?>">
                         </div>
                         <div class="serviceflow-tpl-field">
-                            <label><?php esc_html_e( 'Corps du message', 'serviceflow' ); ?></label>
-                            <textarea name="serviceflow_notif_settings[tpl_body_payment_link]"><?php echo esc_textarea( $settings['tpl_body_payment_link'] ); ?></textarea>
+                            <label><?php esc_html_e( 'Corps du message', 'wpservio' ); ?></label>
+                            <textarea name="wpservio_notif_settings[tpl_body_payment_link]"><?php echo esc_textarea( $settings['tpl_body_payment_link'] ); ?></textarea>
                         </div>
                     </div>
 
                     <!-- Rappel de paiement -->
                     <div class="serviceflow-tpl-block" data-email-type="payment_reminder">
-                        <h3>⏰ <?php esc_html_e( 'Rappel de paiement', 'serviceflow' ); ?></h3>
+                        <h3>⏰ <?php esc_html_e( 'Rappel de paiement', 'wpservio' ); ?></h3>
                         <div class="serviceflow-tpl-vars">
                             <?php foreach ( [ '{service_name}', '{order_number}', '{installment_label}', '{amount}', '{due_date}', '{recipient_name}' ] as $v ) : ?>
                                 <span class="serviceflow-tpl-var" data-var="<?php echo esc_attr( $v ); ?>"><?php echo esc_html( $v ); ?></span>
                             <?php endforeach; ?>
                         </div>
                         <div class="serviceflow-tpl-field">
-                            <label><?php esc_html_e( 'Sujet', 'serviceflow' ); ?></label>
-                            <input type="text" name="serviceflow_notif_settings[tpl_subject_payment_reminder]" value="<?php echo esc_attr( $settings['tpl_subject_payment_reminder'] ); ?>">
+                            <label><?php esc_html_e( 'Sujet', 'wpservio' ); ?></label>
+                            <input type="text" name="wpservio_notif_settings[tpl_subject_payment_reminder]" value="<?php echo esc_attr( $settings['tpl_subject_payment_reminder'] ); ?>">
                         </div>
                         <div class="serviceflow-tpl-field">
-                            <label><?php esc_html_e( 'Corps du message', 'serviceflow' ); ?></label>
-                            <textarea name="serviceflow_notif_settings[tpl_body_payment_reminder]"><?php echo esc_textarea( $settings['tpl_body_payment_reminder'] ); ?></textarea>
+                            <label><?php esc_html_e( 'Corps du message', 'wpservio' ); ?></label>
+                            <textarea name="wpservio_notif_settings[tpl_body_payment_reminder]"><?php echo esc_textarea( $settings['tpl_body_payment_reminder'] ); ?></textarea>
                         </div>
                     </div>
                 </div>
 
                 <!-- Boutons prévisualiser dans chaque bloc -->
-                <?php foreach ( [ 'new_message', 'new_order', 'order_status', 'payment_link', 'payment_reminder' ] as $et ) : ?>
-                <script>
+                <?php
+                ob_start();
+                ?>
                 (function(){
-                    var block = document.querySelector('[data-email-type="<?php echo esc_js( $et ); ?>"]');
-                    if(!block) return;
-                    var h3 = block.querySelector('h3');
-                    if(!h3) return;
-                    var btn = document.createElement('button');
-                    btn.type = 'button';
-                    btn.textContent = '<?php echo esc_js( __( '👁 Prévisualiser', 'serviceflow' ) ); ?>';
-                    btn.style.cssText = 'float:right;background:none;border:1px solid <?php echo esc_js( $color ); ?>;color:<?php echo esc_js( $color ); ?>;border-radius:5px;padding:2px 10px;font-size:12px;font-weight:600;cursor:pointer';
-                    h3.appendChild(btn);
-                    btn.addEventListener('click', function(){
-                        var subjectInput = block.querySelector('input[type="text"]');
-                        var bodyTextarea = block.querySelector('textarea');
-                        sfPreviewEmail(
-                            '<?php echo esc_js( $et ); ?>',
-                            subjectInput ? subjectInput.value : '',
-                            bodyTextarea ? bodyTextarea.value : ''
-                        );
+                    var color='<?php echo esc_js( $color ); ?>';
+                    var btnLabel='<?php echo esc_js( __( '👁 Prévisualiser', 'wpservio' ) ); ?>';
+                    ['new_message','new_order','order_status','payment_link','payment_reminder'].forEach(function(et){
+                        var block=document.querySelector('[data-email-type="'+et+'"]');
+                        if(!block) return;
+                        var h3=block.querySelector('h3');
+                        if(!h3) return;
+                        var btn=document.createElement('button');
+                        btn.type='button';
+                        btn.textContent=btnLabel;
+                        btn.style.cssText='float:right;background:none;border:1px solid '+color+';color:'+color+';border-radius:5px;padding:2px 10px;font-size:12px;font-weight:600;cursor:pointer';
+                        h3.appendChild(btn);
+                        btn.addEventListener('click',function(){
+                            var subjectInput=block.querySelector('input[type="text"]');
+                            var bodyTextarea=block.querySelector('textarea');
+                            sfPreviewEmail(et,subjectInput?subjectInput.value:'',bodyTextarea?bodyTextarea.value:'');
+                        });
                     });
                 })();
-                </script>
-                <?php endforeach; ?>
+                <?php
+                wp_add_inline_script( 'wpservio-notif-admin-js', ob_get_clean() );
 
-                <script>
+                ob_start();
+                ?>
                 /* Variables cliquables */
                 document.querySelectorAll('.serviceflow-tpl-var').forEach(function(el){
                     el.addEventListener('click',function(){
-                        var block = this.closest('.serviceflow-tpl-block');
-                        var textarea = block.querySelector('textarea');
+                        var block=this.closest('.serviceflow-tpl-block');
+                        var textarea=block.querySelector('textarea');
                         if(!textarea) return;
-                        var v = this.getAttribute('data-var');
-                        var start = textarea.selectionStart;
-                        var end = textarea.selectionEnd;
-                        var text = textarea.value;
-                        textarea.value = text.substring(0, start) + v + text.substring(end);
-                        textarea.selectionStart = textarea.selectionEnd = start + v.length;
+                        var v=this.getAttribute('data-var');
+                        var start=textarea.selectionStart;
+                        var end=textarea.selectionEnd;
+                        var text=textarea.value;
+                        textarea.value=text.substring(0,start)+v+text.substring(end);
+                        textarea.selectionStart=textarea.selectionEnd=start+v.length;
                         textarea.focus();
                     });
                 });
 
                 /* Modal prévisualisation */
-                var sfPreviewModal = null;
+                var sfPreviewModal=null;
 
                 function sfCreateModal(){
                     if(sfPreviewModal) return;
-                    var overlay = document.createElement('div');
-                    overlay.id = 'sf-email-preview-overlay';
-                    overlay.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:999999;overflow-y:auto;padding:30px 16px';
-                    overlay.innerHTML =
+                    var overlay=document.createElement('div');
+                    overlay.id='sf-email-preview-overlay';
+                    overlay.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:999999;overflow-y:auto;padding:30px 16px';
+                    overlay.innerHTML=
                         '<div style="max-width:660px;margin:0 auto;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.3)">'
-                        + '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:<?php echo esc_js( $color ); ?>;color:#fff">'
-                        + '<div>'
-                        + '<div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px"><?php echo esc_js( __( 'Objet :', 'serviceflow' ) ); ?></div>'
-                        + '<div id="sf-preview-subject" style="font-size:14px;font-weight:600"></div>'
-                        + '</div>'
-                        + '<button id="sf-preview-close" type="button" style="background:rgba(255,255,255,0.2);border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:18px;line-height:1;flex-shrink:0">&times;</button>'
-                        + '</div>'
-                        + '<div id="sf-preview-loading" style="padding:40px;text-align:center;color:#999;font-size:13px"><?php echo esc_js( __( 'Chargement…', 'serviceflow' ) ); ?></div>'
-                        + '<iframe id="sf-preview-frame" style="display:none;width:100%;border:none;min-height:500px"></iframe>'
-                        + '</div>';
+                        +'<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:<?php echo esc_js( $color ); ?>;color:#fff">'
+                        +'<div>'
+                        +'<div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px"><?php echo esc_js( __( 'Objet :', 'wpservio' ) ); ?></div>'
+                        +'<div id="sf-preview-subject" style="font-size:14px;font-weight:600"></div>'
+                        +'</div>'
+                        +'<button id="sf-preview-close" type="button" style="background:rgba(255,255,255,0.2);border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:18px;line-height:1;flex-shrink:0">&times;</button>'
+                        +'</div>'
+                        +'<div id="sf-preview-loading" style="padding:40px;text-align:center;color:#999;font-size:13px"><?php echo esc_js( __( 'Chargement…', 'wpservio' ) ); ?></div>'
+                        +'<iframe id="sf-preview-frame" style="display:none;width:100%;border:none;min-height:500px"></iframe>'
+                        +'</div>';
                     document.body.appendChild(overlay);
-                    sfPreviewModal = overlay;
-
-                    document.getElementById('sf-preview-close').addEventListener('click', function(){
-                        overlay.style.display = 'none';
+                    sfPreviewModal=overlay;
+                    document.getElementById('sf-preview-close').addEventListener('click',function(){
+                        overlay.style.display='none';
                     });
-                    overlay.addEventListener('click', function(e){
-                        if(e.target === overlay) overlay.style.display = 'none';
+                    overlay.addEventListener('click',function(e){
+                        if(e.target===overlay) overlay.style.display='none';
                     });
                 }
 
-                function sfPreviewEmail(type, subject, body){
+                function sfPreviewEmail(type,subject,body){
                     sfCreateModal();
-                    sfPreviewModal.style.display = 'block';
-                    document.getElementById('sf-preview-subject').textContent = subject || '—';
-                    document.getElementById('sf-preview-loading').style.display = 'block';
-                    var frame = document.getElementById('sf-preview-frame');
-                    frame.style.display = 'none';
-
-                    var fd = new FormData();
-                    fd.append('action', 'serviceflow_preview_email');
-                    fd.append('nonce', '<?php echo esc_js( wp_create_nonce( 'serviceflow_nonce' ) ); ?>');
-                    fd.append('type', type);
-                    fd.append('subject', subject);
-                    fd.append('body', body);
-
-                    fetch('<?php echo esc_js( admin_url( 'admin-ajax.php' ) ); ?>', {method:'POST', body:fd})
+                    sfPreviewModal.style.display='block';
+                    document.getElementById('sf-preview-subject').textContent=subject||'—';
+                    document.getElementById('sf-preview-loading').style.display='block';
+                    var frame=document.getElementById('sf-preview-frame');
+                    frame.style.display='none';
+                    var fd=new FormData();
+                    fd.append('action','wpservio_preview_email');
+                    fd.append('nonce','<?php echo esc_js( wp_create_nonce( 'wpservio_nonce' ) ); ?>');
+                    fd.append('type',type);
+                    fd.append('subject',subject);
+                    fd.append('body',body);
+                    fetch('<?php echo esc_js( admin_url( 'admin-ajax.php' ) ); ?>',{method:'POST',body:fd})
                     .then(function(r){return r.json();})
                     .then(function(res){
-                        document.getElementById('sf-preview-loading').style.display = 'none';
+                        document.getElementById('sf-preview-loading').style.display='none';
                         if(res.success){
-                            document.getElementById('sf-preview-subject').textContent = res.data.subject || subject;
-                            frame.style.display = 'block';
-                            frame.srcdoc = res.data.html;
+                            document.getElementById('sf-preview-subject').textContent=res.data.subject||subject;
+                            frame.style.display='block';
+                            frame.srcdoc=res.data.html;
                         } else {
-                            document.getElementById('sf-preview-loading').style.display = 'block';
-                            document.getElementById('sf-preview-loading').textContent = '<?php echo esc_js( __( 'Erreur lors du chargement.', 'serviceflow' ) ); ?>';
+                            document.getElementById('sf-preview-loading').style.display='block';
+                            document.getElementById('sf-preview-loading').textContent='<?php echo esc_js( __( 'Erreur lors du chargement.', 'wpservio' ) ); ?>';
                         }
                     })
                     .catch(function(){
-                        document.getElementById('sf-preview-loading').style.display = 'block';
-                        document.getElementById('sf-preview-loading').textContent = '<?php echo esc_js( __( 'Erreur réseau.', 'serviceflow' ) ); ?>';
+                        document.getElementById('sf-preview-loading').style.display='block';
+                        document.getElementById('sf-preview-loading').textContent='<?php echo esc_js( __( 'Erreur réseau.', 'wpservio' ) ); ?>';
                     });
                 }
-                </script>
+                <?php
+                wp_add_inline_script( 'wpservio-notif-admin-js', ob_get_clean() );
+                ?>
 
                 <p class="submit">
                     <button type="submit" class="button" style="background:<?php echo esc_attr( $color ); ?>;color:#fff;border:none;padding:8px 24px;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer">
-                        <?php esc_html_e( 'Enregistrer les modifications', 'serviceflow' ); ?>
+                        <?php esc_html_e( 'Enregistrer les modifications', 'wpservio' ); ?>
                     </button>
                 </p>
             </form>
@@ -687,7 +587,7 @@ class ServiceFlow_Notifications {
 
         // Récupérer un extrait du message
         global $wpdb;
-        $msg_table = ServiceFlow_DB::table_name();
+        $msg_table = WpServio_DB::table_name();
         $msg_row   = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $wpdb->prepare(
                 "SELECT message FROM {$msg_table} WHERE id = %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $msg_table is a plugin-defined constant.
@@ -718,7 +618,7 @@ class ServiceFlow_Notifications {
     public static function on_order_created( int $order_id, int $post_id, int $client_id ): void {
         $client  = get_userdata( $client_id );
         $service = get_the_title( $post_id );
-        $order   = ServiceFlow_Orders::get_order( $order_id );
+        $order   = WpServio_Orders::get_order( $order_id );
 
         $data = [
             'client_name'  => $client ? $client->display_name : '',
@@ -735,7 +635,7 @@ class ServiceFlow_Notifications {
     }
 
     public static function on_order_status_changed( int $order_id, string $new_status, string $old_status, int $acting_user_id ): void {
-        $order = ServiceFlow_Orders::get_order( $order_id );
+        $order = WpServio_Orders::get_order( $order_id );
         if ( ! $order ) {
             return;
         }
@@ -743,12 +643,12 @@ class ServiceFlow_Notifications {
         $service = get_the_title( (int) $order->post_id );
 
         $status_labels = [
-            'pending'   => __( 'En attente', 'serviceflow' ),
-            'paid'      => __( 'Payée', 'serviceflow' ),
-            'started'   => __( 'En cours', 'serviceflow' ),
-            'completed' => __( 'Terminée', 'serviceflow' ),
-            'revision'  => __( 'Retouche', 'serviceflow' ),
-            'accepted'  => __( 'Acceptée', 'serviceflow' ),
+            'pending'   => __( 'En attente', 'wpservio' ),
+            'paid'      => __( 'Payée', 'wpservio' ),
+            'started'   => __( 'En cours', 'wpservio' ),
+            'completed' => __( 'Terminée', 'wpservio' ),
+            'revision'  => __( 'Retouche', 'wpservio' ),
+            'accepted'  => __( 'Acceptée', 'wpservio' ),
         ];
 
         $data = [
@@ -776,11 +676,11 @@ class ServiceFlow_Notifications {
      * ================================================================ */
 
     /**
-     * Appelé depuis ServiceFlow_Payments::send_payment_link().
+     * Appelé depuis WpServio_Payments::send_payment_link().
      * Envoie un email au client avec le lien de paiement Stripe.
      */
     public static function on_payment_link_sent( object $row, object $order, string $checkout_url ): void {
-        if ( ! serviceflow_is_premium() ) {
+        if ( ! wpservio_is_premium() ) {
             return;
         }
 
@@ -789,9 +689,9 @@ class ServiceFlow_Notifications {
             return;
         }
 
-        $service_name    = get_the_title( (int) $order->post_id ) ?: 'ServiceFlow';
-        $installment_label = class_exists( 'ServiceFlow_Payments' )
-            ? ServiceFlow_Payments::get_type_label( $row->type, (int) $row->installment_no )
+        $service_name    = get_the_title( (int) $order->post_id ) ?: 'WpServio';
+        $installment_label = class_exists( 'WpServio_Payments' )
+            ? WpServio_Payments::get_type_label( $row->type, (int) $row->installment_no )
             : ( 'Mensualité ' . (int) $row->installment_no );
         $amount_fmt      = number_format( floatval( $row->amount_ttc ), 2, ',', ' ' );
 
@@ -811,7 +711,7 @@ class ServiceFlow_Notifications {
      * Appelé depuis le cron quotidien pour envoyer les rappels N jours avant échéance.
      */
     public static function on_payment_reminder( object $row, object $order ): void {
-        if ( ! serviceflow_is_premium() ) {
+        if ( ! wpservio_is_premium() ) {
             return;
         }
 
@@ -820,9 +720,9 @@ class ServiceFlow_Notifications {
             return;
         }
 
-        $service_name      = get_the_title( (int) $order->post_id ) ?: 'ServiceFlow';
-        $installment_label = class_exists( 'ServiceFlow_Payments' )
-            ? ServiceFlow_Payments::get_type_label( $row->type, (int) $row->installment_no )
+        $service_name      = get_the_title( (int) $order->post_id ) ?: 'WpServio';
+        $installment_label = class_exists( 'WpServio_Payments' )
+            ? WpServio_Payments::get_type_label( $row->type, (int) $row->installment_no )
             : ( 'Mensualité ' . (int) $row->installment_no );
         $amount_fmt        = number_format( floatval( $row->amount_ttc ), 2, ',', ' ' );
         $due_date_fmt      = $row->due_date ? date_i18n( get_option( 'date_format' ), strtotime( $row->due_date ) ) : '';
@@ -869,7 +769,7 @@ class ServiceFlow_Notifications {
      * ================================================================ */
 
     private static function maybe_send_email( string $type, int $recipient_id, array $data, int $post_id ): void {
-        if ( ! serviceflow_is_premium() ) {
+        if ( ! wpservio_is_premium() ) {
             return;
         }
 
@@ -914,14 +814,14 @@ class ServiceFlow_Notifications {
         $template = $settings[ $key ] ?? '';
 
         if ( ! $template ) {
-            return __( 'Notification ServiceFlow', 'serviceflow' );
+            return __( 'Notification WpServio', 'wpservio' );
         }
 
         return self::replace_placeholders( $template, $data );
     }
 
     private static function get_email_body( string $type, array $data, WP_User $recipient, int $post_id ): string {
-        $color       = ServiceFlow_Admin::get_color();
+        $color       = WpServio_Admin::get_color();
         $site_name   = get_bloginfo( 'name' );
         $service_url = get_permalink( $post_id ) ?: home_url();
         $name        = $recipient->display_name ?: $recipient->user_login;
@@ -963,13 +863,13 @@ class ServiceFlow_Notifications {
 
         // Bouton
         $btn_labels = [
-            'new_message'      => __( 'Voir le chat', 'serviceflow' ),
-            'new_order'        => __( 'Voir la commande', 'serviceflow' ),
-            'order_status'     => __( 'Voir la commande', 'serviceflow' ),
-            'payment_link'     => __( '💳 Payer maintenant', 'serviceflow' ),
-            'payment_reminder' => __( 'Voir mes paiements', 'serviceflow' ),
+            'new_message'      => __( 'Voir le chat', 'wpservio' ),
+            'new_order'        => __( 'Voir la commande', 'wpservio' ),
+            'order_status'     => __( 'Voir la commande', 'wpservio' ),
+            'payment_link'     => __( '💳 Payer maintenant', 'wpservio' ),
+            'payment_reminder' => __( 'Voir mes paiements', 'wpservio' ),
         ];
-        $btn_label = $btn_labels[ $type ] ?? __( 'Voir', 'serviceflow' );
+        $btn_label = $btn_labels[ $type ] ?? __( 'Voir', 'wpservio' );
 
         // Pour payment_link : le bouton pointe directement vers Stripe
         if ( $type === 'payment_link' && ! empty( $data['payment_url'] ) ) {
@@ -987,7 +887,7 @@ class ServiceFlow_Notifications {
             . '<div style="background:#fff;padding:24px;border-left:1px solid #e0e0e0;border-right:1px solid #e0e0e0">'
             . '<p style="margin:0 0 20px 0;font-size:15px;color:#333">'
             /* translators: %s: recipient display name */
-            . sprintf( esc_html__( 'Bonjour %s,', 'serviceflow' ), esc_html( $name ) )
+            . sprintf( esc_html__( 'Bonjour %s,', 'wpservio' ), esc_html( $name ) )
             . '</p>'
             . $content_html
             . '<p style="margin:20px 0 0 0;text-align:center">'
@@ -997,7 +897,7 @@ class ServiceFlow_Notifications {
             . '</div>'
             // Footer
             . '<div style="padding:16px 24px;text-align:center;font-size:12px;color:#999;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 8px 8px;background:#fafafa">'
-            . esc_html__( 'Cet email a été envoyé automatiquement par le système de chat.', 'serviceflow' )
+            . esc_html__( 'Cet email a été envoyé automatiquement par le système de chat.', 'wpservio' )
             . '</div>'
             . '</div>'
             . '</body></html>';
@@ -1027,7 +927,7 @@ class ServiceFlow_Notifications {
      * ================================================================ */
 
     public static function ajax_preview_email(): void {
-        check_ajax_referer( 'serviceflow_nonce', 'nonce' );
+        check_ajax_referer( 'wpservio_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_send_json_error( [], 403 );
         }
@@ -1101,16 +1001,16 @@ class ServiceFlow_Notifications {
         $fake_user->user_email   = 'exemple@votresite.com';
 
         // Surcharger temporairement les settings
-        $original = get_option( 'serviceflow_notif_settings', [] );
+        $original = get_option( 'wpservio_notif_settings', [] );
         $override  = is_array( $original ) ? $original : [];
         $override[ 'tpl_body_' . $type ]    = $body;
         $override[ 'tpl_subject_' . $type ] = $subject;
-        update_option( 'serviceflow_notif_settings', $override );
+        update_option( 'wpservio_notif_settings', $override );
 
         $html = self::get_email_body( $type, $data, $fake_user, 0 );
 
         // Restaurer
-        update_option( 'serviceflow_notif_settings', $original );
+        update_option( 'wpservio_notif_settings', $original );
 
         wp_send_json_success( [
             'subject' => $rendered_subject,
@@ -1123,7 +1023,7 @@ class ServiceFlow_Notifications {
      * ================================================================ */
 
     public static function ajax_count(): void {
-        check_ajax_referer( 'serviceflow_notif_nonce', 'nonce' );
+        check_ajax_referer( 'wpservio_notif_nonce', 'nonce' );
 
         if ( ! is_user_logged_in() ) {
             wp_send_json_error( [], 403 );
@@ -1142,7 +1042,7 @@ class ServiceFlow_Notifications {
     }
 
     public static function ajax_list(): void {
-        check_ajax_referer( 'serviceflow_notif_nonce', 'nonce' );
+        check_ajax_referer( 'wpservio_notif_nonce', 'nonce' );
 
         if ( ! is_user_logged_in() ) {
             wp_send_json_error( [], 403 );
@@ -1174,7 +1074,7 @@ class ServiceFlow_Notifications {
     }
 
     public static function ajax_read_all(): void {
-        check_ajax_referer( 'serviceflow_notif_nonce', 'nonce' );
+        check_ajax_referer( 'wpservio_notif_nonce', 'nonce' );
 
         if ( ! is_user_logged_in() ) {
             wp_send_json_error( [], 403 );
@@ -1198,29 +1098,29 @@ class ServiceFlow_Notifications {
     private static function format_notification_text( string $type, array $data ): string {
         switch ( $type ) {
             case 'new_message':
-                /* translators: %1$s: sender name, %2$s: service name */
                 return sprintf(
-                    __( '%1$s vous a envoyé un message sur « %2$s »', 'serviceflow' ),
+                    /* translators: %1$s: sender name, %2$s: service name */
+                    __( '%1$s vous a envoyé un message sur « %2$s »', 'wpservio' ),
                     $data['sender_name'] ?? '',
                     $data['service_name'] ?? ''
                 );
             case 'new_order':
-                /* translators: %1$s: client name, %2$s: service name, %3$s: total price */
                 return sprintf(
-                    __( 'Nouvelle commande de %1$s sur « %2$s » — %3$s €', 'serviceflow' ),
+                    /* translators: %1$s: client name, %2$s: service name, %3$s: total price */
+                    __( 'Nouvelle commande de %1$s sur « %2$s » — %3$s €', 'wpservio' ),
                     $data['client_name'] ?? '',
                     $data['service_name'] ?? '',
                     number_format( (float) ( $data['total_price'] ?? 0 ), 2, ',', ' ' )
                 );
             case 'order_status':
-                /* translators: %1$s: order number, %2$s: status label */
                 return sprintf(
-                    __( 'Commande %1$s — Statut : %2$s', 'serviceflow' ),
+                    /* translators: %1$s: order number, %2$s: status label */
+                    __( 'Commande %1$s — Statut : %2$s', 'wpservio' ),
                     $data['order_number'] ?? '',
                     $data['status_label'] ?? ''
                 );
             default:
-                return __( 'Nouvelle notification', 'serviceflow' );
+                return __( 'Nouvelle notification', 'wpservio' );
         }
     }
 
@@ -1230,29 +1130,29 @@ class ServiceFlow_Notifications {
         $diff = $now - $time;
 
         if ( $diff < 60 ) {
-            return __( 'À l\'instant', 'serviceflow' );
+            return __( 'À l\'instant', 'wpservio' );
         }
         if ( $diff < 3600 ) {
             $m = (int) floor( $diff / 60 );
             /* translators: %d: number of minutes ago */
-            return sprintf( __( 'Il y a %d min', 'serviceflow' ), $m );
+            return sprintf( __( 'Il y a %d min', 'wpservio' ), $m );
         }
         if ( $diff < 86400 ) {
             $h = (int) floor( $diff / 3600 );
             /* translators: %d: number of hours ago */
-            return sprintf( __( 'Il y a %d h', 'serviceflow' ), $h );
+            return sprintf( __( 'Il y a %d h', 'wpservio' ), $h );
         }
         if ( $diff < 604800 ) {
             $d = (int) floor( $diff / 86400 );
             /* translators: %d: number of days ago */
-            return sprintf( __( 'Il y a %d j', 'serviceflow' ), $d );
+            return sprintf( __( 'Il y a %d j', 'wpservio' ), $d );
         }
 
         return date_i18n( 'd/m/Y', $time );
     }
 
     /* ================================================================
-     *  SHORTCODE — Bell notifications [serviceflow_notifications]
+     *  SHORTCODE — Bell notifications [wpservio_notifications]
      * ================================================================ */
 
     public static function shortcode_bell(): string {
@@ -1262,17 +1162,19 @@ class ServiceFlow_Notifications {
 
         self::$instance++;
         $n     = self::$instance;
-        $color = ServiceFlow_Admin::get_color();
-        $nonce = wp_create_nonce( 'serviceflow_notif_nonce' );
+        $color = WpServio_Admin::get_color();
+        $nonce = wp_create_nonce( 'wpservio_notif_nonce' );
         $ajax  = admin_url( 'admin-ajax.php' );
 
         // Compteur initial
         global $wpdb;
         $table = self::table_name();
-        $count = (int) $wpdb->get_var( $wpdb->prepare(
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $count = (int) $wpdb->get_var( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             "SELECT COUNT(*) FROM {$table} WHERE user_id = %d AND is_read = 0",
             get_current_user_id()
         ) );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
         ob_start();
         ?>
@@ -1287,17 +1189,19 @@ class ServiceFlow_Notifications {
             <div id="serviceflow-notif-drop-<?php echo absint( $n ); ?>" style="display:none !important;position:absolute !important;top:calc(100% + 6px) !important;right:0 !important;width:360px !important;max-width:calc(100vw - 32px) !important;background:#fff !important;border:1px solid #e0e0e0 !important;border-radius:10px !important;box-shadow:0 8px 30px rgba(0,0,0,0.12) !important;z-index:999999 !important;overflow:hidden !important">
                 <!-- Header -->
                 <div style="padding:14px 16px !important;border-bottom:1px solid #eee !important;display:flex !important;align-items:center !important;justify-content:space-between !important">
-                    <span style="font-size:15px !important;font-weight:700 !important;color:#222 !important"><?php esc_html_e( 'Notifications', 'serviceflow' ); ?></span>
-                    <button id="serviceflow-notif-readall-<?php echo absint( $n ); ?>" type="button" style="background:none !important;border:none !important;color:<?php echo esc_attr( $color ); ?> !important;font-size:12px !important;font-weight:600 !important;cursor:pointer !important;padding:0 !important"><?php esc_html_e( 'Tout marquer comme lu', 'serviceflow' ); ?></button>
+                    <span style="font-size:15px !important;font-weight:700 !important;color:#222 !important"><?php esc_html_e( 'Notifications', 'wpservio' ); ?></span>
+                    <button id="serviceflow-notif-readall-<?php echo absint( $n ); ?>" type="button" style="background:none !important;border:none !important;color:<?php echo esc_attr( $color ); ?> !important;font-size:12px !important;font-weight:600 !important;cursor:pointer !important;padding:0 !important"><?php esc_html_e( 'Tout marquer comme lu', 'wpservio' ); ?></button>
                 </div>
                 <!-- Liste -->
                 <div id="serviceflow-notif-list-<?php echo absint( $n ); ?>" style="max-height:360px !important;overflow-y:auto !important">
-                    <div style="padding:30px 16px !important;text-align:center !important;color:#999 !important;font-size:13px !important"><?php esc_html_e( 'Chargement…', 'serviceflow' ); ?></div>
+                    <div style="padding:30px 16px !important;text-align:center !important;color:#999 !important;font-size:13px !important"><?php esc_html_e( 'Chargement…', 'wpservio' ); ?></div>
                 </div>
             </div>
         </div>
 
-        <script>
+        <?php
+        ob_start();
+        ?>
         (function(){
             var n=<?php echo absint( $n ); ?>,
                 ajax='<?php echo esc_js( $ajax ); ?>',
@@ -1342,7 +1246,7 @@ class ServiceFlow_Notifications {
 
             function loadList(){
                 var xhr=new XMLHttpRequest();
-                xhr.open('GET',ajax+'?action=serviceflow_notif_list&nonce='+encodeURIComponent(nonce));
+                xhr.open('GET',ajax+'?action=wpservio_notif_list&nonce='+encodeURIComponent(nonce));
                 xhr.onload=function(){
                     try{
                         var r=JSON.parse(xhr.responseText);
@@ -1359,7 +1263,7 @@ class ServiceFlow_Notifications {
                                     var links=list.querySelectorAll('a');
                                     for(var i=0;i<links.length;i++){links[i].style.setProperty('background','#fff','important');}
                                 };
-                                x2.send('action=serviceflow_notif_read_all&nonce='+encodeURIComponent(nonce));
+                                x2.send('action=wpservio_notif_read_all&nonce='+encodeURIComponent(nonce));
                             }
                         }
                     }catch(e){}
@@ -1369,7 +1273,7 @@ class ServiceFlow_Notifications {
 
             function renderList(items){
                 if(!items.length){
-                    list.innerHTML='<div style="padding:30px 16px;text-align:center;color:#999;font-size:13px"><?php echo esc_js( __( 'Aucune notification', 'serviceflow' ) ); ?></div>';
+                    list.innerHTML='<div style="padding:30px 16px;text-align:center;color:#999;font-size:13px"><?php echo esc_js( __( 'Aucune notification', 'wpservio' ) ); ?></div>';
                     return;
                 }
                 var html='';
@@ -1400,13 +1304,13 @@ class ServiceFlow_Notifications {
                         links[i].style.setProperty('background','#fff','important');
                     }
                 };
-                xhr.send('action=serviceflow_notif_read_all&nonce='+encodeURIComponent(nonce));
+                xhr.send('action=wpservio_notif_read_all&nonce='+encodeURIComponent(nonce));
             });
 
             // Polling toutes les 30 secondes
             setInterval(function(){
                 var xhr=new XMLHttpRequest();
-                xhr.open('GET',ajax+'?action=serviceflow_notif_count&nonce='+encodeURIComponent(nonce));
+                xhr.open('GET',ajax+'?action=wpservio_notif_count&nonce='+encodeURIComponent(nonce));
                 xhr.onload=function(){
                     try{
                         var r=JSON.parse(xhr.responseText);
@@ -1420,7 +1324,9 @@ class ServiceFlow_Notifications {
                 xhr.send();
             },30000);
         })();
-        </script>
+        <?php
+        wp_add_inline_script( 'wpservio-notif-js', ob_get_clean() );
+        ?>
         <?php
         return ob_get_clean();
     }

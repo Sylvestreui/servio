@@ -4,12 +4,12 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class ServiceFlow_Front {
+class WpServio_Front {
 
     public static function init(): void {
         add_action( 'wp_enqueue_scripts', [ __CLASS__, 'enqueue_assets' ] );
-        add_action( 'wp_footer', [ __CLASS__, 'render_chat' ], 9999 );
-        add_shortcode( 'serviceflow_options', [ __CLASS__, 'shortcode_options' ] );
+        add_action( 'wp_footer', [ __CLASS__, 'render_chat' ], 9 );
+        add_shortcode( 'wpservio_options', [ __CLASS__, 'shortcode_options' ] );
     }
 
     public static function enqueue_assets(): void {
@@ -21,19 +21,49 @@ class ServiceFlow_Front {
             'serviceflow-inter',
             'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap',
             [],
-            false
+            WPSERVIO_VERSION
         );
 
         wp_enqueue_style(
             'serviceflow-style',
-            SERVICEFLOW_PLUGIN_URL . 'assets/css/serviceflow.css',
+            WPSERVIO_PLUGIN_URL . 'assets/css/serviceflow.css',
             [ 'serviceflow-inter' ],
-            SERVICEFLOW_VERSION
+            WPSERVIO_VERSION
+        );
+
+        if ( ! wp_script_is( 'wpservio-chat-js', 'registered' ) ) {
+            wp_register_script( 'wpservio-chat-js', false, [ 'jquery' ], WPSERVIO_VERSION, true ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
+        }
+        wp_enqueue_script( 'wpservio-chat-js' );
+
+        // Inline CSS dynamique basé sur la couleur du plugin
+        $c     = esc_attr( WpServio_Admin::get_color() );
+        $hex   = ltrim( $c, '#' );
+        $r_int = hexdec( substr( $hex, 0, 2 ) );
+        $g_int = hexdec( substr( $hex, 2, 2 ) );
+        $b_int = hexdec( substr( $hex, 4, 2 ) );
+        $c_muted = sprintf( 'rgba(%d,%d,%d,0.7)', $r_int, $g_int, $b_int );
+
+        wp_add_inline_style( 'serviceflow-style',
+            '.serviceflow-info-tip{position:relative !important;cursor:help !important;display:inline-flex !important;align-items:center !important;color:#aaa !important}' .
+            '.serviceflow-info-tip .serviceflow-tip-text{visibility:hidden !important;opacity:0 !important;position:absolute !important;left:50% !important;bottom:calc(100% + 8px) !important;transform:translateX(-50%) !important;background:#333 !important;color:#fff !important;font-size:12px !important;font-weight:400 !important;line-height:1.4 !important;padding:8px 12px !important;border-radius:6px !important;max-width:350px !important;width:max-content !important;z-index:100 !important;pointer-events:none !important;transition:opacity .15s !important;box-shadow:0 2px 8px rgba(0,0,0,0.15) !important;text-align:left !important}' .
+            '.serviceflow-info-tip .serviceflow-tip-text::after{content:"" !important;position:absolute !important;top:100% !important;left:50% !important;transform:translateX(-50%) !important;border:5px solid transparent !important;border-top-color:#333 !important}' .
+            '.serviceflow-info-tip:hover .serviceflow-tip-text{visibility:visible !important;opacity:1 !important}' .
+            '.serviceflow-sc-check{-webkit-appearance:none !important;-moz-appearance:none !important;appearance:none !important;width:18px !important;height:18px !important;min-width:18px !important;border:2px solid #ccc !important;border-radius:4px !important;background:#fff !important;cursor:pointer !important;position:relative !important;transition:all .15s !important;margin:2px 0 0 0 !important;flex-shrink:0 !important}' .
+            '.serviceflow-sc-check:checked{background:' . $c . ' !important;border-color:' . $c . ' !important}' .
+            '.serviceflow-sc-check:checked::after{content:"" !important;position:absolute !important;left:5px !important;top:1px !important;width:5px !important;height:10px !important;border:solid #fff !important;border-width:0 2px 2px 0 !important;transform:rotate(45deg) !important}' .
+            '#serviceflow-sc-card{scrollbar-width:none !important}' .
+            '#serviceflow-sc-card::-webkit-scrollbar{width:1px !important}' .
+            '#serviceflow-sc-card::-webkit-scrollbar-track{background:transparent !important}' .
+            '#serviceflow-sc-card::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.15) !important;border-radius:1px !important}' .
+            '#serviceflow-sc-card:hover::-webkit-scrollbar{width:2px !important}' .
+            '#serviceflow-sc-card:hover::-webkit-scrollbar-thumb{background:' . $c_muted . ' !important}' .
+            '@media (min-width: 768px) { #serviceflow-container { min-height: 520px !important; max-height: 680px !important; } }'
         );
     }
 
     /**
-     * Shortcode [serviceflow_options] — affiche packs + options de service.
+     * Shortcode [wpservio_options] — affiche packs + options de service.
      */
     public static function shortcode_options(): string {
         if ( ! self::is_chat_page() ) {
@@ -41,9 +71,9 @@ class ServiceFlow_Front {
         }
 
         $post_id = get_queried_object_id();
-        $packs   = ServiceFlow_Options::get_packs( $post_id );
-        $options = ServiceFlow_Options::get_options( $post_id );
-        $color   = esc_attr( ServiceFlow_Admin::get_color() );
+        $packs   = WpServio_Options::get_packs( $post_id );
+        $options = WpServio_Options::get_options( $post_id );
+        $color   = esc_attr( WpServio_Admin::get_color() );
 
         if ( empty( $packs ) ) {
             return '';
@@ -52,15 +82,16 @@ class ServiceFlow_Front {
         $c              = $color;
         $first_price    = floatval( $packs[0]['price'] ?? 0 );
         $first_delay    = absint( $packs[0]['delay'] ?? 0 );
-        $tax_rate       = serviceflow_is_premium() ? floatval( ServiceFlow_Invoices::get_settings()['tax_rate'] ?? 0 ) : 0;
-        $payment_mode   = ServiceFlow_Options::get_payment_mode( $post_id );
+        $tax_rate       = wpservio_is_premium() ? floatval( WpServio_Invoices::get_settings()['tax_rate'] ?? 0 ) : 0;
+        $payment_mode        = WpServio_Options::get_payment_mode( $post_id );
+        $installments_count  = WpServio_Options::get_installments_count( $post_id );
         $payment_mode_labels = [
-            'single'       => __( 'Paiement unique', 'serviceflow' ),
-            'deposit'      => __( 'Acompte 50% + solde à la livraison', 'serviceflow' ),
-            'installments' => __( 'Mensualités', 'serviceflow' ),
-            'monthly'      => __( 'Abonnement mensuel', 'serviceflow' ),
+            'single'       => __( 'Paiement unique', 'wpservio' ),
+            'deposit'      => __( 'Acompte 50% + solde à la livraison', 'wpservio' ),
+            'installments' => __( 'Mensualités', 'wpservio' ),
+            'monthly'      => __( 'Abonnement mensuel', 'wpservio' ),
         ];
-        $payment_mode_label = $payment_mode_labels[ $payment_mode ] ?? __( 'Paiement unique', 'serviceflow' );
+        $payment_mode_label = $payment_mode_labels[ $payment_mode ] ?? __( 'Paiement unique', 'wpservio' );
 
         ob_start();
         ?>
@@ -80,31 +111,14 @@ class ServiceFlow_Front {
         $c_light = sprintf( 'rgba(%d,%d,%d,0.12)', $r_int, $g_int, $b_int );
         $c_muted = sprintf( 'rgba(%d,%d,%d,0.7)', $r_int, $g_int, $b_int );
         ?>
-        <style>
-            .serviceflow-info-tip{position:relative !important;cursor:help !important;display:inline-flex !important;align-items:center !important;color:#aaa !important}
-            .serviceflow-info-tip .serviceflow-tip-text{visibility:hidden !important;opacity:0 !important;position:absolute !important;left:50% !important;bottom:calc(100% + 8px) !important;transform:translateX(-50%) !important;background:#333 !important;color:#fff !important;font-size:12px !important;font-weight:400 !important;line-height:1.4 !important;padding:8px 12px !important;border-radius:6px !important;max-width:350px !important;width:max-content !important;z-index:100 !important;pointer-events:none !important;transition:opacity .15s !important;box-shadow:0 2px 8px rgba(0,0,0,0.15) !important;text-align:left !important}
-            .serviceflow-info-tip .serviceflow-tip-text::after{content:'' !important;position:absolute !important;top:100% !important;left:50% !important;transform:translateX(-50%) !important;border:5px solid transparent !important;border-top-color:#333 !important}
-            .serviceflow-info-tip:hover .serviceflow-tip-text{visibility:visible !important;opacity:1 !important}
-            /* Checkbox custom avec la couleur du plugin */
-            .serviceflow-sc-check{-webkit-appearance:none !important;-moz-appearance:none !important;appearance:none !important;width:18px !important;height:18px !important;min-width:18px !important;border:2px solid #ccc !important;border-radius:4px !important;background:#fff !important;cursor:pointer !important;position:relative !important;transition:all .15s !important;margin:2px 0 0 0 !important;flex-shrink:0 !important}
-            .serviceflow-sc-check:checked{background:<?php echo esc_html( $c ); ?> !important;border-color:<?php echo esc_html( $c ); ?> !important}
-            .serviceflow-sc-check:checked::after{content:'' !important;position:absolute !important;left:5px !important;top:1px !important;width:5px !important;height:10px !important;border:solid #fff !important;border-width:0 2px 2px 0 !important;transform:rotate(45deg) !important}
-            /* Scrollbar fine et discrète */
-            #serviceflow-sc-card{scrollbar-width:none !important}
-            #serviceflow-sc-card::-webkit-scrollbar{width:1px !important}
-            #serviceflow-sc-card::-webkit-scrollbar-track{background:transparent !important}
-            #serviceflow-sc-card::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.15) !important;border-radius:1px !important}
-            #serviceflow-sc-card:hover::-webkit-scrollbar{width:2px !important}
-            #serviceflow-sc-card:hover::-webkit-scrollbar-thumb{background:<?php echo esc_html( $c_muted ); ?> !important}
-        </style>
         <div id="serviceflow-sc-card" style="font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif !important;border:1px solid #e0e0e0 !important;border-radius:12px !important;overflow-x:hidden !important;overflow-y:auto !important;max-height:calc(100vh - 80px) !important;background:#fff !important;box-shadow:0 2px 8px rgba(0,0,0,0.06) !important;max-width:100% !important;padding:0 !important;margin:0 0 20px 0 !important">
             <div style="display:flex !important;align-items:center !important;gap:8px !important;padding:12px 16px !important;background:<?php echo esc_attr( $c ); ?> !important;color:#fff !important;font-size:14px !important;font-weight:600 !important;margin:0 !important;border-radius:0 !important;position:sticky !important;top:0 !important;z-index:2 !important">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"></path><rect x="9" y="3" width="6" height="4" rx="1"></rect></svg>
-                <span style="color:#fff !important;font-size:14px !important;font-weight:600 !important"><?php esc_html_e( 'Options de service', 'serviceflow' ); ?></span>
+                <span style="color:#fff !important;font-size:14px !important;font-weight:600 !important"><?php esc_html_e( 'Options de service', 'wpservio' ); ?></span>
             </div>
 
             <!-- Packs -->
-            <div style="padding:12px 16px 2px !important;font-size:12px !important;font-weight:600 !important;text-transform:uppercase !important;letter-spacing:0.5px !important;color:#888 !important;margin:0 !important"><?php esc_html_e( 'Choisissez votre pack', 'serviceflow' ); ?></div>
+            <div style="padding:12px 16px 2px !important;font-size:12px !important;font-weight:600 !important;text-transform:uppercase !important;letter-spacing:0.5px !important;color:#888 !important;margin:0 !important"><?php esc_html_e( 'Choisissez votre pack', 'wpservio' ); ?></div>
             <div style="padding:0 16px 8px !important;margin:0 !important">
                 <span style="display:inline-flex !important;align-items:center !important;gap:4px !important;font-size:11px !important;font-weight:500 !important;color:#fff !important;background:<?php echo esc_attr( $c ); ?> !important;padding:2px 8px !important;border-radius:20px !important;opacity:0.85 !important">&#128179; <?php echo esc_html( $payment_mode_label ); ?></span>
             </div>
@@ -134,7 +148,7 @@ class ServiceFlow_Front {
                     <div style="display:flex !important;align-items:baseline !important;gap:8px !important;margin:0 0 4px 0 !important">
                         <span style="font-size:14px !important;font-weight:800 !important;color:<?php echo esc_attr( $c_muted ); ?> !important"><?php echo esc_html( number_format( $pack['price'], 2, ',', ' ' ) ); ?> &euro;</span>
                         <?php if ( $pack_delay > 0 ) : ?>
-                            <span style="font-size:11px !important;color:#888 !important">&#9201; <?php echo esc_html( $pack_delay ); ?> <?php esc_html_e( 'jour(s)', 'serviceflow' ); ?></span>
+                            <span style="font-size:11px !important;color:#888 !important">&#9201; <?php echo esc_html( $pack_delay ); ?> <?php esc_html_e( 'jour(s)', 'wpservio' ); ?></span>
                         <?php endif; ?>
                     </div>
                     <?php if ( is_array( $features ) && ! empty( $features ) ) : ?>
@@ -153,7 +167,7 @@ class ServiceFlow_Front {
 
             <?php if ( ! empty( $options ) ) : ?>
             <div style="height:0 !important;border-top:1px solid #e8e8e8 !important;margin:0 !important;padding:0 !important"></div>
-            <div style="padding:12px 16px 4px !important;font-size:12px !important;font-weight:600 !important;text-transform:uppercase !important;letter-spacing:0.5px !important;color:#888 !important;margin:0 !important"><?php esc_html_e( 'Options supplémentaires', 'serviceflow' ); ?></div>
+            <div style="padding:12px 16px 4px !important;font-size:12px !important;font-weight:600 !important;text-transform:uppercase !important;letter-spacing:0.5px !important;color:#888 !important;margin:0 !important"><?php esc_html_e( 'Options supplémentaires', 'wpservio' ); ?></div>
 
             <?php foreach ( $options as $i => $opt ) :
                 $opt_delay = absint( $opt['delay'] ?? 0 );
@@ -174,62 +188,70 @@ class ServiceFlow_Front {
             <?php endif; ?>
 
             <?php
-            $extra_page_price  = 0;
-            $maintenance_price = 0;
-            $express_price     = 0;
-            if ( serviceflow_is_premium() && ServiceFlow_Admin::is_extra_pages_enabled() ) {
-                $extra_page_price = floatval( get_post_meta( $post_id, '_serviceflow_extra_page_price', true ) );
-            }
-            if ( serviceflow_is_premium() && ServiceFlow_Admin::is_maintenance_enabled() ) {
-                $maintenance_price = floatval( get_post_meta( $post_id, '_serviceflow_maintenance_price', true ) );
-            }
-            if ( serviceflow_is_premium() && ServiceFlow_Admin::is_express_enabled() ) {
-                $express_price = floatval( get_post_meta( $post_id, '_serviceflow_express_price', true ) );
+            // Options avancées dynamiques
+            $advanced_options = [];
+            if ( wpservio_is_premium() ) {
+                $adv_raw = get_post_meta( $post_id, '_wpservio_advanced_options', true );
+                $advanced_options = $adv_raw ? ( json_decode( $adv_raw, true ) ?: [] ) : [];
             }
             ?>
 
-            <?php if ( $extra_page_price > 0 || $maintenance_price > 0 || $express_price > 0 ) : ?>
+            <?php if ( ! empty( $advanced_options ) ) : ?>
             <div style="height:0 !important;border-top:1px solid #e8e8e8 !important;margin:0 !important;padding:0 !important"></div>
-            <?php endif; ?>
-
-            <?php if ( $extra_page_price > 0 ) : ?>
-            <div style="display:flex !important;align-items:center !important;gap:10px !important;padding:10px 16px !important;margin:0 !important">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="<?php echo esc_attr( $c ); ?>" stroke-width="2" style="flex-shrink:0 !important"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                <div style="flex:1 !important;min-width:0 !important">
-                    <div style="font-size:13px !important;font-weight:500 !important;color:#333 !important"><?php esc_html_e( 'Pages supplémentaires', 'serviceflow' ); ?></div>
-                    <div style="font-size:11px !important;color:#999 !important"><?php echo esc_html( number_format( $extra_page_price, 2, ',', ' ' ) ); ?> &euro; / <?php esc_html_e( 'page', 'serviceflow' ); ?></div>
+            <div style="padding:4px 0 0 0 !important;margin:0 !important">
+                <div style="padding:8px 16px 4px !important;font-size:12px !important;font-weight:600 !important;text-transform:uppercase !important;letter-spacing:0.5px !important;color:#888 !important;margin:0 !important"><?php esc_html_e( 'Options avancées', 'wpservio' ); ?></div>
+                <?php foreach ( $advanced_options as $opt_i => $opt ) :
+                    $opt_label  = esc_html( $opt['label'] ?? '' );
+                    $opt_price  = floatval( $opt['price'] ?? 0 );
+                    $opt_mode   = $opt['mode'] ?? 'unit';
+                    $opt_unit   = esc_html( $opt['unit_label'] ?? '' );
+                    if ( ! $opt_price ) continue;
+                    $opt_id     = 'sf-adv-' . absint( $opt_i );
+                    $is_counter = in_array( $opt_mode, [ 'unit', 'daily' ], true );
+                    $price_fmt  = esc_html( number_format( $opt_price, 2, ',', ' ' ) );
+                    $mode_suffix = match ( $opt_mode ) {
+                        'monthly' => ' / ' . __( 'mois', 'wpservio' ),
+                        'daily'   => ' / ' . __( 'jour', 'wpservio' ),
+                        'unit'    => $opt_unit ? ' / ' . $opt_unit : '',
+                        default   => '',
+                    };
+                ?>
+                <div style="display:flex !important;align-items:center !important;gap:10px !important;padding:8px 16px !important;border-top:1px solid #f5f5f5 !important;margin:0 !important">
+                    <?php if ( $is_counter ) : ?>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="<?php echo esc_attr( $c ); ?>" stroke-width="2" style="flex-shrink:0 !important"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                    <?php else : ?>
+                    <input type="checkbox" id="<?php echo esc_attr( $opt_id ); ?>-check"
+                           class="serviceflow-sc-check sf-adv-opt-check"
+                           data-opt-index="<?php echo absint( $opt_i ); ?>"
+                           data-opt-mode="<?php echo esc_attr( $opt_mode ); ?>"
+                           data-opt-price="<?php echo esc_attr( $opt_price ); ?>"
+                           data-opt-label="<?php echo esc_attr( $opt['label'] ?? '' ); ?>"
+                           style="width:18px !important;height:18px !important;min-width:18px !important;margin:0 !important;flex-shrink:0 !important;cursor:pointer !important" />
+                    <?php endif; ?>
+                    <div style="flex:1 !important;min-width:0 !important">
+                        <div style="font-size:13px !important;font-weight:500 !important;color:#333 !important"><?php echo esc_html( $opt['label'] ?? '' ); ?></div>
+                        <div style="font-size:11px !important;color:#999 !important"><?php echo $price_fmt; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Already escaped via esc_html() when built. ?> &euro;<?php echo esc_html( $mode_suffix ); ?></div>
+                    </div>
+                    <?php if ( $is_counter ) : ?>
+                    <div style="display:flex !important;align-items:center !important;gap:6px !important">
+                        <button type="button" class="sf-adv-qty-minus" data-target="<?php echo esc_attr( $opt_id ); ?>"
+                                style="width:28px !important;height:28px !important;border:1px solid #ddd !important;border-radius:6px !important;background:#fff !important;cursor:pointer !important;font-size:16px !important;line-height:1 !important;color:#555 !important;display:flex !important;align-items:center !important;justify-content:center !important">-</button>
+                        <input type="number" id="<?php echo esc_attr( $opt_id ); ?>-qty"
+                               class="sf-adv-opt-qty"
+                               data-opt-index="<?php echo absint( $opt_i ); ?>"
+                               data-opt-mode="<?php echo esc_attr( $opt_mode ); ?>"
+                               data-opt-price="<?php echo esc_attr( $opt_price ); ?>"
+                               data-opt-label="<?php echo esc_attr( $opt['label'] ?? '' ); ?>"
+                               value="0" min="0" max="99"
+                               style="width:44px !important;text-align:center !important;border:1px solid #ddd !important;border-radius:6px !important;padding:4px !important;font-size:13px !important;font-weight:600 !important" />
+                        <button type="button" class="sf-adv-qty-plus" data-target="<?php echo esc_attr( $opt_id ); ?>"
+                                style="width:28px !important;height:28px !important;border:1px solid #ddd !important;border-radius:6px !important;background:#fff !important;cursor:pointer !important;font-size:16px !important;line-height:1 !important;color:#555 !important;display:flex !important;align-items:center !important;justify-content:center !important">+</button>
+                    </div>
+                    <?php else : ?>
+                    <span style="font-size:13px !important;font-weight:600 !important;color:#555 !important;white-space:nowrap !important"><?php echo $price_fmt; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Already escaped via esc_html() when built. ?> &euro;<?php echo esc_html( $mode_suffix ); ?></span>
+                    <?php endif; ?>
                 </div>
-                <div style="display:flex !important;align-items:center !important;gap:6px !important">
-                    <button type="button" id="serviceflow-pages-minus" style="width:28px !important;height:28px !important;border:1px solid #ddd !important;border-radius:6px !important;background:#fff !important;cursor:pointer !important;font-size:16px !important;line-height:1 !important;color:#555 !important;display:flex !important;align-items:center !important;justify-content:center !important">-</button>
-                    <input type="number" id="serviceflow-pages-qty" value="0" min="0" max="99" style="width:44px !important;text-align:center !important;border:1px solid #ddd !important;border-radius:6px !important;padding:4px !important;font-size:13px !important;font-weight:600 !important" />
-                    <button type="button" id="serviceflow-pages-plus" style="width:28px !important;height:28px !important;border:1px solid #ddd !important;border-radius:6px !important;background:#fff !important;cursor:pointer !important;font-size:16px !important;line-height:1 !important;color:#555 !important;display:flex !important;align-items:center !important;justify-content:center !important">+</button>
-                </div>
-            </div>
-            <?php endif; ?>
-
-            <?php if ( $express_price > 0 ) : ?>
-            <div style="display:flex !important;align-items:center !important;gap:10px !important;padding:10px 16px !important;margin:0 !important">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="<?php echo esc_attr( $c ); ?>" stroke-width="2" style="flex-shrink:0 !important"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                <div style="flex:1 !important;min-width:0 !important">
-                    <div style="font-size:13px !important;font-weight:500 !important;color:#333 !important"><?php esc_html_e( 'Livraison express', 'serviceflow' ); ?></div>
-                    <div style="font-size:11px !important;color:#999 !important"><?php echo esc_html( number_format( $express_price, 2, ',', ' ' ) ); ?> &euro; / <?php esc_html_e( 'jour retiré', 'serviceflow' ); ?></div>
-                </div>
-                <div style="display:flex !important;align-items:center !important;gap:6px !important">
-                    <button type="button" id="serviceflow-express-minus" style="width:28px !important;height:28px !important;border:1px solid #ddd !important;border-radius:6px !important;background:#fff !important;cursor:pointer !important;font-size:16px !important;line-height:1 !important;color:#555 !important;display:flex !important;align-items:center !important;justify-content:center !important">-</button>
-                    <input type="number" id="serviceflow-express-days" value="0" min="0" max="99" style="width:44px !important;text-align:center !important;border:1px solid #ddd !important;border-radius:6px !important;padding:4px !important;font-size:13px !important;font-weight:600 !important" />
-                    <button type="button" id="serviceflow-express-plus" style="width:28px !important;height:28px !important;border:1px solid #ddd !important;border-radius:6px !important;background:#fff !important;cursor:pointer !important;font-size:16px !important;line-height:1 !important;color:#555 !important;display:flex !important;align-items:center !important;justify-content:center !important">+</button>
-                </div>
-            </div>
-            <?php endif; ?>
-
-            <?php if ( $maintenance_price > 0 ) : ?>
-            <div style="display:flex !important;align-items:center !important;gap:10px !important;padding:10px 16px !important;margin:0 !important">
-                <input type="checkbox" id="serviceflow-maintenance-check" class="serviceflow-sc-check" style="width:18px !important;height:18px !important;min-width:18px !important;margin:0 !important;flex-shrink:0 !important;cursor:pointer !important" />
-                <div style="flex:1 !important;min-width:0 !important">
-                    <div style="font-size:13px !important;font-weight:500 !important;color:#333 !important"><?php esc_html_e( 'Maintenance', 'serviceflow' ); ?></div>
-                    <div style="font-size:11px !important;color:#999 !important"><?php echo esc_html( number_format( $maintenance_price, 2, ',', ' ' ) ); ?> &euro; / <?php esc_html_e( 'mois', 'serviceflow' ); ?></div>
-                </div>
-                <span style="font-size:13px !important;font-weight:600 !important;color:#555 !important;white-space:nowrap !important"><?php echo esc_html( number_format( $maintenance_price, 2, ',', ' ' ) ); ?> &euro;/<?php esc_html_e( 'mois', 'serviceflow' ); ?></span>
+                <?php endforeach; ?>
             </div>
             <?php endif; ?>
 
@@ -241,29 +263,34 @@ class ServiceFlow_Front {
             ?>
             <div style="padding:14px 16px !important;border-top:2px solid #e8e8e8 !important;background:#fafafa !important;margin:0 !important;position:sticky !important;bottom:0 !important;z-index:10 !important;border-radius:0 0 12px 12px !important">
                 <div style="display:flex !important;justify-content:space-between !important;align-items:center !important;font-size:12px !important;color:#888 !important;margin:0 0 2px 0 !important;padding:0 !important">
-                    <span><?php esc_html_e( 'Sous-total', 'serviceflow' ); ?></span>
+                    <span><?php esc_html_e( 'Sous-total', 'wpservio' ); ?></span>
                     <span id="serviceflow-sc-subtotal-val"><?php echo esc_html( number_format( $first_price, 2, ',', ' ' ) ); ?> &euro;</span>
                 </div>
                 <div style="display:flex !important;justify-content:space-between !important;align-items:center !important;font-size:12px !important;color:#888 !important;margin:0 0 6px 0 !important;padding:0 !important">
                     <?php if ( $tax_rate > 0 ) : ?>
-                        <span><?php esc_html_e( 'TVA', 'serviceflow' ); ?> (<?php echo esc_html( $tax_rate ); ?>%)</span>
+                        <span><?php esc_html_e( 'TVA', 'wpservio' ); ?> (<?php echo esc_html( $tax_rate ); ?>%)</span>
                         <span id="serviceflow-sc-tva-val"><?php echo esc_html( number_format( $first_tva, 2, ',', ' ' ) ); ?> &euro;</span>
                     <?php else : ?>
-                        <span id="serviceflow-sc-tva-val" style="font-style:italic !important"><?php esc_html_e( 'TVA : 0% (non applicable)', 'serviceflow' ); ?></span>
+                        <span id="serviceflow-sc-tva-val" style="font-style:italic !important"><?php esc_html_e( 'TVA : 0% (non applicable)', 'wpservio' ); ?></span>
                         <span></span>
                     <?php endif; ?>
                 </div>
                 <div style="display:flex !important;justify-content:space-between !important;align-items:center !important;font-size:16px !important;font-weight:700 !important;color:#222 !important;margin:0 0 4px 0 !important;padding:0 !important;border-top:1px solid #e8e8e8 !important;padding-top:6px !important">
-                    <span style="font-size:16px !important;font-weight:700 !important;color:#222 !important"><?php esc_html_e( 'Total', 'serviceflow' ); ?></span>
+                    <span style="font-size:16px !important;font-weight:700 !important;color:#222 !important"><?php esc_html_e( 'Total', 'wpservio' ); ?></span>
                     <span id="serviceflow-sc-total-val" style="font-size:16px !important;font-weight:700 !important;color:<?php echo esc_attr( $c_muted ); ?> !important"><?php echo esc_html( number_format( $first_total, 2, ',', ' ' ) ); ?> &euro;</span>
                 </div>
+                <?php if ( $payment_mode !== 'single' ) : ?>
+                <div id="serviceflow-sc-breakdown" style="background:<?php echo esc_attr( $c_light ); ?> !important;border-radius:6px !important;padding:8px 10px !important;margin:6px 0 8px 0 !important;font-size:12px !important;color:#555 !important"></div>
+                <?php else : ?>
+                <div id="serviceflow-sc-breakdown" style="display:none !important"></div>
+                <?php endif; ?>
                 <div id="serviceflow-sc-delay-row" style="display:flex !important;justify-content:space-between !important;align-items:center !important;font-size:13px !important;color:#888 !important;margin:0 0 12px 0 !important;padding:0 !important">
-                    <span style="font-size:13px !important;color:#888 !important">&#9201; <?php esc_html_e( 'Délai estimé', 'serviceflow' ); ?></span>
-                    <span id="serviceflow-sc-delay-val" style="font-size:13px !important;font-weight:600 !important;color:#555 !important"><?php echo esc_html( $first_delay ); ?> <?php esc_html_e( 'jour(s)', 'serviceflow' ); ?></span>
+                    <span style="font-size:13px !important;color:#888 !important">&#9201; <?php esc_html_e( 'Délai estimé', 'wpservio' ); ?></span>
+                    <span id="serviceflow-sc-delay-val" style="font-size:13px !important;font-weight:600 !important;color:#555 !important"><?php echo esc_html( $first_delay ); ?> <?php esc_html_e( 'jour(s)', 'wpservio' ); ?></span>
                 </div>
                 <button type="button" id="serviceflow-sc-order" style="display:flex !important;align-items:center !important;justify-content:center !important;gap:8px !important;width:100% !important;padding:12px !important;border:none !important;border-radius:8px !important;background:<?php echo esc_attr( $c ); ?> !important;color:#fff !important;font-size:14px !important;font-weight:600 !important;cursor:pointer !important;font-family:inherit !important;margin:0 !important;line-height:1.4 !important">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                    <?php echo ( serviceflow_is_premium() && ServiceFlow_Stripe::is_enabled() ) ? esc_html__( 'Payer et commander', 'serviceflow' ) : esc_html__( 'Commander via le chat', 'serviceflow' ); ?>
+                    <?php echo ( wpservio_is_premium() && WpServio_Stripe::is_enabled() ) ? esc_html__( 'Payer et commander', 'wpservio' ) : esc_html__( 'Commander via le chat', 'wpservio' ); ?>
                 </button>
             </div>
             <?php endif; ?>
@@ -274,164 +301,47 @@ class ServiceFlow_Front {
         <div id="serviceflow-mobile-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:2147483645;background:#fff;box-shadow:0 -2px 12px rgba(0,0,0,0.12);padding:12px 16px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
                 <div style="flex-shrink:0">
-                    <div style="font-size:11px;color:#888;text-transform:uppercase;font-weight:600;letter-spacing:0.3px"><?php esc_html_e( 'À partir de', 'serviceflow' ); ?></div>
+                    <div style="font-size:11px;color:#888;text-transform:uppercase;font-weight:600;letter-spacing:0.3px"><?php esc_html_e( 'À partir de', 'wpservio' ); ?></div>
                     <div id="serviceflow-mobile-price" style="font-size:16px;font-weight:600;color:<?php echo esc_attr( $c ); ?>"><?php echo esc_html( number_format( $first_price, 2, ',', ' ' ) ); ?> &euro;</div>
                 </div>
                 <button type="button" id="serviceflow-mobile-cta" style="flex:1;max-width:240px;padding:12px 16px;border:none;border-radius:8px;background:<?php echo esc_attr( $c ); ?>;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;line-height:1.4">
-                    <?php esc_html_e( 'Voir les offres', 'serviceflow' ); ?>
+                    <?php esc_html_e( 'Voir les offres', 'wpservio' ); ?>
                 </button>
             </div>
         </div>
         <?php endif; ?>
 
-        <script>
-        (function(){
-            /* Options : click sur la ligne toggle la checkbox */
-            var wraps = document.querySelectorAll('.serviceflow-sc-opt-wrap');
-            wraps.forEach(function(w){
-                w.addEventListener('click', function(e){
-                    if(e.target.type !== 'checkbox'){
-                        var cb = w.querySelector('input[type="checkbox"]');
-                        if(cb && !cb.disabled){ cb.checked = !cb.checked; cb.dispatchEvent(new Event('change')); }
-                    }
-                });
-            });
-
-            /* Packs : sélection radio */
-            var packs = document.querySelectorAll('.serviceflow-sc-pack');
-            var packBox = document.getElementById('serviceflow-sc-packs');
-            var pColor = packBox ? packBox.dataset.color : '#3b82f6';
-            /* Extraire les composantes RGB pour créer des variantes nuancées en JS */
-            var hexToRgb = function(h){ h = h.replace('#',''); return { r:parseInt(h.substring(0,2),16), g:parseInt(h.substring(2,4),16), b:parseInt(h.substring(4,6),16) }; };
-            var rgb = hexToRgb(pColor);
-            var pColorMuted = 'rgba('+rgb.r+','+rgb.g+','+rgb.b+',0.7)';
-            var pColorLight = 'rgba('+rgb.r+','+rgb.g+','+rgb.b+',0.12)';
-            var checkSvg = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"></path></svg>';
-
-            packs.forEach(function(p){
-                p.addEventListener('click', function(){
-                    if(packBox && packBox.hasAttribute('data-frozen')) return;
-                    packs.forEach(function(pp){
-                        pp.removeAttribute('data-selected');
-                        pp.style.setProperty('border-color', '#e0e0e0', 'important');
-                        pp.style.setProperty('background', '#fff', 'important');
-                        var d = pp.querySelector('.serviceflow-pack-dot');
-                        if(d){ d.style.setProperty('border-color','#ccc','important'); d.style.setProperty('background','transparent','important'); d.innerHTML=''; }
-                    });
-                    p.setAttribute('data-selected', 'true');
-                    p.style.setProperty('border-color', pColorMuted, 'important');
-                    p.style.setProperty('background', pColorLight, 'important');
-                    var d = p.querySelector('.serviceflow-pack-dot');
-                    if(d){ d.style.setProperty('border-color',pColor,'important'); d.style.setProperty('background',pColor,'important'); d.innerHTML=checkSvg; }
-                    document.dispatchEvent(new Event('serviceflow_pack_changed'));
-                });
-            });
-
-            /* Barre sticky mobile : afficher/masquer selon la visibilité de la carte */
-            var mobileBar = document.getElementById('serviceflow-mobile-bar');
-            var scCard    = document.getElementById('serviceflow-sc-card');
-            var mobileCta = document.getElementById('serviceflow-mobile-cta');
-            var mobilePrice = document.getElementById('serviceflow-mobile-price');
-
-            var chatBtn = document.getElementById('serviceflow-toggle');
-
-            if (mobileBar && scCard) {
-                var isMobile = function(){ return window.innerWidth <= 768; };
-
-                var adjustChatBtn = function(barVisible){
-                    if (!chatBtn) return;
-                    if (barVisible && isMobile()) {
-                        chatBtn.style.setProperty('bottom', '80px', 'important');
-                    } else {
-                        chatBtn.style.setProperty('bottom', '24px', 'important');
-                    }
-                };
-
-                var observer = new IntersectionObserver(function(entries){
-                    if (!isMobile()) { mobileBar.style.display = 'none'; adjustChatBtn(false); return; }
-                    var visible = entries[0].isIntersecting;
-                    mobileBar.style.display = visible ? 'none' : 'block';
-                    adjustChatBtn(!visible);
-                }, { threshold: 0.1 });
-
-                observer.observe(scCard);
-
-                window.addEventListener('resize', function(){
-                    if (!isMobile()) { mobileBar.style.display = 'none'; adjustChatBtn(false); }
-                });
-
-                if (mobileCta) {
-                    mobileCta.addEventListener('click', function(){
-                        scCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    });
-                }
-
-                /* Synchroniser le prix de la barre mobile avec le total de la carte */
-                if (mobilePrice) {
-                    var syncPrice = function(){
-                        var totalEl = document.getElementById('serviceflow-sc-total-val');
-                        if (totalEl) mobilePrice.textContent = totalEl.textContent;
-                    };
-                    document.addEventListener('serviceflow_pack_changed', syncPrice);
-                    var checks = document.querySelectorAll('.serviceflow-sc-check');
-                    checks.forEach(function(cb){ cb.addEventListener('change', function(){ setTimeout(syncPrice, 50); }); });
-                }
-            }
-
-            /* Pages supplémentaires : boutons +/- */
-            var pagesQty   = document.getElementById('serviceflow-pages-qty');
-            var pagesMinus = document.getElementById('serviceflow-pages-minus');
-            var pagesPlus  = document.getElementById('serviceflow-pages-plus');
-            if(pagesMinus) pagesMinus.addEventListener('click',function(e){
-                e.preventDefault(); e.stopPropagation();
-                if(pagesQty && parseInt(pagesQty.value)>0){
-                    pagesQty.value = parseInt(pagesQty.value) - 1;
-                    document.dispatchEvent(new Event('serviceflow_pack_changed'));
-                }
-            });
-            if(pagesPlus) pagesPlus.addEventListener('click',function(e){
-                e.preventDefault(); e.stopPropagation();
-                if(pagesQty){
-                    pagesQty.value = parseInt(pagesQty.value) + 1;
-                    document.dispatchEvent(new Event('serviceflow_pack_changed'));
-                }
-            });
-            if(pagesQty) pagesQty.addEventListener('change',function(){
-                if(parseInt(pagesQty.value)<0) pagesQty.value = 0;
-                document.dispatchEvent(new Event('serviceflow_pack_changed'));
-            });
-
-            /* Maintenance : checkbox */
-            var maintCheck = document.getElementById('serviceflow-maintenance-check');
-            if(maintCheck) maintCheck.addEventListener('change', function(){
-                document.dispatchEvent(new Event('serviceflow_pack_changed'));
-            });
-
-            /* Livraison express : boutons +/- jours */
-            var expressDays  = document.getElementById('serviceflow-express-days');
-            var expressMinus = document.getElementById('serviceflow-express-minus');
-            var expressPlus  = document.getElementById('serviceflow-express-plus');
-            if(expressMinus) expressMinus.addEventListener('click',function(e){
-                e.preventDefault(); e.stopPropagation();
-                if(expressDays && parseInt(expressDays.value)>0){
-                    expressDays.value = parseInt(expressDays.value) - 1;
-                    document.dispatchEvent(new Event('serviceflow_pack_changed'));
-                }
-            });
-            if(expressPlus) expressPlus.addEventListener('click',function(e){
-                e.preventDefault(); e.stopPropagation();
-                if(expressDays){
-                    expressDays.value = parseInt(expressDays.value) + 1;
-                    document.dispatchEvent(new Event('serviceflow_pack_changed'));
-                }
-            });
-            if(expressDays) expressDays.addEventListener('change',function(){
-                if(parseInt(expressDays.value)<0) expressDays.value = 0;
-                document.dispatchEvent(new Event('serviceflow_pack_changed'));
-            });
-        })();
-        </script>
         <?php
+        wp_add_inline_script( 'wpservio-chat-js', '(function(){
+            var wraps = document.querySelectorAll(".serviceflow-sc-opt-wrap");
+            wraps.forEach(function(w){ w.addEventListener("click", function(e){ if(e.target.type!=="checkbox"){ var cb=w.querySelector("input[type=\'checkbox\']"); if(cb&&!cb.disabled){cb.checked=!cb.checked;cb.dispatchEvent(new Event("change"));} } }); });
+            var packs=document.querySelectorAll(".serviceflow-sc-pack");
+            var packBox=document.getElementById("serviceflow-sc-packs");
+            var pColor=packBox?packBox.dataset.color:"#3b82f6";
+            var hexToRgb=function(h){h=h.replace("#","");return{r:parseInt(h.substring(0,2),16),g:parseInt(h.substring(2,4),16),b:parseInt(h.substring(4,6),16)};};
+            var rgb=hexToRgb(pColor);
+            var pColorMuted="rgba("+rgb.r+","+rgb.g+","+rgb.b+",0.7)";
+            var pColorLight="rgba("+rgb.r+","+rgb.g+","+rgb.b+",0.12)";
+            var checkSvg=\'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"></path></svg>\';
+            packs.forEach(function(p){ p.addEventListener("click",function(){ if(packBox&&packBox.hasAttribute("data-frozen"))return; packs.forEach(function(pp){ pp.removeAttribute("data-selected"); pp.style.setProperty("border-color","#e0e0e0","important"); pp.style.setProperty("background","#fff","important"); var d=pp.querySelector(".serviceflow-pack-dot"); if(d){d.style.setProperty("border-color","#ccc","important");d.style.setProperty("background","transparent","important");d.innerHTML="";} }); p.setAttribute("data-selected","true"); p.style.setProperty("border-color",pColorMuted,"important"); p.style.setProperty("background",pColorLight,"important"); var d=p.querySelector(".serviceflow-pack-dot"); if(d){d.style.setProperty("border-color",pColor,"important");d.style.setProperty("background",pColor,"important");d.innerHTML=checkSvg;} document.dispatchEvent(new Event("wpservio_pack_changed")); }); });
+            var mobileBar=document.getElementById("serviceflow-mobile-bar");
+            var scCard=document.getElementById("serviceflow-sc-card");
+            var mobileCta=document.getElementById("serviceflow-mobile-cta");
+            var mobilePrice=document.getElementById("serviceflow-mobile-price");
+            var chatBtn=document.getElementById("serviceflow-toggle");
+            if(mobileBar&&scCard){
+                var isMobile=function(){return window.innerWidth<=768;};
+                var adjustChatBtn=function(barVisible){if(!chatBtn)return;chatBtn.style.setProperty("bottom",barVisible&&isMobile()?"80px":"24px","important");};
+                var observer=new IntersectionObserver(function(entries){if(!isMobile()){mobileBar.style.display="none";adjustChatBtn(false);return;}var visible=entries[0].isIntersecting;mobileBar.style.display=visible?"none":"block";adjustChatBtn(!visible);},{threshold:0.1});
+                observer.observe(scCard);
+                window.addEventListener("resize",function(){if(!isMobile()){mobileBar.style.display="none";adjustChatBtn(false);}});
+                if(mobileCta){mobileCta.addEventListener("click",function(){scCard.scrollIntoView({behavior:"smooth",block:"center"});});}
+                if(mobilePrice){var syncPrice=function(){var totalEl=document.getElementById("serviceflow-sc-total-val");if(totalEl)mobilePrice.textContent=totalEl.textContent;};document.addEventListener("wpservio_pack_changed",syncPrice);var checks=document.querySelectorAll(".serviceflow-sc-check");checks.forEach(function(cb){cb.addEventListener("change",function(){setTimeout(syncPrice,50);});});}
+            }
+            document.querySelectorAll(".sf-adv-qty-minus,.sf-adv-qty-plus").forEach(function(btn){btn.addEventListener("click",function(e){e.preventDefault();e.stopPropagation();var inp=document.getElementById(btn.dataset.target+"-qty");if(!inp)return;var v=parseInt(inp.value)||0;inp.value=btn.classList.contains("sf-adv-qty-minus")?Math.max(0,v-1):v+1;document.dispatchEvent(new Event("wpservio_pack_changed"));});});
+            document.querySelectorAll(".sf-adv-opt-qty").forEach(function(inp){inp.addEventListener("change",function(){if(parseInt(inp.value)<0)inp.value=0;document.dispatchEvent(new Event("wpservio_pack_changed"));});});
+            document.querySelectorAll(".sf-adv-opt-check").forEach(function(cb){cb.addEventListener("change",function(){document.dispatchEvent(new Event("wpservio_pack_changed"));});});
+        })();' );
         return ob_get_clean();
     }
 
@@ -443,8 +353,8 @@ class ServiceFlow_Front {
             return;
         }
 
-        $color       = esc_attr( ServiceFlow_Admin::get_color() );
-        $position    = ServiceFlow_Admin::get_position();
+        $color       = esc_attr( WpServio_Admin::get_color() );
+        $position    = WpServio_Admin::get_position();
         $pos_parts   = explode( '-', $position );
         $vertical    = $pos_parts[0] ?? '';
         $horizontal  = $pos_parts[1] ?? '';
@@ -499,34 +409,29 @@ class ServiceFlow_Front {
             $horizontal . ':24px !important',
         ] );
 
-        $packs   = ServiceFlow_Options::get_packs( $post_id );
-        $options = ServiceFlow_Options::get_options( $post_id );
+        $packs   = WpServio_Options::get_packs( $post_id );
+        $options = WpServio_Options::get_options( $post_id );
 
         $is_admin = current_user_can( 'manage_options' );
 
         $active_order = null;
         if ( $is_logged ) {
-            $active_order = ServiceFlow_Orders::build_order_response( $post_id );
+            $active_order = WpServio_Orders::build_order_response( $post_id );
         }
 
-        // Prix options avancées (aussi utilisés par le shortcode)
-        $extra_page_price  = 0;
-        $maintenance_price = 0;
-        if ( ServiceFlow_Admin::is_extra_pages_enabled() ) {
-            $extra_page_price = floatval( get_post_meta( $post_id, '_serviceflow_extra_page_price', true ) );
+        // Options avancées dynamiques
+        $advanced_options = [];
+        if ( wpservio_is_premium() ) {
+            $adv_raw = get_post_meta( $post_id, '_wpservio_advanced_options', true );
+            $advanced_options = $adv_raw ? ( json_decode( $adv_raw, true ) ?: [] ) : [];
         }
-        if ( ServiceFlow_Admin::is_maintenance_enabled() ) {
-            $maintenance_price = floatval( get_post_meta( $post_id, '_serviceflow_maintenance_price', true ) );
-        }
-        $express_price = 0;
-        if ( ServiceFlow_Admin::is_express_enabled() ) {
-            $express_price = floatval( get_post_meta( $post_id, '_serviceflow_express_price', true ) );
-        }
-        $tax_rate = serviceflow_is_premium() ? floatval( ServiceFlow_Invoices::get_settings()['tax_rate'] ?? 0 ) : 0;
+        $tax_rate           = wpservio_is_premium() ? floatval( WpServio_Invoices::get_settings()['tax_rate'] ?? 0 ) : 0;
+        $payment_mode       = WpServio_Options::get_payment_mode( $post_id );
+        $installments_count = WpServio_Options::get_installments_count( $post_id );
 
         $js_config = wp_json_encode( [
             'ajax_url'     => admin_url( 'admin-ajax.php' ),
-            'nonce'        => wp_create_nonce( 'serviceflow_nonce' ),
+            'nonce'        => wp_create_nonce( 'wpservio_nonce' ),
             'post_id'      => $post_id,
             'post_title'   => get_the_title( $post_id ),
             'user_id'      => get_current_user_id(),
@@ -537,76 +442,74 @@ class ServiceFlow_Front {
             'active_order' => $active_order,
             'packs'        => ! empty( $packs ) ? $packs : [],
             'options'      => ! empty( $options ) ? $options : [],
-            'extra_page_price'        => $extra_page_price,
-            'maintenance_price'       => $maintenance_price,
-            'express_price'           => $express_price,
+            'advanced_options'        => $advanced_options,
             'tax_rate'                => $tax_rate,
-            'is_premium'              => serviceflow_is_premium(),
-            'stripe_enabled'          => ServiceFlow_Stripe::is_enabled(),
-            'stripe_checkout_action'  => 'serviceflow_stripe_checkout',
+            'payment_mode'            => $payment_mode,
+            'installments_count'      => $installments_count,
+            'is_premium'              => wpservio_is_premium(),
+            'stripe_enabled'          => WpServio_Stripe::is_enabled(),
+            'stripe_checkout_action'  => 'wpservio_stripe_checkout',
             'i18n'         => [
-                'error'             => __( 'Erreur lors de l\'envoi.', 'serviceflow' ),
-                'empty'             => __( 'Pas encore de message — posez votre première question ! 👋', 'serviceflow' ),
-                'order_btn'         => ServiceFlow_Stripe::is_enabled()
-                    ? __( 'Payer et commander', 'serviceflow' )
-                    : __( 'Commander via le chat', 'serviceflow' ),
-                'order_modify_btn'  => __( 'Modifier la commande', 'serviceflow' ),
-                'order_locked'      => __( 'Commande en cours...', 'serviceflow' ),
-                'order_replace'     => __( 'Vous avez déjà envoyé une commande. Voulez-vous la remplacer par cette nouvelle sélection ?', 'serviceflow' ),
-                'order_modify'      => __( 'Modification de commande', 'serviceflow' ),
-                'days'              => __( 'jour(s)', 'serviceflow' ),
-                'estimated'         => __( 'Livraison estimée', 'serviceflow' ),
-                'start_order'       => __( 'Démarrer', 'serviceflow' ),
-                'complete_order'    => __( 'Terminer', 'serviceflow' ),
-                'request_revision'  => __( 'Demander une retouche', 'serviceflow' ),
-                'accept_delivery'   => __( 'Accepter la livraison', 'serviceflow' ),
-                'validate_order'    => __( 'Valider', 'serviceflow' ),
-                'validate_revision' => __( 'Valider la retouche', 'serviceflow' ),
-                'revision_delay_placeholder' => __( 'Délai (jours)', 'serviceflow' ),
-                'status_pending'    => __( 'En attente', 'serviceflow' ),
-                'status_paid'       => __( 'Payée', 'serviceflow' ),
-                'status_started'    => __( 'En cours', 'serviceflow' ),
-                'status_completed'  => __( 'Terminée', 'serviceflow' ),
-                'status_revision'   => __( 'Retouche demandée', 'serviceflow' ),
-                'status_accepted'   => __( 'Acceptée', 'serviceflow' ),
-                'client'            => __( 'Client', 'serviceflow' ),
-                'service'           => __( 'Service', 'serviceflow' ),
-                'delay_total'       => __( 'Délai total', 'serviceflow' ),
-                'order_error'       => __( 'Erreur lors de la création de la commande.', 'serviceflow' ),
-                'order_no_modify'   => __( 'La commande ne peut plus être modifiée.', 'serviceflow' ),
-                'conversations'     => __( 'Conversations', 'serviceflow' ),
-                'no_conversations'  => __( 'Aucune conversation.', 'serviceflow' ),
-                'chat'              => __( 'Chat', 'serviceflow' ),
-                'payment_redirect'  => __( 'Redirection vers le paiement...', 'serviceflow' ),
-                'payment_error'     => __( 'Erreur lors de la création du paiement.', 'serviceflow' ),
-                'login_required'    => __( 'Connectez-vous pour commander.', 'serviceflow' ),
-                'progress'          => __( 'Progression', 'serviceflow' ),
-                'add_note'          => __( 'Ajouter une note (optionnel)', 'serviceflow' ),
-                'todo_note'         => __( 'Note', 'serviceflow' ),
+                'error'             => __( 'Erreur lors de l\'envoi.', 'wpservio' ),
+                'empty'             => __( 'Pas encore de message — posez votre première question ! 👋', 'wpservio' ),
+                'order_btn'         => WpServio_Stripe::is_enabled()
+                    ? __( 'Payer et commander', 'wpservio' )
+                    : __( 'Commander via le chat', 'wpservio' ),
+                'order_modify_btn'  => __( 'Modifier la commande', 'wpservio' ),
+                'order_locked'      => __( 'Commande en cours...', 'wpservio' ),
+                'order_replace'     => __( 'Vous avez déjà envoyé une commande. Voulez-vous la remplacer par cette nouvelle sélection ?', 'wpservio' ),
+                'order_modify'      => __( 'Modification de commande', 'wpservio' ),
+                'days'              => __( 'jour(s)', 'wpservio' ),
+                'estimated'         => __( 'Livraison estimée', 'wpservio' ),
+                'start_order'       => __( 'Démarrer', 'wpservio' ),
+                'complete_order'    => __( 'Terminer', 'wpservio' ),
+                'request_revision'  => __( 'Demander une retouche', 'wpservio' ),
+                'accept_delivery'   => __( 'Accepter la livraison', 'wpservio' ),
+                'validate_order'    => __( 'Valider', 'wpservio' ),
+                'validate_revision' => __( 'Valider la retouche', 'wpservio' ),
+                'revision_delay_placeholder' => __( 'Délai (jours)', 'wpservio' ),
+                'status_pending'    => __( 'En attente', 'wpservio' ),
+                'status_paid'       => __( 'Payée', 'wpservio' ),
+                'status_started'    => __( 'En cours', 'wpservio' ),
+                'status_completed'  => __( 'Terminée', 'wpservio' ),
+                'status_revision'   => __( 'Retouche demandée', 'wpservio' ),
+                'status_accepted'   => __( 'Acceptée', 'wpservio' ),
+                'client'            => __( 'Client', 'wpservio' ),
+                'service'           => __( 'Service', 'wpservio' ),
+                'delay_total'       => __( 'Délai total', 'wpservio' ),
+                'order_error'       => __( 'Erreur lors de la création de la commande.', 'wpservio' ),
+                'order_no_modify'   => __( 'La commande ne peut plus être modifiée.', 'wpservio' ),
+                'conversations'     => __( 'Conversations', 'wpservio' ),
+                'no_conversations'  => __( 'Aucune conversation.', 'wpservio' ),
+                'chat'              => __( 'Chat', 'wpservio' ),
+                'today'             => __( 'Aujourd\'hui', 'wpservio' ),
+                'balance'           => __( 'Solde à la livraison', 'wpservio' ),
+                'monthly_then'      => __( 'puis', 'wpservio' ),
+                'monthly_per_month' => __( '/mois', 'wpservio' ),
+                'payment_redirect'  => __( 'Redirection vers le paiement...', 'wpservio' ),
+                'payment_error'     => __( 'Erreur lors de la création du paiement.', 'wpservio' ),
+                'login_required'    => __( 'Connectez-vous pour commander.', 'wpservio' ),
+                'progress'          => __( 'Progression', 'wpservio' ),
+                'add_note'          => __( 'Ajouter une note (optionnel)', 'wpservio' ),
+                'todo_note'         => __( 'Note', 'wpservio' ),
             ],
         ] );
         ?>
 
-        <!-- ServiceFlow : Bouton flottant -->
+        <!-- WpServio : Bouton flottant -->
         <button id="serviceflow-toggle" style="<?php echo esc_attr( $btn_style ); ?>" aria-label="Chat">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
             <span id="serviceflow-badge" style="position:absolute;top:-2px;right:-2px;min-width:20px;height:20px;background:#e53e3e;color:#fff;border-radius:50%;font-size:11px;font-weight:700;align-items:center;justify-content:center;line-height:1;display:none"></span>
         </button>
 
-        <style>
-        @media (min-width: 768px) {
-            #serviceflow-container { min-height: 520px !important; max-height: 680px !important; }
-        }
-        </style>
-
-        <!-- ServiceFlow : Popup -->
+        <!-- WpServio : Popup -->
         <div id="serviceflow-container" style="<?php echo esc_attr( $popup_style ); ?>">
             <!-- Header avec bouton retour -->
             <div id="serviceflow-header" style="background:<?php echo esc_attr( $color ); ?> !important;color:#fff !important;padding:14px 20px !important;flex-shrink:0 !important;display:flex !important;align-items:center !important;gap:10px !important;margin:0 !important">
                 <button id="serviceflow-back" type="button" style="display:none !important;background:none !important;border:none !important;color:#fff !important;cursor:pointer !important;padding:0 !important;margin:0 !important;flex-shrink:0 !important;line-height:1 !important">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg>
                 </button>
-                <h3 id="serviceflow-header-title" style="margin:0 !important;font-size:16px !important;font-weight:600 !important;color:#fff !important;flex:1 !important"><?php esc_html_e( 'Chat', 'serviceflow' ); ?></h3>
+                <h3 id="serviceflow-header-title" style="margin:0 !important;font-size:16px !important;font-weight:600 !important;color:#fff !important;flex:1 !important"><?php esc_html_e( 'Chat', 'wpservio' ); ?></h3>
             </div>
 
             <!-- Liste de conversations (admin uniquement) -->
@@ -616,13 +519,13 @@ class ServiceFlow_Front {
             <div id="serviceflow-todo-bar" style="display:none;padding:10px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-size:12px;flex-shrink:0;max-height:200px;overflow-y:auto"></div>
 
             <div id="serviceflow-messages" class="serviceflow-messages">
-                <div class="serviceflow-loading"><?php esc_html_e( 'Chargement...', 'serviceflow' ); ?></div>
+                <div class="serviceflow-loading"><?php esc_html_e( 'Chargement...', 'wpservio' ); ?></div>
             </div>
 
             <?php if ( $is_logged ) : ?>
                 <form id="serviceflow-form" class="serviceflow-form" onsubmit="return false;">
                     <div class="serviceflow-input-wrapper">
-                        <textarea id="serviceflow-input" class="serviceflow-input" placeholder="<?php esc_attr_e( 'Votre message...', 'serviceflow' ); ?>" rows="1" maxlength="1000"></textarea>
+                        <textarea id="serviceflow-input" class="serviceflow-input" placeholder="<?php esc_attr_e( 'Votre message...', 'wpservio' ); ?>" rows="1" maxlength="1000"></textarea>
                         <button type="button" id="serviceflow-send" class="serviceflow-send" style="background:<?php echo esc_attr( $color ); ?>">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"></path><path d="M22 2L15 22L11 13L2 9L22 2Z"></path></svg>
                         </button>
@@ -631,19 +534,17 @@ class ServiceFlow_Front {
             <?php else : ?>
                 <div class="serviceflow-login-notice">
                     <p><?php
-                        /* translators: %s: HTML link tag for login page */
                         printf(
-                            esc_html__( '%s pour participer au chat.', 'serviceflow' ),
-                            '<a href="' . esc_url( wp_login_url( get_permalink() ) ) . '">' . esc_html__( 'Connectez-vous', 'serviceflow' ) . '</a>'
+                            /* translators: %s: HTML link tag for login page */
+                            esc_html__( '%s pour participer au chat.', 'wpservio' ),
+                            '<a href="' . esc_url( wp_login_url( get_permalink() ) ) . '">' . esc_html__( 'Connectez-vous', 'wpservio' ) . '</a>'
                         );
                     ?></p>
                 </div>
             <?php endif; ?>
         </div>
 
-        <!-- ServiceFlow : Script -->
-        <script>
-        (function(){
+        <?php ob_start(); ?>(function(){
             var C = <?php echo $js_config; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- wp_json_encode() ensures safe JSON output ?>;
             var POLL = 5000;
             var lsKey = 'sf_last_seen_' + C.post_id + '_' + C.user_id;
@@ -707,7 +608,7 @@ class ServiceFlow_Front {
                 if(!urlParams.get('sf_payment_success') || !schedId || C.is_admin) return;
 
                 // Vérifier si le paiement est confirmé (fallback si webhook pas encore reçu)
-                fetch(C.ajax_url + '?action=serviceflow_schedule_check&schedule_id='+schedId+'&nonce='+C.nonce)
+                fetch(C.ajax_url + '?action=wpservio_schedule_check&schedule_id='+schedId+'&nonce='+C.nonce)
                 .then(function(r){ return r.json(); })
                 .then(function(res){
                     // Ouvrir le chat dans tous les cas pour que le client voit l'état
@@ -739,7 +640,7 @@ class ServiceFlow_Front {
             function loadClientList(){
                 if(!C.is_admin) return;
                 clientList.innerHTML = '<div style="padding:30px 20px !important;text-align:center !important;color:#999 !important;font-size:14px !important">Chargement...</div>';
-                fetch(C.ajax_url+'?'+new URLSearchParams({action:'serviceflow_get_clients',post_id:C.post_id,nonce:C.nonce}))
+                fetch(C.ajax_url+'?'+new URLSearchParams({action:'wpservio_get_clients',post_id:C.post_id,nonce:C.nonce}))
                 .then(function(r){return r.json();})
                 .then(function(res){
                     if(!res.success||!res.data||!res.data.length){
@@ -802,10 +703,11 @@ class ServiceFlow_Front {
             var scOrder   = document.getElementById('serviceflow-sc-order');
             var scChecks  = document.querySelectorAll('.serviceflow-sc-check');
             var scPacks   = document.querySelectorAll('.serviceflow-sc-pack');
-            var scTotal    = document.getElementById('serviceflow-sc-total-val');
-            var scSubtotal = document.getElementById('serviceflow-sc-subtotal-val');
-            var scTva      = document.getElementById('serviceflow-sc-tva-val');
-            var scDelay    = document.getElementById('serviceflow-sc-delay-val');
+            var scTotal     = document.getElementById('serviceflow-sc-total-val');
+            var scSubtotal  = document.getElementById('serviceflow-sc-subtotal-val');
+            var scTva       = document.getElementById('serviceflow-sc-tva-val');
+            var scDelay     = document.getElementById('serviceflow-sc-delay-val');
+            var scBreakdown = document.getElementById('serviceflow-sc-breakdown');
             var packBox   = document.getElementById('serviceflow-sc-packs');
             var scOrigBg  = C.color;
 
@@ -815,16 +717,13 @@ class ServiceFlow_Front {
             var orderFrozen = false;
             var lastOrderStateKey = null;
 
-            /* Options avancées : gérées dans le premier script (shortcode) via serviceflow_pack_changed */
-            var pagesQty    = document.getElementById('serviceflow-pages-qty');
-            var maintCheck  = document.getElementById('serviceflow-maintenance-check');
-            var expressDays = document.getElementById('serviceflow-express-days');
+            /* Options avancées dynamiques : getAdvOptSelections() collecte depuis les inputs du shortcode */
 
             var svgChat = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>';
             var svgEdit = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
 
             /* Pack sélection — écouter l'événement du shortcode */
-            document.addEventListener('serviceflow_pack_changed', function(){
+            document.addEventListener('wpservio_pack_changed', function(){
                 var sel = document.querySelector('.serviceflow-sc-pack[data-selected]');
                 if(sel) selectedPackIdx = parseInt(sel.dataset.index);
                 calcScTotal();
@@ -941,34 +840,30 @@ class ServiceFlow_Front {
                 });
 
                 var total = parseFloat(pack.price)||0;
-                scChecks.forEach(function(cb){ if(cb.checked) total += parseFloat(cb.dataset.price)||0; });
+                scChecks.forEach(function(cb){ if(cb.checked && !cb.classList.contains('sf-adv-opt-check')) total += parseFloat(cb.dataset.price)||0; });
 
-                var epQty = getExtraPagesQty();
-                if(epQty > 0){
-                    var epTotal = epQty * (parseFloat(C.extra_page_price)||0);
-                    lines.push('\ud83d\udcc4 Pages suppl\u00e9mentaires (' + epQty + ') \u2014 ' + fmtPrice(epTotal));
-                    total += epTotal;
-                }
-
-                var exDays = getExpressDays();
-                if(exDays > 0){
-                    var minD = Math.ceil(totalDelay * 0.45);
-                    var maxOff = totalDelay - minD;
-                    if(exDays > maxOff) exDays = maxOff;
-                    var exTotal = exDays * (parseFloat(C.express_price)||0);
-                    lines.push('\u26a1 Livraison express (-' + exDays + 'j) \u2014 ' + fmtPrice(exTotal));
-                    total += exTotal;
-                    totalDelay -= exDays;
-                }
-
-                if(isMaintenanceChecked()){
-                    lines.push('\ud83d\udee0 Maintenance \u2014 ' + fmtPrice(C.maintenance_price) + '/mois');
+                var advSels2 = getAdvOptSelections();
+                for(var ai2=0; ai2<advSels2.length; ai2++){
+                    var asel2 = advSels2[ai2];
+                    if(asel2.mode === 'daily'){
+                        var minD2 = Math.ceil(totalDelay * 0.45);
+                        var maxOff2 = totalDelay - minD2;
+                        var ed2 = Math.min(asel2.qty, maxOff2);
+                        var exTotal2 = ed2 * asel2.price;
+                        lines.push('\u26a1 ' + (C.advanced_options && C.advanced_options[asel2.index] ? C.advanced_options[asel2.index].label : 'Express') + ' (-' + ed2 + 'j) \u2014 ' + fmtPrice(exTotal2));
+                        total += exTotal2;
+                        totalDelay -= ed2;
+                    } else {
+                        var advTotal2 = asel2.qty * asel2.price;
+                        var advLbl2 = C.advanced_options && C.advanced_options[asel2.index] ? C.advanced_options[asel2.index].label : '';
+                        lines.push('\u2795 ' + advLbl2 + (asel2.qty > 1 ? ' (' + asel2.qty + ')' : '') + ' \u2014 ' + fmtPrice(advTotal2));
+                        total += advTotal2;
+                    }
                 }
 
                 var taxRate = parseFloat(C.tax_rate) || 0;
                 var totalTTC = taxRate > 0 ? Math.round(total * (1 + taxRate / 100) * 100) / 100 : total;
                 lines.push('\ud83d\udcb0 Total TTC : ' + totalTTC.toFixed(2).replace('.',',') + ' \u20ac');
-                if(isMaintenanceChecked()) lines.push('+ ' + fmtPrice(C.maintenance_price) + '/mois (maintenance)');
                 if(totalDelay > 0) lines.push('\u23f0 ' + C.i18n.delay_total + ' : ' + totalDelay + ' ' + C.i18n.days);
                 return lines.join('\n');
             }
@@ -1008,9 +903,7 @@ class ServiceFlow_Front {
                         fd.append('nonce', C.nonce);
                         fd.append('selected_pack', selectedPackIdx);
                         fd.append('selected_indices', JSON.stringify(getSelectedIndices()));
-                        fd.append('extra_pages', getExtraPagesQty());
-                        fd.append('maintenance', isMaintenanceChecked() ? '1' : '0');
-                        fd.append('express_days', getExpressDays());
+                        fd.append('advanced_options_data', JSON.stringify(getAdvOptSelections()));
 
                         fetch(C.ajax_url, {method:'POST', body:fd})
                         .then(function(r){ return r.json(); })
@@ -1035,14 +928,12 @@ class ServiceFlow_Front {
                         openChat();
 
                         var fd = new FormData();
-                        fd.append('action', 'serviceflow_create_order');
+                        fd.append('action', 'wpservio_create_order');
                         fd.append('post_id', C.post_id);
                         fd.append('nonce', C.nonce);
                         fd.append('selected_pack', selectedPackIdx);
                         fd.append('selected_indices', JSON.stringify(getSelectedIndices()));
-                        fd.append('extra_pages', getExtraPagesQty());
-                        fd.append('maintenance', isMaintenanceChecked() ? '1' : '0');
-                        fd.append('express_days', getExpressDays());
+                        fd.append('advanced_options_data', JSON.stringify(getAdvOptSelections()));
 
                         fetch(C.ajax_url, {method:'POST', body:fd})
                         .then(function(r){ return r.json(); })
@@ -1060,36 +951,63 @@ class ServiceFlow_Front {
             }
 
             /* ── Total + delay calc ──────────────────── */
-            function getExtraPagesTotal(){ return pagesQty ? (parseInt(pagesQty.value)||0) * (parseFloat(C.extra_page_price)||0) : 0; }
-            function getExtraPagesQty(){ return pagesQty ? (parseInt(pagesQty.value)||0) : 0; }
-            function isMaintenanceChecked(){ return maintCheck ? maintCheck.checked : false; }
-            function getExpressDays(){ return expressDays ? (parseInt(expressDays.value)||0) : 0; }
-            function getExpressTotal(){ return getExpressDays() * (parseFloat(C.express_price)||0); }
+            function getAdvOptSelections(){
+                var sels = [];
+                var seen = {};
+                /* Compteurs (unit / daily) */
+                document.querySelectorAll('.sf-adv-opt-qty').forEach(function(inp){
+                    var qty = parseInt(inp.value)||0;
+                    var idx = inp.dataset.optIndex;
+                    if(qty > 0 && !seen[idx]){
+                        seen[idx] = true;
+                        sels.push({
+                            index: parseInt(idx),
+                            qty:   qty,
+                            mode:  inp.dataset.optMode,
+                            price: parseFloat(inp.dataset.optPrice)||0,
+                            label: inp.dataset.optLabel||''
+                        });
+                    }
+                });
+                /* Checkboxes (monthly / fixed) */
+                document.querySelectorAll('.sf-adv-opt-check').forEach(function(cb){
+                    var idx = cb.dataset.optIndex;
+                    if(cb.checked && !seen[idx]){
+                        seen[idx] = true;
+                        sels.push({
+                            index: parseInt(idx),
+                            qty:   1,
+                            mode:  cb.dataset.optMode,
+                            price: parseFloat(cb.dataset.optPrice)||0,
+                            label: cb.dataset.optLabel||''
+                        });
+                    }
+                });
+                return sels;
+            }
 
             function calcScTotal(){
                 var pack = getSelectedPack();
                 var t = parseFloat(pack.price) || 0;
                 var d = parseInt(pack.delay) || 0;
                 scChecks.forEach(function(cb){
-                    if(cb.checked){
+                    if(cb.checked && !cb.classList.contains('sf-adv-opt-check')){
                         t += parseFloat(cb.dataset.price)||0;
                         d += parseInt(cb.dataset.delay)||0;
                     }
                 });
-                t += getExtraPagesTotal();
-                /* Livraison express : le délai ne peut pas descendre sous 45% du délai initial */
-                var ed = getExpressDays();
-                if(ed > 0){
-                    var minDelay = Math.ceil(d * 0.45);
-                    var maxDaysOff = d - minDelay;
-                    if(ed > maxDaysOff){
-                        ed = maxDaysOff;
-                        if(expressDays) expressDays.value = ed;
+                var advSels = getAdvOptSelections();
+                for(var ai=0; ai<advSels.length; ai++){
+                    var asel = advSels[ai];
+                    if(asel.mode === 'daily'){
+                        var minDelay = Math.ceil(d * 0.45);
+                        var maxDaysOff = d - minDelay;
+                        var ed = Math.min(asel.qty, maxDaysOff);
+                        t += ed * asel.price;
+                        d -= ed;
+                    } else {
+                        t += asel.qty * asel.price;
                     }
-                    t += ed * (parseFloat(C.express_price)||0);
-                    d = d - ed;
-                } else {
-                    t += getExpressTotal();
                 }
                 var taxRate = parseFloat(C.tax_rate) || 0;
                 var tva     = taxRate > 0 ? Math.round(t * taxRate / 100 * 100) / 100 : 0;
@@ -1098,8 +1016,43 @@ class ServiceFlow_Front {
                 if(scTva && taxRate > 0) scTva.textContent = tva.toFixed(2).replace('.',',') + ' \u20ac';
                 if(scTotal) scTotal.textContent = total.toFixed(2).replace('.',',') + ' \u20ac';
                 if(scDelay) scDelay.textContent = d + ' ' + C.i18n.days;
+
+                /* ── Payment breakdown (deposit / installments / monthly) ── */
+                if(scBreakdown){
+                    var mode = C.payment_mode || 'single';
+                    var fmt  = function(v){ return v.toFixed(2).replace('.',',') + ' \u20ac'; };
+                    var row  = function(label, val, bold){
+                        return '<div style="display:flex;justify-content:space-between;align-items:center;margin:2px 0">'
+                            + '<span>' + label + '</span>'
+                            + '<span style="font-weight:' + (bold ? '700' : '600') + ';color:' + C.color + '">' + fmt(val) + '</span>'
+                            + '</div>';
+                    };
+                    if(mode === 'deposit'){
+                        var upfront = Math.round(total * 0.50 * 100) / 100;
+                        var balance = Math.round((total - upfront) * 100) / 100;
+                        scBreakdown.style.display = '';
+                        scBreakdown.innerHTML = row(C.i18n.today, upfront, true) + row(C.i18n.balance, balance, false);
+                    } else if(mode === 'installments'){
+                        var n = parseInt(C.installments_count, 10) || 3;
+                        var upfront2 = Math.round(total * 0.40 * 100) / 100;
+                        var remaining = Math.round((total - upfront2) * 100) / 100;
+                        var monthly2  = Math.round(remaining / n * 100) / 100;
+                        scBreakdown.style.display = '';
+                        scBreakdown.innerHTML = row(C.i18n.today, upfront2, true)
+                            + row(C.i18n.monthly_then + ' ' + n + '\u00d7', monthly2, false);
+                    } else if(mode === 'monthly'){
+                        var n2 = parseInt(C.installments_count, 10) || 3;
+                        var monthly3 = Math.round(total / n2 * 100) / 100;
+                        scBreakdown.style.display = '';
+                        scBreakdown.innerHTML = row(C.i18n.today, monthly3, true)
+                            + row(C.i18n.monthly_then + ' ' + (n2 - 1) + '\u00d7', monthly3, false);
+                    } else {
+                        scBreakdown.style.display = 'none';
+                    }
+                }
             }
-            scChecks.forEach(function(cb){ cb.addEventListener('change', calcScTotal); });
+            scChecks.forEach(function(cb){ if(!cb.classList.contains('sf-adv-opt-check')) cb.addEventListener('change', calcScTotal); });
+            calcScTotal();
 
             function fmtPrice(p){ return parseFloat(p).toFixed(2).replace('.',',') + ' \u20ac'; }
 
@@ -1121,7 +1074,7 @@ class ServiceFlow_Front {
                 if(C.is_admin && !selectedClientId) return;
                 send.disabled = true;
                 var fd = new FormData();
-                fd.append('action','serviceflow_send');
+                fd.append('action','wpservio_send');
                 fd.append('post_id', C.post_id);
                 fd.append('nonce', C.nonce);
                 fd.append('message', msg);
@@ -1144,7 +1097,7 @@ class ServiceFlow_Front {
 
             /* ── Load ────────────────────────────────── */
             function loadMsgs(){
-                var params = {action:'serviceflow_load',post_id:C.post_id,nonce:C.nonce};
+                var params = {action:'wpservio_load',post_id:C.post_id,nonce:C.nonce};
                 if(C.is_admin && selectedClientId) params.client_id = selectedClientId;
                 fetch(C.ajax_url+'?'+new URLSearchParams(params))
                 .then(function(r){return r.json();})
@@ -1171,7 +1124,7 @@ class ServiceFlow_Front {
                         if(btn){
                             var span = document.createElement('span');
                             span.style.cssText = 'display:inline-block !important;margin-top:6px !important;padding:5px 14px !important;background:#10b981 !important;color:#fff !important;border-radius:6px !important;font-size:12px !important;font-weight:600 !important';
-                            span.textContent = '✅ <?php echo esc_js( __( 'Payé', 'serviceflow' ) ); ?>';
+                            span.textContent = '✅ <?php echo esc_js( __( 'Payé', 'wpservio' ) ); ?>';
                             btn.parentNode.replaceChild(span, btn);
                         }
                     });
@@ -1182,7 +1135,7 @@ class ServiceFlow_Front {
                         if(btn){
                             var span = document.createElement('span');
                             span.style.cssText = 'display:inline-block !important;margin-top:6px !important;padding:5px 14px !important;background:#6b7280 !important;color:#fff !important;border-radius:6px !important;font-size:12px !important;font-weight:600 !important;cursor:default !important';
-                            span.textContent = '⏱ <?php echo esc_js( __( 'Lien expiré — contactez votre prestataire', 'serviceflow' ) ); ?>';
+                            span.textContent = '⏱ <?php echo esc_js( __( 'Lien expiré — contactez votre prestataire', 'wpservio' ) ); ?>';
                             btn.parentNode.replaceChild(span, btn);
                         }
                     });
@@ -1192,7 +1145,7 @@ class ServiceFlow_Front {
             /* ── Poll ────────────────────────────────── */
             setInterval(function(){
                 if(C.is_admin && !selectedClientId) return;
-                var params = {action:'serviceflow_poll',post_id:C.post_id,last_id:lastId,nonce:C.nonce};
+                var params = {action:'wpservio_poll',post_id:C.post_id,last_id:lastId,nonce:C.nonce};
                 if(C.is_admin && selectedClientId) params.client_id = selectedClientId;
 
                 fetch(C.ajax_url+'?'+new URLSearchParams(params))
@@ -1255,9 +1208,9 @@ class ServiceFlow_Front {
                     sysHtml = esc(sysHtml).replace(/\n/g,'<br>');
                     sysHtml = sysHtml.replace(/\x00PAY_LINK:(.*?)\x00/g, function(_, url){
                         if(isPaid){
-                            return '<span style="display:inline-block !important;margin-top:6px !important;padding:5px 14px !important;background:#10b981 !important;color:#fff !important;border-radius:6px !important;font-size:12px !important;font-weight:600 !important">✅ <?php echo esc_js( __( 'Payé', 'serviceflow' ) ); ?></span>';
+                            return '<span style="display:inline-block !important;margin-top:6px !important;padding:5px 14px !important;background:#10b981 !important;color:#fff !important;border-radius:6px !important;font-size:12px !important;font-weight:600 !important">✅ <?php echo esc_js( __( 'Payé', 'wpservio' ) ); ?></span>';
                         }
-                        return '<a href="'+url+'" target="_blank" rel="noopener"'+(schedId?' data-sf-sched-id="'+schedId+'"':'')+' style="display:inline-block !important;margin-top:6px !important;padding:5px 14px !important;background:'+C.color+' !important;color:#fff !important;border-radius:6px !important;font-size:12px !important;font-weight:600 !important;text-decoration:none !important">💳 <?php echo esc_js( __( 'Payer maintenant', 'serviceflow' ) ); ?></a>';
+                        return '<a href="'+url+'" target="_blank" rel="noopener"'+(schedId?' data-sf-sched-id="'+schedId+'"':'')+' style="display:inline-block !important;margin-top:6px !important;padding:5px 14px !important;background:'+C.color+' !important;color:#fff !important;border-radius:6px !important;font-size:12px !important;font-weight:600 !important;text-decoration:none !important">💳 <?php echo esc_js( __( 'Payer maintenant', 'wpservio' ) ); ?></a>';
                     });
                     el.innerHTML = '<div style="background:#f0f4ff !important;border:1px solid #d0d9e8 !important;border-radius:10px !important;padding:10px 14px !important;text-align:center !important;font-size:13px !important;line-height:1.5 !important;color:#444 !important;width:100% !important">'+sysHtml+'</div>';
                     msgs.appendChild(el);
@@ -1451,7 +1404,7 @@ class ServiceFlow_Front {
 
             function doToggleTodo(orderId, todoId, completed, note){
                 var fd = new FormData();
-                fd.append('action', 'serviceflow_toggle_todo');
+                fd.append('action', 'wpservio_toggle_todo');
                 fd.append('nonce', C.nonce);
                 fd.append('order_id', orderId);
                 fd.append('todo_id', todoId);
@@ -1545,7 +1498,7 @@ class ServiceFlow_Front {
 
             function doOrderTransition(orderId, newStatus, extraData){
                 var fd = new FormData();
-                fd.append('action', 'serviceflow_order_transition');
+                fd.append('action', 'wpservio_order_transition');
                 fd.append('nonce', C.nonce);
                 fd.append('order_id', orderId);
                 fd.append('new_status', newStatus);
@@ -1591,11 +1544,11 @@ class ServiceFlow_Front {
                 var d=document.createElement('div'); d.textContent=s; return d.innerHTML;
             }
         })();
-        </script>
         <?php
+        wp_add_inline_script( 'wpservio-chat-js', ob_get_clean() );
     }
 
     private static function is_chat_page(): bool {
-        return is_singular( ServiceFlow_Admin::get_post_type() );
+        return is_singular( WpServio_Admin::get_post_type() );
     }
 }

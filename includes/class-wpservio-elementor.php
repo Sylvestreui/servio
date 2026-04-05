@@ -4,36 +4,36 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class ServiceFlow_Elementor {
+class WpServio_Elementor {
 
     public static function init(): void {
         add_action( 'elementor/dynamic_tags/register', [ __CLASS__, 'register_dynamic_tags' ] );
     }
 
     public static function register_dynamic_tags( $dynamic_tags_manager ): void {
-        // Groupe ServiceFlow
+        // Groupe WpServio
         if ( method_exists( $dynamic_tags_manager, 'register_group' ) ) {
-            $dynamic_tags_manager->register_group( 'serviceflow', [
-                'title' => 'ServiceFlow',
+            $dynamic_tags_manager->register_group( 'wpservio', [
+                'title' => 'WpServio',
             ] );
         }
 
         // Tags individuels
-        $dynamic_tags_manager->register( new ServiceFlow_Tag_Pack_Name() );
-        $dynamic_tags_manager->register( new ServiceFlow_Tag_Pack_Price() );
-        $dynamic_tags_manager->register( new ServiceFlow_Tag_Pack_Starting_Price() );
-        $dynamic_tags_manager->register( new ServiceFlow_Tag_Pack_Delay() );
-        $dynamic_tags_manager->register( new ServiceFlow_Tag_Pack_Description() );
-        $dynamic_tags_manager->register( new ServiceFlow_Tag_Pack_Features() );
-        $dynamic_tags_manager->register( new ServiceFlow_Tag_Pack_Count() );
-        $dynamic_tags_manager->register( new ServiceFlow_Tag_Option_Name() );
-        $dynamic_tags_manager->register( new ServiceFlow_Tag_Option_Price() );
-        $dynamic_tags_manager->register( new ServiceFlow_Tag_Option_Delay() );
-        $dynamic_tags_manager->register( new ServiceFlow_Tag_Option_Description() );
-        $dynamic_tags_manager->register( new ServiceFlow_Tag_Option_Count() );
-        $dynamic_tags_manager->register( new ServiceFlow_Tag_Extra_Page_Price() );
-        $dynamic_tags_manager->register( new ServiceFlow_Tag_Maintenance_Price() );
-        $dynamic_tags_manager->register( new ServiceFlow_Tag_Express_Price() );
+        $dynamic_tags_manager->register( new WpServio_Tag_Pack_Name() );
+        $dynamic_tags_manager->register( new WpServio_Tag_Pack_Price() );
+        $dynamic_tags_manager->register( new WpServio_Tag_Pack_Starting_Price() );
+        $dynamic_tags_manager->register( new WpServio_Tag_Pack_Delay() );
+        $dynamic_tags_manager->register( new WpServio_Tag_Pack_Description() );
+        $dynamic_tags_manager->register( new WpServio_Tag_Pack_Features() );
+        $dynamic_tags_manager->register( new WpServio_Tag_Pack_Count() );
+        $dynamic_tags_manager->register( new WpServio_Tag_Option_Name() );
+        $dynamic_tags_manager->register( new WpServio_Tag_Option_Price() );
+        $dynamic_tags_manager->register( new WpServio_Tag_Option_Delay() );
+        $dynamic_tags_manager->register( new WpServio_Tag_Option_Description() );
+        $dynamic_tags_manager->register( new WpServio_Tag_Option_Count() );
+        $dynamic_tags_manager->register( new WpServio_Tag_Extra_Page_Price() );
+        $dynamic_tags_manager->register( new WpServio_Tag_Maintenance_Price() );
+        $dynamic_tags_manager->register( new WpServio_Tag_Express_Price() );
     }
 }
 
@@ -41,10 +41,10 @@ class ServiceFlow_Elementor {
  *  BASE TAG
  * ================================================================ */
 
-abstract class ServiceFlow_Tag_Base extends \Elementor\Core\DynamicTags\Tag {
+abstract class WpServio_Tag_Base extends \Elementor\Core\DynamicTags\Tag {
 
     public function get_group(): string {
-        return 'serviceflow';
+        return 'wpservio';
     }
 
     public function get_categories(): array {
@@ -56,16 +56,16 @@ abstract class ServiceFlow_Tag_Base extends \Elementor\Core\DynamicTags\Tag {
     }
 
     protected function get_packs(): array {
-        return ServiceFlow_Options::get_packs( $this->get_post_id() ) ?: [];
+        return WpServio_Options::get_packs( $this->get_post_id() ) ?: [];
     }
 
     protected function get_options_list(): array {
-        return ServiceFlow_Options::get_options( $this->get_post_id() ) ?: [];
+        return WpServio_Options::get_options( $this->get_post_id() ) ?: [];
     }
 
     protected function register_pack_index_control(): void {
         $this->add_control( 'pack_index', [
-            'label'   => __( 'N° du pack (0 = premier)', 'serviceflow' ),
+            'label'   => __( 'N° du pack (0 = premier)', 'wpservio' ),
             'type'    => \Elementor\Controls_Manager::NUMBER,
             'default' => 0,
             'min'     => 0,
@@ -74,7 +74,7 @@ abstract class ServiceFlow_Tag_Base extends \Elementor\Core\DynamicTags\Tag {
 
     protected function register_option_index_control(): void {
         $this->add_control( 'option_index', [
-            'label'   => __( 'N° de l\'option (0 = première)', 'serviceflow' ),
+            'label'   => __( 'N° de l\'option (0 = première)', 'wpservio' ),
             'type'    => \Elementor\Controls_Manager::NUMBER,
             'default' => 0,
             'min'     => 0,
@@ -83,7 +83,7 @@ abstract class ServiceFlow_Tag_Base extends \Elementor\Core\DynamicTags\Tag {
 
     protected function register_separator_control(): void {
         $this->add_control( 'separator', [
-            'label'   => __( 'Séparateur', 'serviceflow' ),
+            'label'   => __( 'Séparateur', 'wpservio' ),
             'type'    => \Elementor\Controls_Manager::TEXT,
             'default' => ', ',
         ] );
@@ -91,7 +91,7 @@ abstract class ServiceFlow_Tag_Base extends \Elementor\Core\DynamicTags\Tag {
 
     protected function register_currency_control(): void {
         $this->add_control( 'currency', [
-            'label'   => __( 'Devise', 'serviceflow' ),
+            'label'   => __( 'Devise', 'wpservio' ),
             'type'    => \Elementor\Controls_Manager::TEXT,
             'default' => '€',
         ] );
@@ -102,9 +102,9 @@ abstract class ServiceFlow_Tag_Base extends \Elementor\Core\DynamicTags\Tag {
  *  PACK TAGS
  * ================================================================ */
 
-class ServiceFlow_Tag_Pack_Name extends ServiceFlow_Tag_Base {
-    public function get_name(): string { return 'serviceflow_pack_name'; }
-    public function get_title(): string { return __( 'Pack — Nom', 'serviceflow' ); }
+class WpServio_Tag_Pack_Name extends WpServio_Tag_Base {
+    public function get_name(): string { return 'wpservio_pack_name'; }
+    public function get_title(): string { return __( 'Pack — Nom', 'wpservio' ); }
 
     protected function register_controls(): void {
         $this->register_pack_index_control();
@@ -117,9 +117,9 @@ class ServiceFlow_Tag_Pack_Name extends ServiceFlow_Tag_Base {
     }
 }
 
-class ServiceFlow_Tag_Pack_Price extends ServiceFlow_Tag_Base {
-    public function get_name(): string { return 'serviceflow_pack_price'; }
-    public function get_title(): string { return __( 'Pack — Prix', 'serviceflow' ); }
+class WpServio_Tag_Pack_Price extends WpServio_Tag_Base {
+    public function get_name(): string { return 'wpservio_pack_price'; }
+    public function get_title(): string { return __( 'Pack — Prix', 'wpservio' ); }
 
     protected function register_controls(): void {
         $this->register_pack_index_control();
@@ -135,9 +135,9 @@ class ServiceFlow_Tag_Pack_Price extends ServiceFlow_Tag_Base {
     }
 }
 
-class ServiceFlow_Tag_Pack_Starting_Price extends ServiceFlow_Tag_Base {
-    public function get_name(): string { return 'serviceflow_pack_starting_price'; }
-    public function get_title(): string { return __( 'Pack — Prix de départ', 'serviceflow' ); }
+class WpServio_Tag_Pack_Starting_Price extends WpServio_Tag_Base {
+    public function get_name(): string { return 'wpservio_pack_starting_price'; }
+    public function get_title(): string { return __( 'Pack — Prix de départ', 'wpservio' ); }
 
     protected function register_controls(): void {
         $this->register_currency_control();
@@ -155,14 +155,14 @@ class ServiceFlow_Tag_Pack_Starting_Price extends ServiceFlow_Tag_Base {
     }
 }
 
-class ServiceFlow_Tag_Pack_Delay extends ServiceFlow_Tag_Base {
-    public function get_name(): string { return 'serviceflow_pack_delay'; }
-    public function get_title(): string { return __( 'Pack — Délai', 'serviceflow' ); }
+class WpServio_Tag_Pack_Delay extends WpServio_Tag_Base {
+    public function get_name(): string { return 'wpservio_pack_delay'; }
+    public function get_title(): string { return __( 'Pack — Délai', 'wpservio' ); }
 
     protected function register_controls(): void {
         $this->register_pack_index_control();
         $this->add_control( 'suffix', [
-            'label'   => __( 'Suffixe', 'serviceflow' ),
+            'label'   => __( 'Suffixe', 'wpservio' ),
             'type'    => \Elementor\Controls_Manager::TEXT,
             'default' => ' jour(s)',
         ] );
@@ -177,9 +177,9 @@ class ServiceFlow_Tag_Pack_Delay extends ServiceFlow_Tag_Base {
     }
 }
 
-class ServiceFlow_Tag_Pack_Description extends ServiceFlow_Tag_Base {
-    public function get_name(): string { return 'serviceflow_pack_description'; }
-    public function get_title(): string { return __( 'Pack — Description', 'serviceflow' ); }
+class WpServio_Tag_Pack_Description extends WpServio_Tag_Base {
+    public function get_name(): string { return 'wpservio_pack_description'; }
+    public function get_title(): string { return __( 'Pack — Description', 'wpservio' ); }
 
     protected function register_controls(): void {
         $this->register_pack_index_control();
@@ -192,20 +192,20 @@ class ServiceFlow_Tag_Pack_Description extends ServiceFlow_Tag_Base {
     }
 }
 
-class ServiceFlow_Tag_Pack_Features extends ServiceFlow_Tag_Base {
-    public function get_name(): string { return 'serviceflow_pack_features'; }
-    public function get_title(): string { return __( 'Pack — Features', 'serviceflow' ); }
+class WpServio_Tag_Pack_Features extends WpServio_Tag_Base {
+    public function get_name(): string { return 'wpservio_pack_features'; }
+    public function get_title(): string { return __( 'Pack — Features', 'wpservio' ); }
 
     protected function register_controls(): void {
         $this->register_pack_index_control();
         $this->register_separator_control();
         $this->add_control( 'format', [
-            'label'   => __( 'Format', 'serviceflow' ),
+            'label'   => __( 'Format', 'wpservio' ),
             'type'    => \Elementor\Controls_Manager::SELECT,
             'default' => 'list',
             'options' => [
-                'list'   => __( 'Liste (ul)', 'serviceflow' ),
-                'inline' => __( 'En ligne (séparateur)', 'serviceflow' ),
+                'list'   => __( 'Liste (ul)', 'wpservio' ),
+                'inline' => __( 'En ligne (séparateur)', 'wpservio' ),
             ],
         ] );
     }
@@ -233,9 +233,9 @@ class ServiceFlow_Tag_Pack_Features extends ServiceFlow_Tag_Base {
     }
 }
 
-class ServiceFlow_Tag_Pack_Count extends ServiceFlow_Tag_Base {
-    public function get_name(): string { return 'serviceflow_pack_count'; }
-    public function get_title(): string { return __( 'Pack — Nombre', 'serviceflow' ); }
+class WpServio_Tag_Pack_Count extends WpServio_Tag_Base {
+    public function get_name(): string { return 'wpservio_pack_count'; }
+    public function get_title(): string { return __( 'Pack — Nombre', 'wpservio' ); }
 
     public function render(): void {
         echo esc_html( count( $this->get_packs() ) );
@@ -246,9 +246,9 @@ class ServiceFlow_Tag_Pack_Count extends ServiceFlow_Tag_Base {
  *  OPTION TAGS
  * ================================================================ */
 
-class ServiceFlow_Tag_Option_Name extends ServiceFlow_Tag_Base {
-    public function get_name(): string { return 'serviceflow_option_name'; }
-    public function get_title(): string { return __( 'Option — Nom', 'serviceflow' ); }
+class WpServio_Tag_Option_Name extends WpServio_Tag_Base {
+    public function get_name(): string { return 'wpservio_option_name'; }
+    public function get_title(): string { return __( 'Option — Nom', 'wpservio' ); }
 
     protected function register_controls(): void {
         $this->register_option_index_control();
@@ -261,9 +261,9 @@ class ServiceFlow_Tag_Option_Name extends ServiceFlow_Tag_Base {
     }
 }
 
-class ServiceFlow_Tag_Option_Price extends ServiceFlow_Tag_Base {
-    public function get_name(): string { return 'serviceflow_option_price'; }
-    public function get_title(): string { return __( 'Option — Prix', 'serviceflow' ); }
+class WpServio_Tag_Option_Price extends WpServio_Tag_Base {
+    public function get_name(): string { return 'wpservio_option_price'; }
+    public function get_title(): string { return __( 'Option — Prix', 'wpservio' ); }
 
     protected function register_controls(): void {
         $this->register_option_index_control();
@@ -279,14 +279,14 @@ class ServiceFlow_Tag_Option_Price extends ServiceFlow_Tag_Base {
     }
 }
 
-class ServiceFlow_Tag_Option_Delay extends ServiceFlow_Tag_Base {
-    public function get_name(): string { return 'serviceflow_option_delay'; }
-    public function get_title(): string { return __( 'Option — Délai', 'serviceflow' ); }
+class WpServio_Tag_Option_Delay extends WpServio_Tag_Base {
+    public function get_name(): string { return 'wpservio_option_delay'; }
+    public function get_title(): string { return __( 'Option — Délai', 'wpservio' ); }
 
     protected function register_controls(): void {
         $this->register_option_index_control();
         $this->add_control( 'suffix', [
-            'label'   => __( 'Suffixe', 'serviceflow' ),
+            'label'   => __( 'Suffixe', 'wpservio' ),
             'type'    => \Elementor\Controls_Manager::TEXT,
             'default' => ' jour(s)',
         ] );
@@ -301,9 +301,9 @@ class ServiceFlow_Tag_Option_Delay extends ServiceFlow_Tag_Base {
     }
 }
 
-class ServiceFlow_Tag_Option_Description extends ServiceFlow_Tag_Base {
-    public function get_name(): string { return 'serviceflow_option_description'; }
-    public function get_title(): string { return __( 'Option — Description', 'serviceflow' ); }
+class WpServio_Tag_Option_Description extends WpServio_Tag_Base {
+    public function get_name(): string { return 'wpservio_option_description'; }
+    public function get_title(): string { return __( 'Option — Description', 'wpservio' ); }
 
     protected function register_controls(): void {
         $this->register_option_index_control();
@@ -316,9 +316,9 @@ class ServiceFlow_Tag_Option_Description extends ServiceFlow_Tag_Base {
     }
 }
 
-class ServiceFlow_Tag_Option_Count extends ServiceFlow_Tag_Base {
-    public function get_name(): string { return 'serviceflow_option_count'; }
-    public function get_title(): string { return __( 'Option — Nombre', 'serviceflow' ); }
+class WpServio_Tag_Option_Count extends WpServio_Tag_Base {
+    public function get_name(): string { return 'wpservio_option_count'; }
+    public function get_title(): string { return __( 'Option — Nombre', 'wpservio' ); }
 
     public function render(): void {
         echo esc_html( count( $this->get_options_list() ) );
@@ -329,9 +329,9 @@ class ServiceFlow_Tag_Option_Count extends ServiceFlow_Tag_Base {
  *  PRICING TAGS
  * ================================================================ */
 
-class ServiceFlow_Tag_Extra_Page_Price extends ServiceFlow_Tag_Base {
-    public function get_name(): string { return 'serviceflow_extra_page_price'; }
-    public function get_title(): string { return __( 'Prix — Page supplémentaire', 'serviceflow' ); }
+class WpServio_Tag_Extra_Page_Price extends WpServio_Tag_Base {
+    public function get_name(): string { return 'wpservio_extra_page_price'; }
+    public function get_title(): string { return __( 'Prix — Page supplémentaire', 'wpservio' ); }
 
     protected function register_controls(): void {
         $this->register_currency_control();
@@ -340,14 +340,14 @@ class ServiceFlow_Tag_Extra_Page_Price extends ServiceFlow_Tag_Base {
     public function render(): void {
         $post_id  = $this->get_post_id();
         $currency = $this->get_settings( 'currency' );
-        $price    = (float) get_post_meta( $post_id, '_serviceflow_extra_page_price', true );
+        $price    = (float) get_post_meta( $post_id, '_wpservio_extra_page_price', true );
         echo esc_html( number_format( $price, 2, ',', ' ' ) . ' ' . $currency );
     }
 }
 
-class ServiceFlow_Tag_Maintenance_Price extends ServiceFlow_Tag_Base {
-    public function get_name(): string { return 'serviceflow_maintenance_price'; }
-    public function get_title(): string { return __( 'Prix — Maintenance mensuelle', 'serviceflow' ); }
+class WpServio_Tag_Maintenance_Price extends WpServio_Tag_Base {
+    public function get_name(): string { return 'wpservio_maintenance_price'; }
+    public function get_title(): string { return __( 'Prix — Maintenance mensuelle', 'wpservio' ); }
 
     protected function register_controls(): void {
         $this->register_currency_control();
@@ -356,14 +356,14 @@ class ServiceFlow_Tag_Maintenance_Price extends ServiceFlow_Tag_Base {
     public function render(): void {
         $post_id  = $this->get_post_id();
         $currency = $this->get_settings( 'currency' );
-        $price    = (float) get_post_meta( $post_id, '_serviceflow_maintenance_price', true );
+        $price    = (float) get_post_meta( $post_id, '_wpservio_maintenance_price', true );
         echo esc_html( number_format( $price, 2, ',', ' ' ) . ' ' . $currency );
     }
 }
 
-class ServiceFlow_Tag_Express_Price extends ServiceFlow_Tag_Base {
-    public function get_name(): string { return 'serviceflow_express_price'; }
-    public function get_title(): string { return __( 'Prix — Livraison express', 'serviceflow' ); }
+class WpServio_Tag_Express_Price extends WpServio_Tag_Base {
+    public function get_name(): string { return 'wpservio_express_price'; }
+    public function get_title(): string { return __( 'Prix — Livraison express', 'wpservio' ); }
 
     protected function register_controls(): void {
         $this->register_currency_control();
@@ -372,7 +372,7 @@ class ServiceFlow_Tag_Express_Price extends ServiceFlow_Tag_Base {
     public function render(): void {
         $post_id  = $this->get_post_id();
         $currency = $this->get_settings( 'currency' );
-        $price    = (float) get_post_meta( $post_id, '_serviceflow_express_price', true );
+        $price    = (float) get_post_meta( $post_id, '_wpservio_express_price', true );
         echo esc_html( number_format( $price, 2, ',', ' ' ) . ' ' . $currency );
     }
 }

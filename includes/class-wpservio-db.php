@@ -4,9 +4,9 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class ServiceFlow_DB {
+class WpServio_DB {
 
-    const TABLE_NAME = 'serviceflow_messages';
+    const TABLE_NAME = 'wpservio_messages';
 
     /**
      * Retourne le nom complet de la table avec le préfixe WP.
@@ -41,7 +41,7 @@ class ServiceFlow_DB {
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         dbDelta( $sql );
 
-        update_option( 'serviceflow_db_version', SERVICEFLOW_VERSION );
+        update_option( 'wpservio_db_version', WPSERVIO_VERSION );
     }
 
     /**
@@ -73,8 +73,8 @@ class ServiceFlow_DB {
         $table = self::table_name();
 
         if ( $client_id > 0 ) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table names are plugin-defined constants.
-            return $wpdb->get_results(
+            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            return $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                 $wpdb->prepare(
                     "SELECT m.*, u.display_name, u.user_email
                      FROM {$table} m
@@ -88,10 +88,11 @@ class ServiceFlow_DB {
                     $offset
                 )
             );
+            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         }
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table names are plugin-defined constants.
-        return $wpdb->get_results(
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        return $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $wpdb->prepare(
                 "SELECT m.*, u.display_name, u.user_email
                  FROM {$table} m
@@ -104,6 +105,7 @@ class ServiceFlow_DB {
                 $offset
             )
         );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
     }
 
     /**
@@ -115,8 +117,8 @@ class ServiceFlow_DB {
         $table = self::table_name();
 
         if ( $client_id > 0 ) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table names are plugin-defined constants.
-            return $wpdb->get_results(
+            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            return $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                 $wpdb->prepare(
                     "SELECT m.*, u.display_name, u.user_email
                      FROM {$table} m
@@ -128,10 +130,11 @@ class ServiceFlow_DB {
                     $last_id
                 )
             );
+            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         }
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table names are plugin-defined constants.
-        return $wpdb->get_results(
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        return $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $wpdb->prepare(
                 "SELECT m.*, u.display_name, u.user_email
                  FROM {$table} m
@@ -142,6 +145,7 @@ class ServiceFlow_DB {
                 $last_id
             )
         );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
     }
 
     /**
@@ -150,7 +154,7 @@ class ServiceFlow_DB {
     public static function migrate_client_ids(): void {
         global $wpdb;
 
-        if ( get_option( 'serviceflow_client_id_migrated' ) ) {
+        if ( get_option( 'wpservio_client_id_migrated' ) ) {
             return;
         }
 
@@ -160,32 +164,36 @@ class ServiceFlow_DB {
         $admin_ids = get_users( [ 'role' => 'administrator', 'fields' => 'ID' ] );
         if ( ! empty( $admin_ids ) ) {
             $admin_ids_str = implode( ',', array_map( 'absint', $admin_ids ) );
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $admin_ids_str is a list of absint-sanitized IDs; IN() lists cannot use wpdb::prepare().
-            $wpdb->query(
+            // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                 "UPDATE {$table} SET client_id = user_id
                  WHERE client_id = 0 AND user_id > 0 AND user_id NOT IN ({$admin_ids_str})"
             );
+            // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         } else {
             // Pas d'admin trouvé : tous les user_id > 0 sont des clients
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Static query, no user input.
-            $wpdb->query(
+            // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                 "UPDATE {$table} SET client_id = user_id WHERE client_id = 0 AND user_id > 0"
             );
+            // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         }
 
         // Étape 2 : Messages admin/système → chercher le client via les commandes
-        $order_table = ServiceFlow_Orders::table_name();
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Static migration query, table names only.
-        $orphan_posts = $wpdb->get_col(
+        $order_table = WpServio_Orders::table_name();
+        // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $orphan_posts = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             "SELECT DISTINCT post_id FROM {$table} WHERE client_id = 0"
         );
+        // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
         foreach ( $orphan_posts as $pid ) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table name is a plugin-defined constant.
-            $client = $wpdb->get_var( $wpdb->prepare(
+            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            $client = $wpdb->get_var( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                 "SELECT client_id FROM {$order_table} WHERE post_id = %d GROUP BY client_id LIMIT 1",
                 $pid
             ) );
+            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
             if ( $client ) {
                 $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -196,6 +204,6 @@ class ServiceFlow_DB {
             }
         }
 
-        update_option( 'serviceflow_client_id_migrated', '1' );
+        update_option( 'wpservio_client_id_migrated', '1' );
     }
 }

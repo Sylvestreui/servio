@@ -4,17 +4,17 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class ServiceFlow_Todos {
+class WpServio_Todos {
 
     public static function init(): void {
-        if ( ! serviceflow_is_premium() ) {
+        if ( ! wpservio_is_premium() ) {
             return;
         }
 
-        add_action( 'wp_ajax_serviceflow_toggle_todo', [ __CLASS__, 'ajax_toggle_todo' ] );
-        add_action( 'wp_ajax_serviceflow_get_todos',   [ __CLASS__, 'ajax_get_todos' ] );
+        add_action( 'wp_ajax_wpservio_toggle_todo', [ __CLASS__, 'ajax_toggle_todo' ] );
+        add_action( 'wp_ajax_wpservio_get_todos',   [ __CLASS__, 'ajax_get_todos' ] );
 
-        add_action( 'serviceflow_order_status_changed', [ __CLASS__, 'on_order_status_changed' ], 10, 4 );
+        add_action( 'wpservio_order_status_changed', [ __CLASS__, 'on_order_status_changed' ], 10, 4 );
     }
 
     /* ================================================================
@@ -23,7 +23,7 @@ class ServiceFlow_Todos {
 
     public static function table_name(): string {
         global $wpdb;
-        return $wpdb->prefix . 'serviceflow_todos';
+        return $wpdb->prefix . 'wpservio_todos';
     }
 
     public static function create_table(): void {
@@ -55,7 +55,7 @@ class ServiceFlow_Todos {
      * ================================================================ */
 
     public static function on_order_status_changed( int $order_id, string $new_status, string $old_status, int $acting_user_id ): void {
-        if ( ! serviceflow_is_premium() ) {
+        if ( ! wpservio_is_premium() ) {
             return;
         }
 
@@ -70,7 +70,7 @@ class ServiceFlow_Todos {
             return;
         }
 
-        $order = ServiceFlow_Orders::get_order( $order_id );
+        $order = WpServio_Orders::get_order( $order_id );
         if ( ! $order ) {
             return;
         }
@@ -119,21 +119,23 @@ class ServiceFlow_Todos {
     public static function get_todos_for_order( int $order_id ): array {
         global $wpdb;
         $table = self::table_name();
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $table is a plugin-defined constant.
-        return $wpdb->get_results( $wpdb->prepare(
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        return $wpdb->get_results( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             "SELECT * FROM {$table} WHERE order_id = %d ORDER BY position ASC",
             $order_id
         ) );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
     }
 
     public static function get_todo( int $todo_id ): ?object {
         global $wpdb;
         $table = self::table_name();
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $table is a plugin-defined constant.
-        return $wpdb->get_row( $wpdb->prepare(
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        return $wpdb->get_row( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             "SELECT * FROM {$table} WHERE id = %d",
             $todo_id
         ) );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
     }
 
     public static function toggle_todo( int $todo_id, bool $completed, string $note = '' ): bool {
@@ -200,14 +202,14 @@ class ServiceFlow_Todos {
      * ================================================================ */
 
     public static function ajax_toggle_todo(): void {
-        check_ajax_referer( 'serviceflow_nonce', 'nonce' );
+        check_ajax_referer( 'wpservio_nonce', 'nonce' );
 
-        if ( ! serviceflow_is_premium() ) {
+        if ( ! wpservio_is_premium() ) {
             wp_send_json_error( [ 'message' => 'Premium required.' ], 403 );
         }
 
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'serviceflow' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'wpservio' ) ], 403 );
         }
 
         $todo_id   = absint( $_POST['todo_id'] ?? 0 );
@@ -216,40 +218,40 @@ class ServiceFlow_Todos {
         $note      = sanitize_textarea_field( wp_unslash( $_POST['note'] ?? '' ) );
 
         if ( ! $todo_id || ! $order_id ) {
-            wp_send_json_error( [ 'message' => __( 'Données manquantes.', 'serviceflow' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Données manquantes.', 'wpservio' ) ], 400 );
         }
 
         $result = self::toggle_todo( $todo_id, $completed, $note );
         if ( ! $result ) {
-            wp_send_json_error( [ 'message' => __( 'Erreur.', 'serviceflow' ) ], 500 );
+            wp_send_json_error( [ 'message' => __( 'Erreur.', 'wpservio' ) ], 500 );
         }
 
         // Message système dans le chat si une étape est complétée
         if ( $completed ) {
             $todo  = self::get_todo( $todo_id );
-            $order = ServiceFlow_Orders::get_order( $order_id );
+            $order = WpServio_Orders::get_order( $order_id );
 
             if ( $todo && $order ) {
                 $progress = self::get_progress( $order_id );
                 /* translators: %1$d: order ID, %2$s: section label */
-                $msg  = sprintf( "--- #CMD-%d %s ---\n", $order_id, __( 'Étape terminée', 'serviceflow' ) );
+                $msg  = sprintf( "--- #CMD-%d %s ---\n", $order_id, __( 'Étape terminée', 'wpservio' ) );
                 /* translators: %s: todo item label */
-                $msg .= sprintf( __( '✅ « %s » complétée.', 'serviceflow' ), $todo->label );
+                $msg .= sprintf( __( '✅ « %s » complétée.', 'wpservio' ), $todo->label );
 
                 if ( ! empty( $note ) ) {
                     /* translators: %s: admin note text */
-                    $msg .= "\n" . sprintf( __( '📝 Note : %s', 'serviceflow' ), $note );
+                    $msg .= "\n" . sprintf( __( '📝 Note : %s', 'wpservio' ), $note );
                 }
 
-                /* translators: %1$d: completed tasks, %2$d: total tasks, %3$d: percentage */
                 $msg .= "\n" . sprintf(
-                    __( '📊 Progression : %1$d/%2$d (%3$d%%)', 'serviceflow' ),
+                    /* translators: %1$d: completed tasks, %2$d: total tasks, %3$d: percentage */
+                    __( '📊 Progression : %1$d/%2$d (%3$d%%)', 'wpservio' ),
                     $progress['completed'],
                     $progress['total'],
                     $progress['percent']
                 );
 
-                ServiceFlow_DB::insert_message( (int) $order->post_id, 0, $msg, (int) $order->client_id );
+                WpServio_DB::insert_message( (int) $order->post_id, 0, $msg, (int) $order->client_id );
             }
         }
 
@@ -257,10 +259,10 @@ class ServiceFlow_Todos {
         $order_completed = false;
         if ( $completed ) {
             $progress = isset( $progress ) ? $progress : self::get_progress( $order_id );
-            $order    = isset( $order ) ? $order : ServiceFlow_Orders::get_order( $order_id );
+            $order    = isset( $order ) ? $order : WpServio_Orders::get_order( $order_id );
             if ( $progress['total'] > 0 && (int) $progress['completed'] === (int) $progress['total'] ) {
                 if ( $order && $order->status === 'started' ) {
-                    $done = ServiceFlow_Orders::transition_status( $order_id, 'completed', get_current_user_id() );
+                    $done = WpServio_Orders::transition_status( $order_id, 'completed', get_current_user_id() );
                     $order_completed = $done;
                 }
             }
@@ -271,25 +273,25 @@ class ServiceFlow_Todos {
     }
 
     public static function ajax_get_todos(): void {
-        check_ajax_referer( 'serviceflow_nonce', 'nonce' );
+        check_ajax_referer( 'wpservio_nonce', 'nonce' );
 
-        if ( ! serviceflow_is_premium() ) {
+        if ( ! wpservio_is_premium() ) {
             wp_send_json_error( [ 'message' => 'Premium required.' ], 403 );
         }
 
         $order_id = absint( $_GET['order_id'] ?? $_POST['order_id'] ?? 0 );
         if ( ! $order_id ) {
-            wp_send_json_error( [ 'message' => __( 'Données manquantes.', 'serviceflow' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Données manquantes.', 'wpservio' ) ], 400 );
         }
 
         // Vérifier que l'utilisateur a accès à cette commande
-        $order = ServiceFlow_Orders::get_order( $order_id );
+        $order = WpServio_Orders::get_order( $order_id );
         if ( ! $order ) {
-            wp_send_json_error( [ 'message' => __( 'Commande introuvable.', 'serviceflow' ) ], 404 );
+            wp_send_json_error( [ 'message' => __( 'Commande introuvable.', 'wpservio' ) ], 404 );
         }
 
         if ( ! current_user_can( 'manage_options' ) && (int) $order->client_id !== get_current_user_id() ) {
-            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'serviceflow' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'wpservio' ) ], 403 );
         }
 
         $todos = self::build_todos_response( $order_id );
