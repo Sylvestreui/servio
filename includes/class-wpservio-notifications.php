@@ -45,6 +45,40 @@ class WpServio_Notifications {
             wp_register_script( 'wpservio-notif-admin-js', false, [ 'jquery' ], WPSERVIO_VERSION, true ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
         }
         wp_enqueue_script( 'wpservio-notif-admin-js' );
+
+        $color = esc_attr( WpServio_Admin::get_color() );
+        wp_add_inline_style(
+            'wp-admin',
+            '.serviceflow-notif-section{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:24px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}' .
+            '.serviceflow-notif-section h2{font-size:15px;font-weight:700;color:#222;margin:0 0 16px 0;padding:0 0 12px 0;border-bottom:1px solid #eee;display:flex;align-items:center;gap:8px}' .
+            '.serviceflow-notif-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f5f5f5}' .
+            '.serviceflow-notif-row:last-child{border-bottom:none}' .
+            '.serviceflow-notif-row-label{font-size:14px;color:#333;font-weight:500}' .
+            '.serviceflow-notif-row-desc{font-size:12px;color:#888;margin-top:2px}' .
+            '.serviceflow-toggle-sw{position:relative;width:44px;height:24px;flex-shrink:0}' .
+            '.serviceflow-toggle-sw input{opacity:0;width:0;height:0;position:absolute}' .
+            '.serviceflow-toggle-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#ccc;border-radius:24px;transition:.3s}' .
+            '.serviceflow-toggle-slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}' .
+            '.serviceflow-toggle-sw input:checked + .serviceflow-toggle-slider{background:' . $color . '}' .
+            '.serviceflow-toggle-sw input:checked + .serviceflow-toggle-slider:before{transform:translateX(20px)}' .
+            '.serviceflow-notif-input{width:100%;max-width:400px;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px}' .
+            '.serviceflow-notif-input:focus{border-color:' . $color . ';outline:none;box-shadow:0 0 0 2px ' . $color . '33}' .
+            '.serviceflow-notif-field{margin-bottom:16px}' .
+            '.serviceflow-notif-field:last-child{margin-bottom:0}' .
+            '.serviceflow-notif-field label{display:block;font-size:13px;font-weight:600;color:#444;margin-bottom:6px}' .
+            '.serviceflow-tpl-block{background:#fafafa;border:1px solid #eee;border-radius:6px;padding:16px;margin-bottom:16px}' .
+            '.serviceflow-tpl-block:last-child{margin-bottom:0}' .
+            '.serviceflow-tpl-block h3{margin:0 0 12px 0;font-size:14px;font-weight:600;color:#333}' .
+            '.serviceflow-tpl-block label{display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:4px}' .
+            '.serviceflow-tpl-block input[type="text"],.serviceflow-tpl-block textarea{width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;box-sizing:border-box}' .
+            '.serviceflow-tpl-block input[type="text"]:focus,.serviceflow-tpl-block textarea:focus{border-color:' . $color . ';outline:none;box-shadow:0 0 0 2px ' . $color . '33}' .
+            '.serviceflow-tpl-block textarea{min-height:80px;resize:vertical}' .
+            '.serviceflow-tpl-vars{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px}' .
+            '.serviceflow-tpl-var{display:inline-block;background:' . $color . '15;color:' . $color . ';font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;font-family:monospace;cursor:pointer}' .
+            '.serviceflow-tpl-var:hover{background:' . $color . '25}' .
+            '.serviceflow-tpl-field{margin-bottom:10px}' .
+            '.serviceflow-tpl-field:last-child{margin-bottom:0}'
+        );
     }
 
     /* ================================================================
@@ -180,28 +214,6 @@ class WpServio_Notifications {
             <form method="post" action="options.php">
                 <?php settings_fields( 'wpservio_notif_settings' ); ?>
 
-                <?php
-                wp_add_inline_style(
-                    'wp-admin',
-                    '.serviceflow-notif-section{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:24px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}' .
-                    '.serviceflow-notif-section h2{font-size:15px;font-weight:700;color:#222;margin:0 0 16px 0;padding:0 0 12px 0;border-bottom:1px solid #eee;display:flex;align-items:center;gap:8px}' .
-                    '.serviceflow-notif-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f5f5f5}' .
-                    '.serviceflow-notif-row:last-child{border-bottom:none}' .
-                    '.serviceflow-notif-row-label{font-size:14px;color:#333;font-weight:500}' .
-                    '.serviceflow-notif-row-desc{font-size:12px;color:#888;margin-top:2px}' .
-                    '.serviceflow-toggle-sw{position:relative;width:44px;height:24px;flex-shrink:0}' .
-                    '.serviceflow-toggle-sw input{opacity:0;width:0;height:0;position:absolute}' .
-                    '.serviceflow-toggle-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#ccc;border-radius:24px;transition:.3s}' .
-                    '.serviceflow-toggle-slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}' .
-                    '.serviceflow-toggle-sw input:checked + .serviceflow-toggle-slider{background:' . esc_attr( $color ) . '}' .
-                    '.serviceflow-toggle-sw input:checked + .serviceflow-toggle-slider:before{transform:translateX(20px)}' .
-                    '.serviceflow-notif-input{width:100%;max-width:400px;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px}' .
-                    '.serviceflow-notif-input:focus{border-color:' . esc_attr( $color ) . ';outline:none;box-shadow:0 0 0 2px ' . esc_attr( $color ) . '33}' .
-                    '.serviceflow-notif-field{margin-bottom:16px}' .
-                    '.serviceflow-notif-field:last-child{margin-bottom:0}' .
-                    '.serviceflow-notif-field label{display:block;font-size:13px;font-weight:600;color:#444;margin-bottom:6px}'
-                );
-                ?>
 
                 <!-- Section Expéditeur -->
                 <div class="serviceflow-notif-section">
@@ -312,23 +324,6 @@ class WpServio_Notifications {
                         <?php esc_html_e( 'Personnalisez le contenu des emails envoyés automatiquement. Utilisez les variables entre accolades pour insérer des données dynamiques.', 'wpservio' ); ?>
                     </p>
 
-                    <?php
-                    wp_add_inline_style(
-                        'wp-admin',
-                        '.serviceflow-tpl-block{background:#fafafa;border:1px solid #eee;border-radius:6px;padding:16px;margin-bottom:16px}' .
-                        '.serviceflow-tpl-block:last-child{margin-bottom:0}' .
-                        '.serviceflow-tpl-block h3{margin:0 0 12px 0;font-size:14px;font-weight:600;color:#333}' .
-                        '.serviceflow-tpl-block label{display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:4px}' .
-                        '.serviceflow-tpl-block input[type="text"],.serviceflow-tpl-block textarea{width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;box-sizing:border-box}' .
-                        '.serviceflow-tpl-block input[type="text"]:focus,.serviceflow-tpl-block textarea:focus{border-color:' . esc_attr( $color ) . ';outline:none;box-shadow:0 0 0 2px ' . esc_attr( $color ) . '33}' .
-                        '.serviceflow-tpl-block textarea{min-height:80px;resize:vertical}' .
-                        '.serviceflow-tpl-vars{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px}' .
-                        '.serviceflow-tpl-var{display:inline-block;background:' . esc_attr( $color ) . '15;color:' . esc_attr( $color ) . ';font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;font-family:monospace;cursor:pointer}' .
-                        '.serviceflow-tpl-var:hover{background:' . esc_attr( $color ) . '25}' .
-                        '.serviceflow-tpl-field{margin-bottom:10px}' .
-                        '.serviceflow-tpl-field:last-child{margin-bottom:0}'
-                    );
-                    ?>
 
                     <!-- Template : Nouveau message -->
                     <div class="serviceflow-tpl-block" data-email-type="new_message">
