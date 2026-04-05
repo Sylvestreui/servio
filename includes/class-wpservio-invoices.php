@@ -352,6 +352,48 @@ class WpServio_Invoices {
         );
     }
 
+    private static function get_invoice_view_css( string $color ): string {
+        return
+            '.serviceflow-invoice-page{max-width:800px;margin:20px auto;background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:40px;padding-bottom:60px;box-shadow:0 2px 8px rgba(0,0,0,0.06);font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;color:#333}' .
+            '.serviceflow-inv-header{display:flex;justify-content:space-between;align-items:flex-start}' .
+            '.serviceflow-inv-logo img{max-height:60px}' .
+            '.serviceflow-inv-company{font-size:12px;color:#555;line-height:1.6;margin-top:10px}' .
+            '.serviceflow-inv-company strong{font-size:16px;color:#222;display:block;margin-bottom:4px}' .
+            '.serviceflow-inv-header-right{text-align:right}' .
+            '.serviceflow-inv-header-right h3{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#888;margin:0 0 8px}' .
+            '.serviceflow-inv-header-right p{margin:0;font-size:13px;line-height:1.5}' .
+            '.serviceflow-inv-parties{display:flex;justify-content:space-between;gap:20px;margin-top:6px;margin-bottom:15px;align-items:flex-end}' .
+            '.serviceflow-inv-emetteur{flex:1}' .
+            '.serviceflow-inv-emetteur h3,.serviceflow-inv-client h3{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#888;margin:0 0 8px}' .
+            '.serviceflow-inv-emetteur p,.serviceflow-inv-client p{margin:0;font-size:13px;line-height:1.5}' .
+            '.serviceflow-inv-client{flex:1;text-align:right}' .
+            '.serviceflow-inv-items-table{width:100%;border-collapse:collapse;margin-top:80px;margin-bottom:20px}' .
+            '.serviceflow-inv-items-table th{background:#f9f9f9;text-align:left;padding:10px 12px;font-size:11px;font-weight:700;color:#555;text-transform:uppercase;border-bottom:2px solid #e0e0e0}' .
+            '.serviceflow-inv-items-table td{padding:10px 12px;font-size:13px;border-bottom:1px solid #f0f0f0}' .
+            '.serviceflow-inv-items-table .text-right{text-align:right}' .
+            '.serviceflow-inv-totals{margin-left:auto;width:280px}' .
+            '.serviceflow-inv-totals-row{display:flex;justify-content:space-between;padding:6px 0;font-size:13px}' .
+            '.serviceflow-inv-totals-row.total-row{border-top:2px solid #222;font-size:16px;font-weight:700;padding-top:10px;margin-top:4px}' .
+            '.serviceflow-inv-notes{margin-top:40px;padding:16px;background:#f9f9f9;border-radius:6px;font-size:12px;color:#555;line-height:1.5;width:40%}' .
+            '.serviceflow-inv-footer-text{text-align:center;font-size:11px;color:#999;border-top:1px solid #eee;padding-top:12px;margin-top:auto}' .
+            '.serviceflow-inv-actions{margin-top:20px;display:flex;gap:8px;flex-wrap:wrap}' .
+            '.serviceflow-inv-actions button{padding:8px 20px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}' .
+            '@media print{' .
+                '@page{size:A4;margin:10mm 10mm 14mm 10mm}' .
+                '#adminmenumain,#wpadminbar,.no-print,#wpfooter,.update-nag,.notice{display:none!important}' .
+                '#wpcontent{margin-left:0!important;padding:0!important}' .
+                '.serviceflow-invoice-page{box-shadow:none!important;border:none!important;border-radius:0!important;padding:20px!important;padding-bottom:10px!important;margin:0!important;max-width:100%!important;display:flex!important;flex-direction:column!important;min-height:calc(297mm - 24mm - 40px)!important}' .
+                '.serviceflow-inv-header{display:flex!important;justify-content:space-between!important;align-items:flex-start!important}' .
+                '.serviceflow-inv-parties{display:flex!important;justify-content:space-between!important;gap:20px!important;margin-top:6px!important;margin-bottom:15px!important;align-items:flex-end!important}' .
+                '.serviceflow-inv-emetteur{flex:1!important}' .
+                '.serviceflow-inv-client{flex:1!important;text-align:right!important}' .
+                '.serviceflow-inv-notes{margin-top:40px!important;width:40%!important;background:#f9f9f9!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}' .
+                '.serviceflow-inv-items-table{margin-top:80px!important}' .
+                '.serviceflow-inv-items-table th{background:#f9f9f9!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}' .
+                '.serviceflow-inv-footer-text{margin-top:auto!important;text-align:center!important;padding-top:8px!important;border-top:1px solid #ccc!important;font-size:9px!important;color:#999!important;display:block!important}' .
+            '}';
+    }
+
     public static function enqueue_admin_scripts( string $hook ): void {
         if ( strpos( $hook, 'serviceflow-invoice' ) === false && strpos( $hook, 'serviceflow-clients' ) === false ) {
             return;
@@ -437,44 +479,7 @@ class WpServio_Invoices {
             '.serviceflow-newinv-totals{text-align:right;font-size:14px;color:#333;line-height:2}' .
             '.serviceflow-newinv-totals strong{font-size:16px}' .
             // View invoice page
-            '.serviceflow-invoice-page{max-width:800px;margin:20px auto;background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:40px;padding-bottom:60px;box-shadow:0 2px 8px rgba(0,0,0,0.06);font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;color:#333}' .
-            '.serviceflow-inv-header{display:flex;justify-content:space-between;align-items:flex-start}' .
-            '.serviceflow-inv-logo img{max-height:60px}' .
-            '.serviceflow-inv-company{font-size:12px;color:#555;line-height:1.6;margin-top:10px}' .
-            '.serviceflow-inv-company strong{font-size:16px;color:#222;display:block;margin-bottom:4px}' .
-            '.serviceflow-inv-header-right{text-align:right}' .
-            '.serviceflow-inv-header-right h3{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#888;margin:0 0 8px}' .
-            '.serviceflow-inv-header-right p{margin:0;font-size:13px;line-height:1.5}' .
-            '.serviceflow-inv-parties{display:flex;justify-content:space-between;gap:20px;margin-top:6px;margin-bottom:15px;align-items:flex-end}' .
-            '.serviceflow-inv-emetteur{flex:1}' .
-            '.serviceflow-inv-emetteur h3,.serviceflow-inv-client h3{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#888;margin:0 0 8px}' .
-            '.serviceflow-inv-emetteur p,.serviceflow-inv-client p{margin:0;font-size:13px;line-height:1.5}' .
-            '.serviceflow-inv-client{flex:1;text-align:right}' .
-            '.serviceflow-inv-items-table{width:100%;border-collapse:collapse;margin-top:80px;margin-bottom:20px}' .
-            '.serviceflow-inv-items-table th{background:#f9f9f9;text-align:left;padding:10px 12px;font-size:11px;font-weight:700;color:#555;text-transform:uppercase;border-bottom:2px solid #e0e0e0}' .
-            '.serviceflow-inv-items-table td{padding:10px 12px;font-size:13px;border-bottom:1px solid #f0f0f0}' .
-            '.serviceflow-inv-items-table .text-right{text-align:right}' .
-            '.serviceflow-inv-totals{margin-left:auto;width:280px}' .
-            '.serviceflow-inv-totals-row{display:flex;justify-content:space-between;padding:6px 0;font-size:13px}' .
-            '.serviceflow-inv-totals-row.total-row{border-top:2px solid #222;font-size:16px;font-weight:700;padding-top:10px;margin-top:4px}' .
-            '.serviceflow-inv-notes{margin-top:40px;padding:16px;background:#f9f9f9;border-radius:6px;font-size:12px;color:#555;line-height:1.5;width:40%}' .
-            '.serviceflow-inv-footer-text{text-align:center;font-size:11px;color:#999;border-top:1px solid #eee;padding-top:12px;margin-top:auto}' .
-            '.serviceflow-inv-actions{margin-top:20px;display:flex;gap:8px;flex-wrap:wrap}' .
-            '.serviceflow-inv-actions button{padding:8px 20px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}' .
-            '@media print{' .
-                '@page{size:A4;margin:10mm 10mm 14mm 10mm}' .
-                '#adminmenumain,#wpadminbar,.no-print,#wpfooter,.update-nag,.notice{display:none!important}' .
-                '#wpcontent{margin-left:0!important;padding:0!important}' .
-                '.serviceflow-invoice-page{box-shadow:none!important;border:none!important;border-radius:0!important;padding:20px!important;padding-bottom:10px!important;margin:0!important;max-width:100%!important;display:flex!important;flex-direction:column!important;min-height:calc(297mm - 24mm - 40px)!important}' .
-                '.serviceflow-inv-header{display:flex!important;justify-content:space-between!important;align-items:flex-start!important}' .
-                '.serviceflow-inv-parties{display:flex!important;justify-content:space-between!important;gap:20px!important;margin-top:6px!important;margin-bottom:15px!important;align-items:flex-end!important}' .
-                '.serviceflow-inv-emetteur{flex:1!important}' .
-                '.serviceflow-inv-client{flex:1!important;text-align:right!important}' .
-                '.serviceflow-inv-notes{margin-top:40px!important;width:40%!important;background:#f9f9f9!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}' .
-                '.serviceflow-inv-items-table{margin-top:80px!important}' .
-                '.serviceflow-inv-items-table th{background:#f9f9f9!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}' .
-                '.serviceflow-inv-footer-text{margin-top:auto!important;text-align:center!important;padding-top:8px!important;border-top:1px solid #ccc!important;font-size:9px!important;color:#999!important;display:block!important}' .
-            '}'
+            self::get_invoice_view_css( $color )
         );
     }
 
@@ -1247,7 +1252,24 @@ class WpServio_Invoices {
             wp_die( esc_html__( 'Cette facture n\'est pas encore disponible.', 'wpservio' ) );
         }
 
+        $color = esc_attr( WpServio_Admin::get_color() );
+        header( 'Content-Type: text/html; charset=utf-8' );
+        ?><!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title><?php esc_html_e( 'Facture', 'wpservio' ); ?></title>
+<style><?php echo self::get_invoice_view_css( $color ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSS built from hardcoded strings and already-escaped color value. ?></style>
+</head>
+<body>
+<?php
         self::render_invoice_html( $invoice, false );
+        ?>
+<script>function sfPrintInvoice(){window.print();}</script>
+</body>
+</html>
+<?php
         exit;
     }
 
