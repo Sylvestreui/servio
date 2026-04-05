@@ -11,13 +11,18 @@ $pluginSlug    = "wpservio"
 $pluginVersion = "1.0.0"
 $rootDir       = $PSScriptRoot
 $distDir       = Join-Path $rootDir "dist"
-$buildDir      = Join-Path $distDir $pluginSlug
 
+# Le dossier racine dans le zip doit correspondre au dossier WordPress attendu :
+# - version gratuite  → wpservio/
+# - version premium   → wpservio-premium/  (Freemius l'installe dans ce dossier)
 if ($Premium) {
-    $zipPath = Join-Path $distDir "$pluginSlug-$pluginVersion-premium.zip"
+    $zipSlug  = "$pluginSlug-premium"
+    $zipPath  = Join-Path $distDir "$pluginSlug-$pluginVersion-premium.zip"
 } else {
-    $zipPath = Join-Path $distDir "$pluginSlug-$pluginVersion.zip"
+    $zipSlug  = $pluginSlug
+    $zipPath  = Join-Path $distDir "$pluginSlug-$pluginVersion.zip"
 }
+$buildDir = Join-Path $distDir $zipSlug
 
 # Fichiers/dossiers à exclure
 $exclude = @(
@@ -78,7 +83,7 @@ $archive   = New-Object System.IO.Compression.ZipArchive($zipStream, [System.IO.
 
 Get-ChildItem -Path $buildDir -Recurse -File | ForEach-Object {
     $rel   = $_.FullName.Substring($buildDir.Length).TrimStart('\', '/').Replace('\', '/')
-    $entry = $archive.CreateEntry("$pluginSlug/$rel", [System.IO.Compression.CompressionLevel]::Optimal)
+    $entry = $archive.CreateEntry("$zipSlug/$rel", [System.IO.Compression.CompressionLevel]::Optimal)
     $dst   = $entry.Open()
     $src   = [System.IO.File]::OpenRead($_.FullName)
     $src.CopyTo($dst)
