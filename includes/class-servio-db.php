@@ -4,9 +4,9 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class WpServio_DB {
+class Servio_DB {
 
-    const TABLE_NAME = 'wpservio_messages';
+    const TABLE_NAME = 'servio_messages';
 
     /**
      * Retourne le nom complet de la table avec le préfixe WP.
@@ -41,7 +41,7 @@ class WpServio_DB {
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         dbDelta( $sql );
 
-        update_option( 'wpservio_db_version', WPSERVIO_VERSION );
+        update_option( 'servio_db_version', SERVIO_VERSION );
     }
 
     /**
@@ -154,7 +154,7 @@ class WpServio_DB {
     public static function migrate_client_ids(): void {
         global $wpdb;
 
-        if ( get_option( 'wpservio_client_id_migrated' ) ) {
+        if ( get_option( 'servio_client_id_migrated' ) ) {
             return;
         }
 
@@ -180,7 +180,7 @@ class WpServio_DB {
         }
 
         // Étape 2 : Messages admin/système → chercher le client via les commandes
-        $order_table = WpServio_Orders::table_name();
+        $order_table = Servio_Orders::table_name();
         // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $orphan_posts = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             "SELECT DISTINCT post_id FROM {$table} WHERE client_id = 0"
@@ -204,6 +204,6 @@ class WpServio_DB {
             }
         }
 
-        update_option( 'wpservio_client_id_migrated', '1' );
+        update_option( 'servio_client_id_migrated', '1' );
     }
 }

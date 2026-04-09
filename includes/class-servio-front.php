@@ -4,12 +4,12 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class WpServio_Front {
+class Servio_Front {
 
     public static function init(): void {
         add_action( 'wp_enqueue_scripts', [ __CLASS__, 'enqueue_assets' ] );
         add_action( 'wp_footer', [ __CLASS__, 'render_chat' ], 9 );
-        add_shortcode( 'wpservio_options', [ __CLASS__, 'shortcode_options' ] );
+        add_shortcode( 'servio_options', [ __CLASS__, 'shortcode_options' ] );
     }
 
     public static function enqueue_assets(): void {
@@ -21,23 +21,23 @@ class WpServio_Front {
             'serviceflow-inter',
             'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap',
             [],
-            WPSERVIO_VERSION
+            SERVIO_VERSION
         );
 
         wp_enqueue_style(
             'serviceflow-style',
-            WPSERVIO_PLUGIN_URL . 'assets/css/serviceflow.css',
+            SERVIO_PLUGIN_URL . 'assets/css/serviceflow.css',
             [ 'serviceflow-inter' ],
-            WPSERVIO_VERSION
+            SERVIO_VERSION
         );
 
-        if ( ! wp_script_is( 'wpservio-chat-js', 'registered' ) ) {
-            wp_register_script( 'wpservio-chat-js', false, [ 'jquery' ], WPSERVIO_VERSION, true ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
+        if ( ! wp_script_is( 'servio-chat-js', 'registered' ) ) {
+            wp_register_script( 'servio-chat-js', false, [ 'jquery' ], SERVIO_VERSION, true ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
         }
-        wp_enqueue_script( 'wpservio-chat-js' );
+        wp_enqueue_script( 'servio-chat-js' );
 
         // Inline CSS dynamique basé sur la couleur du plugin
-        $c     = esc_attr( WpServio_Admin::get_color() );
+        $c     = esc_attr( Servio_Admin::get_color() );
         $hex   = ltrim( $c, '#' );
         $r_int = hexdec( substr( $hex, 0, 2 ) );
         $g_int = hexdec( substr( $hex, 2, 2 ) );
@@ -63,7 +63,7 @@ class WpServio_Front {
     }
 
     /**
-     * Shortcode [wpservio_options] — affiche packs + options de service.
+     * Shortcode [servio_options] — affiche packs + options de service.
      */
     public static function shortcode_options(): string {
         if ( ! self::is_chat_page() ) {
@@ -71,9 +71,9 @@ class WpServio_Front {
         }
 
         $post_id = get_queried_object_id();
-        $packs   = WpServio_Options::get_packs( $post_id );
-        $options = WpServio_Options::get_options( $post_id );
-        $color   = esc_attr( WpServio_Admin::get_color() );
+        $packs   = Servio_Options::get_packs( $post_id );
+        $options = Servio_Options::get_options( $post_id );
+        $color   = esc_attr( Servio_Admin::get_color() );
 
         if ( empty( $packs ) ) {
             return '';
@@ -82,16 +82,16 @@ class WpServio_Front {
         $c              = $color;
         $first_price    = floatval( $packs[0]['price'] ?? 0 );
         $first_delay    = absint( $packs[0]['delay'] ?? 0 );
-        $tax_rate       = wpservio_is_premium() ? floatval( WpServio_Invoices::get_settings()['tax_rate'] ?? 0 ) : 0;
-        $payment_mode        = WpServio_Options::get_payment_mode( $post_id );
-        $installments_count  = WpServio_Options::get_installments_count( $post_id );
+        $tax_rate       = servio_is_premium() ? floatval( Servio_Invoices::get_settings()['tax_rate'] ?? 0 ) : 0;
+        $payment_mode        = Servio_Options::get_payment_mode( $post_id );
+        $installments_count  = Servio_Options::get_installments_count( $post_id );
         $payment_mode_labels = [
-            'single'       => __( 'Paiement unique', 'wpservio' ),
-            'deposit'      => __( 'Acompte 50% + solde à la livraison', 'wpservio' ),
-            'installments' => __( 'Mensualités', 'wpservio' ),
-            'monthly'      => __( 'Abonnement mensuel', 'wpservio' ),
+            'single'       => __( 'Paiement unique', 'servio' ),
+            'deposit'      => __( 'Acompte 50% + solde à la livraison', 'servio' ),
+            'installments' => __( 'Mensualités', 'servio' ),
+            'monthly'      => __( 'Abonnement mensuel', 'servio' ),
         ];
-        $payment_mode_label = $payment_mode_labels[ $payment_mode ] ?? __( 'Paiement unique', 'wpservio' );
+        $payment_mode_label = $payment_mode_labels[ $payment_mode ] ?? __( 'Paiement unique', 'servio' );
 
         ob_start();
         ?>
@@ -114,11 +114,11 @@ class WpServio_Front {
         <div id="serviceflow-sc-card" style="font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif !important;border:1px solid #e0e0e0 !important;border-radius:12px !important;overflow-x:hidden !important;overflow-y:auto !important;max-height:calc(100vh - 80px) !important;background:#fff !important;box-shadow:0 2px 8px rgba(0,0,0,0.06) !important;max-width:100% !important;padding:0 !important;margin:0 0 20px 0 !important">
             <div style="display:flex !important;align-items:center !important;gap:8px !important;padding:12px 16px !important;background:<?php echo esc_attr( $c ); ?> !important;color:#fff !important;font-size:14px !important;font-weight:600 !important;margin:0 !important;border-radius:0 !important;position:sticky !important;top:0 !important;z-index:2 !important">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"></path><rect x="9" y="3" width="6" height="4" rx="1"></rect></svg>
-                <span style="color:#fff !important;font-size:14px !important;font-weight:600 !important"><?php esc_html_e( 'Options de service', 'wpservio' ); ?></span>
+                <span style="color:#fff !important;font-size:14px !important;font-weight:600 !important"><?php esc_html_e( 'Options de service', 'servio' ); ?></span>
             </div>
 
             <!-- Packs -->
-            <div style="padding:12px 16px 2px !important;font-size:12px !important;font-weight:600 !important;text-transform:uppercase !important;letter-spacing:0.5px !important;color:#888 !important;margin:0 !important"><?php esc_html_e( 'Choisissez votre pack', 'wpservio' ); ?></div>
+            <div style="padding:12px 16px 2px !important;font-size:12px !important;font-weight:600 !important;text-transform:uppercase !important;letter-spacing:0.5px !important;color:#888 !important;margin:0 !important"><?php esc_html_e( 'Choisissez votre pack', 'servio' ); ?></div>
             <div style="padding:0 16px 8px !important;margin:0 !important">
                 <span style="display:inline-flex !important;align-items:center !important;gap:4px !important;font-size:11px !important;font-weight:500 !important;color:#fff !important;background:<?php echo esc_attr( $c ); ?> !important;padding:2px 8px !important;border-radius:20px !important;opacity:0.85 !important">&#128179; <?php echo esc_html( $payment_mode_label ); ?></span>
             </div>
@@ -148,7 +148,7 @@ class WpServio_Front {
                     <div style="display:flex !important;align-items:baseline !important;gap:8px !important;margin:0 0 4px 0 !important">
                         <span style="font-size:14px !important;font-weight:800 !important;color:<?php echo esc_attr( $c_muted ); ?> !important"><?php echo esc_html( number_format( $pack['price'], 2, ',', ' ' ) ); ?> &euro;</span>
                         <?php if ( $pack_delay > 0 ) : ?>
-                            <span style="font-size:11px !important;color:#888 !important">&#9201; <?php echo esc_html( $pack_delay ); ?> <?php esc_html_e( 'jour(s)', 'wpservio' ); ?></span>
+                            <span style="font-size:11px !important;color:#888 !important">&#9201; <?php echo esc_html( $pack_delay ); ?> <?php esc_html_e( 'jour(s)', 'servio' ); ?></span>
                         <?php endif; ?>
                     </div>
                     <?php if ( is_array( $features ) && ! empty( $features ) ) : ?>
@@ -167,7 +167,7 @@ class WpServio_Front {
 
             <?php if ( ! empty( $options ) ) : ?>
             <div style="height:0 !important;border-top:1px solid #e8e8e8 !important;margin:0 !important;padding:0 !important"></div>
-            <div style="padding:12px 16px 4px !important;font-size:12px !important;font-weight:600 !important;text-transform:uppercase !important;letter-spacing:0.5px !important;color:#888 !important;margin:0 !important"><?php esc_html_e( 'Options supplémentaires', 'wpservio' ); ?></div>
+            <div style="padding:12px 16px 4px !important;font-size:12px !important;font-weight:600 !important;text-transform:uppercase !important;letter-spacing:0.5px !important;color:#888 !important;margin:0 !important"><?php esc_html_e( 'Options supplémentaires', 'servio' ); ?></div>
 
             <?php foreach ( $options as $i => $opt ) :
                 $opt_delay = absint( $opt['delay'] ?? 0 );
@@ -190,8 +190,8 @@ class WpServio_Front {
             <?php
             // Options avancées dynamiques
             $advanced_options = [];
-            if ( wpservio_is_premium() ) {
-                $adv_raw = get_post_meta( $post_id, '_wpservio_advanced_options', true );
+            if ( servio_is_premium() ) {
+                $adv_raw = get_post_meta( $post_id, '_servio_advanced_options', true );
                 $advanced_options = $adv_raw ? ( json_decode( $adv_raw, true ) ?: [] ) : [];
             }
             ?>
@@ -199,7 +199,7 @@ class WpServio_Front {
             <?php if ( ! empty( $advanced_options ) ) : ?>
             <div style="height:0 !important;border-top:1px solid #e8e8e8 !important;margin:0 !important;padding:0 !important"></div>
             <div style="padding:4px 0 0 0 !important;margin:0 !important">
-                <div style="padding:8px 16px 4px !important;font-size:12px !important;font-weight:600 !important;text-transform:uppercase !important;letter-spacing:0.5px !important;color:#888 !important;margin:0 !important"><?php esc_html_e( 'Options avancées', 'wpservio' ); ?></div>
+                <div style="padding:8px 16px 4px !important;font-size:12px !important;font-weight:600 !important;text-transform:uppercase !important;letter-spacing:0.5px !important;color:#888 !important;margin:0 !important"><?php esc_html_e( 'Options avancées', 'servio' ); ?></div>
                 <?php foreach ( $advanced_options as $opt_i => $opt ) :
                     $opt_label  = esc_html( $opt['label'] ?? '' );
                     $opt_price  = floatval( $opt['price'] ?? 0 );
@@ -210,8 +210,8 @@ class WpServio_Front {
                     $is_counter = in_array( $opt_mode, [ 'unit', 'daily' ], true );
                     $price_fmt  = esc_html( number_format( $opt_price, 2, ',', ' ' ) );
                     $mode_suffix = match ( $opt_mode ) {
-                        'monthly' => ' / ' . __( 'mois', 'wpservio' ),
-                        'daily'   => ' / ' . __( 'jour', 'wpservio' ),
+                        'monthly' => ' / ' . __( 'mois', 'servio' ),
+                        'daily'   => ' / ' . __( 'jour', 'servio' ),
                         'unit'    => $opt_unit ? ' / ' . $opt_unit : '',
                         default   => '',
                     };
@@ -263,20 +263,20 @@ class WpServio_Front {
             ?>
             <div style="padding:14px 16px !important;border-top:2px solid #e8e8e8 !important;background:#fafafa !important;margin:0 !important;position:sticky !important;bottom:0 !important;z-index:10 !important;border-radius:0 0 12px 12px !important">
                 <div style="display:flex !important;justify-content:space-between !important;align-items:center !important;font-size:12px !important;color:#888 !important;margin:0 0 2px 0 !important;padding:0 !important">
-                    <span><?php esc_html_e( 'Sous-total', 'wpservio' ); ?></span>
+                    <span><?php esc_html_e( 'Sous-total', 'servio' ); ?></span>
                     <span id="serviceflow-sc-subtotal-val"><?php echo esc_html( number_format( $first_price, 2, ',', ' ' ) ); ?> &euro;</span>
                 </div>
                 <div style="display:flex !important;justify-content:space-between !important;align-items:center !important;font-size:12px !important;color:#888 !important;margin:0 0 6px 0 !important;padding:0 !important">
                     <?php if ( $tax_rate > 0 ) : ?>
-                        <span><?php esc_html_e( 'TVA', 'wpservio' ); ?> (<?php echo esc_html( $tax_rate ); ?>%)</span>
+                        <span><?php esc_html_e( 'TVA', 'servio' ); ?> (<?php echo esc_html( $tax_rate ); ?>%)</span>
                         <span id="serviceflow-sc-tva-val"><?php echo esc_html( number_format( $first_tva, 2, ',', ' ' ) ); ?> &euro;</span>
                     <?php else : ?>
-                        <span id="serviceflow-sc-tva-val" style="font-style:italic !important"><?php esc_html_e( 'TVA : 0% (non applicable)', 'wpservio' ); ?></span>
+                        <span id="serviceflow-sc-tva-val" style="font-style:italic !important"><?php esc_html_e( 'TVA : 0% (non applicable)', 'servio' ); ?></span>
                         <span></span>
                     <?php endif; ?>
                 </div>
                 <div style="display:flex !important;justify-content:space-between !important;align-items:center !important;font-size:16px !important;font-weight:700 !important;color:#222 !important;margin:0 0 4px 0 !important;padding:0 !important;border-top:1px solid #e8e8e8 !important;padding-top:6px !important">
-                    <span style="font-size:16px !important;font-weight:700 !important;color:#222 !important"><?php esc_html_e( 'Total', 'wpservio' ); ?></span>
+                    <span style="font-size:16px !important;font-weight:700 !important;color:#222 !important"><?php esc_html_e( 'Total', 'servio' ); ?></span>
                     <span id="serviceflow-sc-total-val" style="font-size:16px !important;font-weight:700 !important;color:<?php echo esc_attr( $c_muted ); ?> !important"><?php echo esc_html( number_format( $first_total, 2, ',', ' ' ) ); ?> &euro;</span>
                 </div>
                 <?php if ( $payment_mode !== 'single' ) : ?>
@@ -285,12 +285,12 @@ class WpServio_Front {
                 <div id="serviceflow-sc-breakdown" style="display:none !important"></div>
                 <?php endif; ?>
                 <div id="serviceflow-sc-delay-row" style="display:flex !important;justify-content:space-between !important;align-items:center !important;font-size:13px !important;color:#888 !important;margin:0 0 12px 0 !important;padding:0 !important">
-                    <span style="font-size:13px !important;color:#888 !important">&#9201; <?php esc_html_e( 'Délai estimé', 'wpservio' ); ?></span>
-                    <span id="serviceflow-sc-delay-val" style="font-size:13px !important;font-weight:600 !important;color:#555 !important"><?php echo esc_html( $first_delay ); ?> <?php esc_html_e( 'jour(s)', 'wpservio' ); ?></span>
+                    <span style="font-size:13px !important;color:#888 !important">&#9201; <?php esc_html_e( 'Délai estimé', 'servio' ); ?></span>
+                    <span id="serviceflow-sc-delay-val" style="font-size:13px !important;font-weight:600 !important;color:#555 !important"><?php echo esc_html( $first_delay ); ?> <?php esc_html_e( 'jour(s)', 'servio' ); ?></span>
                 </div>
                 <button type="button" id="serviceflow-sc-order" style="display:flex !important;align-items:center !important;justify-content:center !important;gap:8px !important;width:100% !important;padding:12px !important;border:none !important;border-radius:8px !important;background:<?php echo esc_attr( $c ); ?> !important;color:#fff !important;font-size:14px !important;font-weight:600 !important;cursor:pointer !important;font-family:inherit !important;margin:0 !important;line-height:1.4 !important">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                    <?php echo ( wpservio_is_premium() && WpServio_Stripe::is_enabled() ) ? esc_html__( 'Payer et commander', 'wpservio' ) : esc_html__( 'Commander via le chat', 'wpservio' ); ?>
+                    <?php echo ( servio_is_premium() && Servio_Stripe::is_enabled() ) ? esc_html__( 'Payer et commander', 'servio' ) : esc_html__( 'Commander via le chat', 'servio' ); ?>
                 </button>
             </div>
             <?php endif; ?>
@@ -301,18 +301,18 @@ class WpServio_Front {
         <div id="serviceflow-mobile-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:2147483645;background:#fff;box-shadow:0 -2px 12px rgba(0,0,0,0.12);padding:12px 16px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
                 <div style="flex-shrink:0">
-                    <div style="font-size:11px;color:#888;text-transform:uppercase;font-weight:600;letter-spacing:0.3px"><?php esc_html_e( 'À partir de', 'wpservio' ); ?></div>
+                    <div style="font-size:11px;color:#888;text-transform:uppercase;font-weight:600;letter-spacing:0.3px"><?php esc_html_e( 'À partir de', 'servio' ); ?></div>
                     <div id="serviceflow-mobile-price" style="font-size:16px;font-weight:600;color:<?php echo esc_attr( $c ); ?>"><?php echo esc_html( number_format( $first_price, 2, ',', ' ' ) ); ?> &euro;</div>
                 </div>
                 <button type="button" id="serviceflow-mobile-cta" style="flex:1;max-width:240px;padding:12px 16px;border:none;border-radius:8px;background:<?php echo esc_attr( $c ); ?>;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;line-height:1.4">
-                    <?php esc_html_e( 'Voir les offres', 'wpservio' ); ?>
+                    <?php esc_html_e( 'Voir les offres', 'servio' ); ?>
                 </button>
             </div>
         </div>
         <?php endif; ?>
 
         <?php
-        wp_add_inline_script( 'wpservio-chat-js', '(function(){
+        wp_add_inline_script( 'servio-chat-js', '(function(){
             var wraps = document.querySelectorAll(".serviceflow-sc-opt-wrap");
             wraps.forEach(function(w){ w.addEventListener("click", function(e){ if(e.target.type!=="checkbox"){ var cb=w.querySelector("input[type=\'checkbox\']"); if(cb&&!cb.disabled){cb.checked=!cb.checked;cb.dispatchEvent(new Event("change"));} } }); });
             var packs=document.querySelectorAll(".serviceflow-sc-pack");
@@ -323,7 +323,7 @@ class WpServio_Front {
             var pColorMuted="rgba("+rgb.r+","+rgb.g+","+rgb.b+",0.7)";
             var pColorLight="rgba("+rgb.r+","+rgb.g+","+rgb.b+",0.12)";
             var checkSvg=\'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"></path></svg>\';
-            packs.forEach(function(p){ p.addEventListener("click",function(){ if(packBox&&packBox.hasAttribute("data-frozen"))return; packs.forEach(function(pp){ pp.removeAttribute("data-selected"); pp.style.setProperty("border-color","#e0e0e0","important"); pp.style.setProperty("background","#fff","important"); var d=pp.querySelector(".serviceflow-pack-dot"); if(d){d.style.setProperty("border-color","#ccc","important");d.style.setProperty("background","transparent","important");d.innerHTML="";} }); p.setAttribute("data-selected","true"); p.style.setProperty("border-color",pColorMuted,"important"); p.style.setProperty("background",pColorLight,"important"); var d=p.querySelector(".serviceflow-pack-dot"); if(d){d.style.setProperty("border-color",pColor,"important");d.style.setProperty("background",pColor,"important");d.innerHTML=checkSvg;} document.dispatchEvent(new Event("wpservio_pack_changed")); }); });
+            packs.forEach(function(p){ p.addEventListener("click",function(){ if(packBox&&packBox.hasAttribute("data-frozen"))return; packs.forEach(function(pp){ pp.removeAttribute("data-selected"); pp.style.setProperty("border-color","#e0e0e0","important"); pp.style.setProperty("background","#fff","important"); var d=pp.querySelector(".serviceflow-pack-dot"); if(d){d.style.setProperty("border-color","#ccc","important");d.style.setProperty("background","transparent","important");d.innerHTML="";} }); p.setAttribute("data-selected","true"); p.style.setProperty("border-color",pColorMuted,"important"); p.style.setProperty("background",pColorLight,"important"); var d=p.querySelector(".serviceflow-pack-dot"); if(d){d.style.setProperty("border-color",pColor,"important");d.style.setProperty("background",pColor,"important");d.innerHTML=checkSvg;} document.dispatchEvent(new Event("servio_pack_changed")); }); });
             var mobileBar=document.getElementById("serviceflow-mobile-bar");
             var scCard=document.getElementById("serviceflow-sc-card");
             var mobileCta=document.getElementById("serviceflow-mobile-cta");
@@ -336,11 +336,11 @@ class WpServio_Front {
                 observer.observe(scCard);
                 window.addEventListener("resize",function(){if(!isMobile()){mobileBar.style.display="none";adjustChatBtn(false);}});
                 if(mobileCta){mobileCta.addEventListener("click",function(){scCard.scrollIntoView({behavior:"smooth",block:"center"});});}
-                if(mobilePrice){var syncPrice=function(){var totalEl=document.getElementById("serviceflow-sc-total-val");if(totalEl)mobilePrice.textContent=totalEl.textContent;};document.addEventListener("wpservio_pack_changed",syncPrice);var checks=document.querySelectorAll(".serviceflow-sc-check");checks.forEach(function(cb){cb.addEventListener("change",function(){setTimeout(syncPrice,50);});});}
+                if(mobilePrice){var syncPrice=function(){var totalEl=document.getElementById("serviceflow-sc-total-val");if(totalEl)mobilePrice.textContent=totalEl.textContent;};document.addEventListener("servio_pack_changed",syncPrice);var checks=document.querySelectorAll(".serviceflow-sc-check");checks.forEach(function(cb){cb.addEventListener("change",function(){setTimeout(syncPrice,50);});});}
             }
-            document.querySelectorAll(".sf-adv-qty-minus,.sf-adv-qty-plus").forEach(function(btn){btn.addEventListener("click",function(e){e.preventDefault();e.stopPropagation();var inp=document.getElementById(btn.dataset.target+"-qty");if(!inp)return;var v=parseInt(inp.value)||0;inp.value=btn.classList.contains("sf-adv-qty-minus")?Math.max(0,v-1):v+1;document.dispatchEvent(new Event("wpservio_pack_changed"));});});
-            document.querySelectorAll(".sf-adv-opt-qty").forEach(function(inp){inp.addEventListener("change",function(){if(parseInt(inp.value)<0)inp.value=0;document.dispatchEvent(new Event("wpservio_pack_changed"));});});
-            document.querySelectorAll(".sf-adv-opt-check").forEach(function(cb){cb.addEventListener("change",function(){document.dispatchEvent(new Event("wpservio_pack_changed"));});});
+            document.querySelectorAll(".sf-adv-qty-minus,.sf-adv-qty-plus").forEach(function(btn){btn.addEventListener("click",function(e){e.preventDefault();e.stopPropagation();var inp=document.getElementById(btn.dataset.target+"-qty");if(!inp)return;var v=parseInt(inp.value)||0;inp.value=btn.classList.contains("sf-adv-qty-minus")?Math.max(0,v-1):v+1;document.dispatchEvent(new Event("servio_pack_changed"));});});
+            document.querySelectorAll(".sf-adv-opt-qty").forEach(function(inp){inp.addEventListener("change",function(){if(parseInt(inp.value)<0)inp.value=0;document.dispatchEvent(new Event("servio_pack_changed"));});});
+            document.querySelectorAll(".sf-adv-opt-check").forEach(function(cb){cb.addEventListener("change",function(){document.dispatchEvent(new Event("servio_pack_changed"));});});
         })();' );
         return ob_get_clean();
     }
@@ -353,8 +353,8 @@ class WpServio_Front {
             return;
         }
 
-        $color       = esc_attr( WpServio_Admin::get_color() );
-        $position    = WpServio_Admin::get_position();
+        $color       = esc_attr( Servio_Admin::get_color() );
+        $position    = Servio_Admin::get_position();
         $pos_parts   = explode( '-', $position );
         $vertical    = $pos_parts[0] ?? '';
         $horizontal  = $pos_parts[1] ?? '';
@@ -409,29 +409,29 @@ class WpServio_Front {
             $horizontal . ':24px !important',
         ] );
 
-        $packs   = WpServio_Options::get_packs( $post_id );
-        $options = WpServio_Options::get_options( $post_id );
+        $packs   = Servio_Options::get_packs( $post_id );
+        $options = Servio_Options::get_options( $post_id );
 
         $is_admin = current_user_can( 'manage_options' );
 
         $active_order = null;
         if ( $is_logged ) {
-            $active_order = WpServio_Orders::build_order_response( $post_id );
+            $active_order = Servio_Orders::build_order_response( $post_id );
         }
 
         // Options avancées dynamiques
         $advanced_options = [];
-        if ( wpservio_is_premium() ) {
-            $adv_raw = get_post_meta( $post_id, '_wpservio_advanced_options', true );
+        if ( servio_is_premium() ) {
+            $adv_raw = get_post_meta( $post_id, '_servio_advanced_options', true );
             $advanced_options = $adv_raw ? ( json_decode( $adv_raw, true ) ?: [] ) : [];
         }
-        $tax_rate           = wpservio_is_premium() ? floatval( WpServio_Invoices::get_settings()['tax_rate'] ?? 0 ) : 0;
-        $payment_mode       = WpServio_Options::get_payment_mode( $post_id );
-        $installments_count = WpServio_Options::get_installments_count( $post_id );
+        $tax_rate           = servio_is_premium() ? floatval( Servio_Invoices::get_settings()['tax_rate'] ?? 0 ) : 0;
+        $payment_mode       = Servio_Options::get_payment_mode( $post_id );
+        $installments_count = Servio_Options::get_installments_count( $post_id );
 
         $js_config = wp_json_encode( [
             'ajax_url'     => admin_url( 'admin-ajax.php' ),
-            'nonce'        => wp_create_nonce( 'wpservio_nonce' ),
+            'nonce'        => wp_create_nonce( 'servio_nonce' ),
             'post_id'      => $post_id,
             'post_title'   => get_the_title( $post_id ),
             'user_id'      => get_current_user_id(),
@@ -446,70 +446,70 @@ class WpServio_Front {
             'tax_rate'                => $tax_rate,
             'payment_mode'            => $payment_mode,
             'installments_count'      => $installments_count,
-            'is_premium'              => wpservio_is_premium(),
-            'stripe_enabled'          => WpServio_Stripe::is_enabled(),
-            'stripe_checkout_action'  => 'wpservio_stripe_checkout',
+            'is_premium'              => servio_is_premium(),
+            'stripe_enabled'          => Servio_Stripe::is_enabled(),
+            'stripe_checkout_action'  => 'servio_stripe_checkout',
             'i18n'         => [
-                'error'             => __( 'Erreur lors de l\'envoi.', 'wpservio' ),
-                'empty'             => __( 'Pas encore de message — posez votre première question ! 👋', 'wpservio' ),
-                'order_btn'         => WpServio_Stripe::is_enabled()
-                    ? __( 'Payer et commander', 'wpservio' )
-                    : __( 'Commander via le chat', 'wpservio' ),
-                'order_modify_btn'  => __( 'Modifier la commande', 'wpservio' ),
-                'order_locked'      => __( 'Commande en cours...', 'wpservio' ),
-                'order_replace'     => __( 'Vous avez déjà envoyé une commande. Voulez-vous la remplacer par cette nouvelle sélection ?', 'wpservio' ),
-                'order_modify'      => __( 'Modification de commande', 'wpservio' ),
-                'days'              => __( 'jour(s)', 'wpservio' ),
-                'estimated'         => __( 'Livraison estimée', 'wpservio' ),
-                'start_order'       => __( 'Démarrer', 'wpservio' ),
-                'complete_order'    => __( 'Terminer', 'wpservio' ),
-                'request_revision'  => __( 'Demander une retouche', 'wpservio' ),
-                'accept_delivery'   => __( 'Accepter la livraison', 'wpservio' ),
-                'validate_order'    => __( 'Valider', 'wpservio' ),
-                'validate_revision' => __( 'Valider la retouche', 'wpservio' ),
-                'revision_delay_placeholder' => __( 'Délai (jours)', 'wpservio' ),
-                'status_pending'    => __( 'En attente', 'wpservio' ),
-                'status_paid'       => __( 'Payée', 'wpservio' ),
-                'status_started'    => __( 'En cours', 'wpservio' ),
-                'status_completed'  => __( 'Terminée', 'wpservio' ),
-                'status_revision'   => __( 'Retouche demandée', 'wpservio' ),
-                'status_accepted'   => __( 'Acceptée', 'wpservio' ),
-                'client'            => __( 'Client', 'wpservio' ),
-                'service'           => __( 'Service', 'wpservio' ),
-                'delay_total'       => __( 'Délai total', 'wpservio' ),
-                'order_error'       => __( 'Erreur lors de la création de la commande.', 'wpservio' ),
-                'order_no_modify'   => __( 'La commande ne peut plus être modifiée.', 'wpservio' ),
-                'conversations'     => __( 'Conversations', 'wpservio' ),
-                'no_conversations'  => __( 'Aucune conversation.', 'wpservio' ),
-                'chat'              => __( 'Chat', 'wpservio' ),
-                'today'             => __( 'Aujourd\'hui', 'wpservio' ),
-                'balance'           => __( 'Solde à la livraison', 'wpservio' ),
-                'monthly_then'      => __( 'puis', 'wpservio' ),
-                'monthly_per_month' => __( '/mois', 'wpservio' ),
-                'payment_redirect'  => __( 'Redirection vers le paiement...', 'wpservio' ),
-                'payment_error'     => __( 'Erreur lors de la création du paiement.', 'wpservio' ),
-                'login_required'    => __( 'Connectez-vous pour commander.', 'wpservio' ),
-                'progress'          => __( 'Progression', 'wpservio' ),
-                'add_note'          => __( 'Ajouter une note (optionnel)', 'wpservio' ),
-                'todo_note'         => __( 'Note', 'wpservio' ),
+                'error'             => __( 'Erreur lors de l\'envoi.', 'servio' ),
+                'empty'             => __( 'Pas encore de message — posez votre première question ! 👋', 'servio' ),
+                'order_btn'         => Servio_Stripe::is_enabled()
+                    ? __( 'Payer et commander', 'servio' )
+                    : __( 'Commander via le chat', 'servio' ),
+                'order_modify_btn'  => __( 'Modifier la commande', 'servio' ),
+                'order_locked'      => __( 'Commande en cours...', 'servio' ),
+                'order_replace'     => __( 'Vous avez déjà envoyé une commande. Voulez-vous la remplacer par cette nouvelle sélection ?', 'servio' ),
+                'order_modify'      => __( 'Modification de commande', 'servio' ),
+                'days'              => __( 'jour(s)', 'servio' ),
+                'estimated'         => __( 'Livraison estimée', 'servio' ),
+                'start_order'       => __( 'Démarrer', 'servio' ),
+                'complete_order'    => __( 'Terminer', 'servio' ),
+                'request_revision'  => __( 'Demander une retouche', 'servio' ),
+                'accept_delivery'   => __( 'Accepter la livraison', 'servio' ),
+                'validate_order'    => __( 'Valider', 'servio' ),
+                'validate_revision' => __( 'Valider la retouche', 'servio' ),
+                'revision_delay_placeholder' => __( 'Délai (jours)', 'servio' ),
+                'status_pending'    => __( 'En attente', 'servio' ),
+                'status_paid'       => __( 'Payée', 'servio' ),
+                'status_started'    => __( 'En cours', 'servio' ),
+                'status_completed'  => __( 'Terminée', 'servio' ),
+                'status_revision'   => __( 'Retouche demandée', 'servio' ),
+                'status_accepted'   => __( 'Acceptée', 'servio' ),
+                'client'            => __( 'Client', 'servio' ),
+                'service'           => __( 'Service', 'servio' ),
+                'delay_total'       => __( 'Délai total', 'servio' ),
+                'order_error'       => __( 'Erreur lors de la création de la commande.', 'servio' ),
+                'order_no_modify'   => __( 'La commande ne peut plus être modifiée.', 'servio' ),
+                'conversations'     => __( 'Conversations', 'servio' ),
+                'no_conversations'  => __( 'Aucune conversation.', 'servio' ),
+                'chat'              => __( 'Chat', 'servio' ),
+                'today'             => __( 'Aujourd\'hui', 'servio' ),
+                'balance'           => __( 'Solde à la livraison', 'servio' ),
+                'monthly_then'      => __( 'puis', 'servio' ),
+                'monthly_per_month' => __( '/mois', 'servio' ),
+                'payment_redirect'  => __( 'Redirection vers le paiement...', 'servio' ),
+                'payment_error'     => __( 'Erreur lors de la création du paiement.', 'servio' ),
+                'login_required'    => __( 'Connectez-vous pour commander.', 'servio' ),
+                'progress'          => __( 'Progression', 'servio' ),
+                'add_note'          => __( 'Ajouter une note (optionnel)', 'servio' ),
+                'todo_note'         => __( 'Note', 'servio' ),
             ],
         ] );
         ?>
 
-        <!-- WpServio : Bouton flottant -->
+        <!-- Servio : Bouton flottant -->
         <button id="serviceflow-toggle" style="<?php echo esc_attr( $btn_style ); ?>" aria-label="Chat">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
             <span id="serviceflow-badge" style="position:absolute;top:-2px;right:-2px;min-width:20px;height:20px;background:#e53e3e;color:#fff;border-radius:50%;font-size:11px;font-weight:700;align-items:center;justify-content:center;line-height:1;display:none"></span>
         </button>
 
-        <!-- WpServio : Popup -->
+        <!-- Servio : Popup -->
         <div id="serviceflow-container" style="<?php echo esc_attr( $popup_style ); ?>">
             <!-- Header avec bouton retour -->
             <div id="serviceflow-header" style="background:<?php echo esc_attr( $color ); ?> !important;color:#fff !important;padding:14px 20px !important;flex-shrink:0 !important;display:flex !important;align-items:center !important;gap:10px !important;margin:0 !important">
                 <button id="serviceflow-back" type="button" style="display:none !important;background:none !important;border:none !important;color:#fff !important;cursor:pointer !important;padding:0 !important;margin:0 !important;flex-shrink:0 !important;line-height:1 !important">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg>
                 </button>
-                <h3 id="serviceflow-header-title" style="margin:0 !important;font-size:16px !important;font-weight:600 !important;color:#fff !important;flex:1 !important"><?php esc_html_e( 'Chat', 'wpservio' ); ?></h3>
+                <h3 id="serviceflow-header-title" style="margin:0 !important;font-size:16px !important;font-weight:600 !important;color:#fff !important;flex:1 !important"><?php esc_html_e( 'Chat', 'servio' ); ?></h3>
             </div>
 
             <!-- Liste de conversations (admin uniquement) -->
@@ -519,13 +519,13 @@ class WpServio_Front {
             <div id="serviceflow-todo-bar" style="display:none;padding:10px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-size:12px;flex-shrink:0;max-height:200px;overflow-y:auto"></div>
 
             <div id="serviceflow-messages" class="serviceflow-messages">
-                <div class="serviceflow-loading"><?php esc_html_e( 'Chargement...', 'wpservio' ); ?></div>
+                <div class="serviceflow-loading"><?php esc_html_e( 'Chargement...', 'servio' ); ?></div>
             </div>
 
             <?php if ( $is_logged ) : ?>
                 <form id="serviceflow-form" class="serviceflow-form" onsubmit="return false;">
                     <div class="serviceflow-input-wrapper">
-                        <textarea id="serviceflow-input" class="serviceflow-input" placeholder="<?php esc_attr_e( 'Votre message...', 'wpservio' ); ?>" rows="1" maxlength="1000"></textarea>
+                        <textarea id="serviceflow-input" class="serviceflow-input" placeholder="<?php esc_attr_e( 'Votre message...', 'servio' ); ?>" rows="1" maxlength="1000"></textarea>
                         <button type="button" id="serviceflow-send" class="serviceflow-send" style="background:<?php echo esc_attr( $color ); ?>">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"></path><path d="M22 2L15 22L11 13L2 9L22 2Z"></path></svg>
                         </button>
@@ -536,8 +536,8 @@ class WpServio_Front {
                     <p><?php
                         printf(
                             /* translators: %s: HTML link tag for login page */
-                            esc_html__( '%s pour participer au chat.', 'wpservio' ),
-                            '<a href="' . esc_url( wp_login_url( get_permalink() ) ) . '">' . esc_html__( 'Connectez-vous', 'wpservio' ) . '</a>'
+                            esc_html__( '%s pour participer au chat.', 'servio' ),
+                            '<a href="' . esc_url( wp_login_url( get_permalink() ) ) . '">' . esc_html__( 'Connectez-vous', 'servio' ) . '</a>'
                         );
                     ?></p>
                 </div>
@@ -608,7 +608,7 @@ class WpServio_Front {
                 if(!urlParams.get('sf_payment_success') || !schedId || C.is_admin) return;
 
                 // Vérifier si le paiement est confirmé (fallback si webhook pas encore reçu)
-                fetch(C.ajax_url + '?action=wpservio_schedule_check&schedule_id='+schedId+'&nonce='+C.nonce)
+                fetch(C.ajax_url + '?action=servio_schedule_check&schedule_id='+schedId+'&nonce='+C.nonce)
                 .then(function(r){ return r.json(); })
                 .then(function(res){
                     // Ouvrir le chat dans tous les cas pour que le client voit l'état
@@ -640,7 +640,7 @@ class WpServio_Front {
             function loadClientList(){
                 if(!C.is_admin) return;
                 clientList.innerHTML = '<div style="padding:30px 20px !important;text-align:center !important;color:#999 !important;font-size:14px !important">Chargement...</div>';
-                fetch(C.ajax_url+'?'+new URLSearchParams({action:'wpservio_get_clients',post_id:C.post_id,nonce:C.nonce}))
+                fetch(C.ajax_url+'?'+new URLSearchParams({action:'servio_get_clients',post_id:C.post_id,nonce:C.nonce}))
                 .then(function(r){return r.json();})
                 .then(function(res){
                     if(!res.success||!res.data||!res.data.length){
@@ -723,7 +723,7 @@ class WpServio_Front {
             var svgEdit = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
 
             /* Pack sélection — écouter l'événement du shortcode */
-            document.addEventListener('wpservio_pack_changed', function(){
+            document.addEventListener('servio_pack_changed', function(){
                 var sel = document.querySelector('.serviceflow-sc-pack[data-selected]');
                 if(sel) selectedPackIdx = parseInt(sel.dataset.index);
                 calcScTotal();
@@ -928,7 +928,7 @@ class WpServio_Front {
                         openChat();
 
                         var fd = new FormData();
-                        fd.append('action', 'wpservio_create_order');
+                        fd.append('action', 'servio_create_order');
                         fd.append('post_id', C.post_id);
                         fd.append('nonce', C.nonce);
                         fd.append('selected_pack', selectedPackIdx);
@@ -1074,7 +1074,7 @@ class WpServio_Front {
                 if(C.is_admin && !selectedClientId) return;
                 send.disabled = true;
                 var fd = new FormData();
-                fd.append('action','wpservio_send');
+                fd.append('action','servio_send');
                 fd.append('post_id', C.post_id);
                 fd.append('nonce', C.nonce);
                 fd.append('message', msg);
@@ -1097,7 +1097,7 @@ class WpServio_Front {
 
             /* ── Load ────────────────────────────────── */
             function loadMsgs(){
-                var params = {action:'wpservio_load',post_id:C.post_id,nonce:C.nonce};
+                var params = {action:'servio_load',post_id:C.post_id,nonce:C.nonce};
                 if(C.is_admin && selectedClientId) params.client_id = selectedClientId;
                 fetch(C.ajax_url+'?'+new URLSearchParams(params))
                 .then(function(r){return r.json();})
@@ -1124,7 +1124,7 @@ class WpServio_Front {
                         if(btn){
                             var span = document.createElement('span');
                             span.style.cssText = 'display:inline-block !important;margin-top:6px !important;padding:5px 14px !important;background:#10b981 !important;color:#fff !important;border-radius:6px !important;font-size:12px !important;font-weight:600 !important';
-                            span.textContent = '✅ <?php echo esc_js( __( 'Payé', 'wpservio' ) ); ?>';
+                            span.textContent = '✅ <?php echo esc_js( __( 'Payé', 'servio' ) ); ?>';
                             btn.parentNode.replaceChild(span, btn);
                         }
                     });
@@ -1135,7 +1135,7 @@ class WpServio_Front {
                         if(btn){
                             var span = document.createElement('span');
                             span.style.cssText = 'display:inline-block !important;margin-top:6px !important;padding:5px 14px !important;background:#6b7280 !important;color:#fff !important;border-radius:6px !important;font-size:12px !important;font-weight:600 !important;cursor:default !important';
-                            span.textContent = '⏱ <?php echo esc_js( __( 'Lien expiré — contactez votre prestataire', 'wpservio' ) ); ?>';
+                            span.textContent = '⏱ <?php echo esc_js( __( 'Lien expiré — contactez votre prestataire', 'servio' ) ); ?>';
                             btn.parentNode.replaceChild(span, btn);
                         }
                     });
@@ -1145,7 +1145,7 @@ class WpServio_Front {
             /* ── Poll ────────────────────────────────── */
             setInterval(function(){
                 if(C.is_admin && !selectedClientId) return;
-                var params = {action:'wpservio_poll',post_id:C.post_id,last_id:lastId,nonce:C.nonce};
+                var params = {action:'servio_poll',post_id:C.post_id,last_id:lastId,nonce:C.nonce};
                 if(C.is_admin && selectedClientId) params.client_id = selectedClientId;
 
                 fetch(C.ajax_url+'?'+new URLSearchParams(params))
@@ -1208,9 +1208,9 @@ class WpServio_Front {
                     sysHtml = esc(sysHtml).replace(/\n/g,'<br>');
                     sysHtml = sysHtml.replace(/\x00PAY_LINK:(.*?)\x00/g, function(_, url){
                         if(isPaid){
-                            return '<span style="display:inline-block !important;margin-top:6px !important;padding:5px 14px !important;background:#10b981 !important;color:#fff !important;border-radius:6px !important;font-size:12px !important;font-weight:600 !important">✅ <?php echo esc_js( __( 'Payé', 'wpservio' ) ); ?></span>';
+                            return '<span style="display:inline-block !important;margin-top:6px !important;padding:5px 14px !important;background:#10b981 !important;color:#fff !important;border-radius:6px !important;font-size:12px !important;font-weight:600 !important">✅ <?php echo esc_js( __( 'Payé', 'servio' ) ); ?></span>';
                         }
-                        return '<a href="'+url+'" target="_blank" rel="noopener"'+(schedId?' data-sf-sched-id="'+schedId+'"':'')+' style="display:inline-block !important;margin-top:6px !important;padding:5px 14px !important;background:'+C.color+' !important;color:#fff !important;border-radius:6px !important;font-size:12px !important;font-weight:600 !important;text-decoration:none !important">💳 <?php echo esc_js( __( 'Payer maintenant', 'wpservio' ) ); ?></a>';
+                        return '<a href="'+url+'" target="_blank" rel="noopener"'+(schedId?' data-sf-sched-id="'+schedId+'"':'')+' style="display:inline-block !important;margin-top:6px !important;padding:5px 14px !important;background:'+C.color+' !important;color:#fff !important;border-radius:6px !important;font-size:12px !important;font-weight:600 !important;text-decoration:none !important">💳 <?php echo esc_js( __( 'Payer maintenant', 'servio' ) ); ?></a>';
                     });
                     el.innerHTML = '<div style="background:#f0f4ff !important;border:1px solid #d0d9e8 !important;border-radius:10px !important;padding:10px 14px !important;text-align:center !important;font-size:13px !important;line-height:1.5 !important;color:#444 !important;width:100% !important">'+sysHtml+'</div>';
                     msgs.appendChild(el);
@@ -1404,7 +1404,7 @@ class WpServio_Front {
 
             function doToggleTodo(orderId, todoId, completed, note){
                 var fd = new FormData();
-                fd.append('action', 'wpservio_toggle_todo');
+                fd.append('action', 'servio_toggle_todo');
                 fd.append('nonce', C.nonce);
                 fd.append('order_id', orderId);
                 fd.append('todo_id', todoId);
@@ -1498,7 +1498,7 @@ class WpServio_Front {
 
             function doOrderTransition(orderId, newStatus, extraData){
                 var fd = new FormData();
-                fd.append('action', 'wpservio_order_transition');
+                fd.append('action', 'servio_order_transition');
                 fd.append('nonce', C.nonce);
                 fd.append('order_id', orderId);
                 fd.append('new_status', newStatus);
@@ -1545,10 +1545,10 @@ class WpServio_Front {
             }
         })();
         <?php
-        wp_add_inline_script( 'wpservio-chat-js', ob_get_clean() );
+        wp_add_inline_script( 'servio-chat-js', ob_get_clean() );
     }
 
     private static function is_chat_page(): bool {
-        return is_singular( WpServio_Admin::get_post_type() );
+        return is_singular( Servio_Admin::get_post_type() );
     }
 }

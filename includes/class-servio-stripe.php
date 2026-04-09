@@ -4,16 +4,16 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class WpServio_Stripe {
+class Servio_Stripe {
 
     const STRIPE_API_VERSION = '2024-06-20';
 
     public static function init(): void {
         // Le webhook admin-ajax est toujours enregistré (serveur → serveur, sans auth)
-        add_action( 'wp_ajax_nopriv_wpservio_stripe_webhook', [ __CLASS__, 'handle_webhook_ajax' ] );
-        add_action( 'wp_ajax_wpservio_stripe_webhook',        [ __CLASS__, 'handle_webhook_ajax' ] );
+        add_action( 'wp_ajax_nopriv_servio_stripe_webhook', [ __CLASS__, 'handle_webhook_ajax' ] );
+        add_action( 'wp_ajax_servio_stripe_webhook',        [ __CLASS__, 'handle_webhook_ajax' ] );
 
-        if ( ! wpservio_is_premium() ) {
+        if ( ! servio_is_premium() ) {
             return;
         }
 
@@ -21,7 +21,7 @@ class WpServio_Stripe {
         add_action( 'admin_init', [ __CLASS__, 'register_settings' ] );
 
         if ( self::is_enabled() ) {
-            add_action( 'wp_ajax_wpservio_stripe_checkout', [ __CLASS__, 'ajax_create_checkout_session' ] );
+            add_action( 'wp_ajax_servio_stripe_checkout', [ __CLASS__, 'ajax_create_checkout_session' ] );
             add_action( 'template_redirect', [ __CLASS__, 'handle_return_redirect' ] );
         }
     }
@@ -40,11 +40,11 @@ class WpServio_Stripe {
             'currency'             => 'eur',
             'default_payment_mode' => 'single',
         ];
-        return wp_parse_args( get_option( 'wpservio_stripe_settings', [] ), $defaults );
+        return wp_parse_args( get_option( 'servio_stripe_settings', [] ), $defaults );
     }
 
     public static function is_enabled(): bool {
-        if ( ! wpservio_is_premium() ) {
+        if ( ! servio_is_premium() ) {
             return false;
         }
         $s = self::get_settings();
@@ -62,7 +62,7 @@ class WpServio_Stripe {
     }
 
     public static function get_webhook_url(): string {
-        return admin_url( 'admin-ajax.php?action=wpservio_stripe_webhook' );
+        return admin_url( 'admin-ajax.php?action=servio_stripe_webhook' );
     }
 
     public static function stripe(): \Stripe\StripeClient {
@@ -76,9 +76,9 @@ class WpServio_Stripe {
 
     public static function add_menu(): void {
         add_submenu_page(
-            'wpservio',
-            __( 'WpServio - Paiement', 'wpservio' ),
-            __( 'Paiement', 'wpservio' ),
+            'servio',
+            __( 'Servio - Paiement', 'servio' ),
+            __( 'Paiement', 'servio' ),
             'manage_options',
             'serviceflow-stripe',
             [ __CLASS__, 'render_settings_page' ]
@@ -86,7 +86,7 @@ class WpServio_Stripe {
     }
 
     public static function register_settings(): void {
-        register_setting( 'wpservio_stripe_settings', 'wpservio_stripe_settings', [
+        register_setting( 'servio_stripe_settings', 'servio_stripe_settings', [
             'type'              => 'array',
             'sanitize_callback' => [ __CLASS__, 'sanitize_settings' ],
         ] );
@@ -110,63 +110,63 @@ class WpServio_Stripe {
 
     public static function render_settings_page(): void {
         $s     = self::get_settings();
-        $color = esc_attr( WpServio_Admin::get_color() );
+        $color = esc_attr( Servio_Admin::get_color() );
         ?>
         <div class="wrap" style="max-width:750px">
             <h1 style="display:flex;align-items:center;gap:10px;margin-bottom:24px">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="<?php echo esc_attr( $color ); ?>" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-                <?php esc_html_e( 'Paiement Stripe', 'wpservio' ); ?>
+                <?php esc_html_e( 'Paiement Stripe', 'servio' ); ?>
             </h1>
 
             <form method="post" action="options.php">
-                <?php settings_fields( 'wpservio_stripe_settings' ); ?>
+                <?php settings_fields( 'servio_stripe_settings' ); ?>
 
                 <?php // ── Activation ── ?>
                 <div style="background:#fff;border:1px solid #e0e0e0;border-radius:10px;padding:20px 24px;margin-bottom:20px">
                     <label style="display:flex;align-items:center;gap:12px;cursor:pointer">
-                        <input type="checkbox" name="wpservio_stripe_settings[enabled]" value="1" <?php checked( $s['enabled'], '1' ); ?>
+                        <input type="checkbox" name="servio_stripe_settings[enabled]" value="1" <?php checked( $s['enabled'], '1' ); ?>
                                style="width:18px;height:18px" />
                         <div>
-                            <strong style="font-size:15px"><?php esc_html_e( 'Activer les paiements Stripe', 'wpservio' ); ?></strong>
-                            <div style="color:#666;font-size:13px;margin-top:2px"><?php esc_html_e( 'Les clients paieront directement lors de la commande. Si désactivé, le flux manuel reste en place.', 'wpservio' ); ?></div>
+                            <strong style="font-size:15px"><?php esc_html_e( 'Activer les paiements Stripe', 'servio' ); ?></strong>
+                            <div style="color:#666;font-size:13px;margin-top:2px"><?php esc_html_e( 'Les clients paieront directement lors de la commande. Si désactivé, le flux manuel reste en place.', 'servio' ); ?></div>
                         </div>
                     </label>
                 </div>
 
                 <?php // ── Mode ── ?>
                 <div style="background:#fff;border:1px solid #e0e0e0;border-radius:10px;padding:20px 24px;margin-bottom:20px">
-                    <h2 style="font-size:15px;margin:0 0 16px 0"><?php esc_html_e( 'Mode', 'wpservio' ); ?></h2>
-                    <select name="wpservio_stripe_settings[mode]" style="width:100%;max-width:300px;padding:8px 12px;border:1px solid #d0d5dd;border-radius:6px">
-                        <option value="test" <?php selected( $s['mode'], 'test' ); ?>><?php esc_html_e( 'Test (sandbox)', 'wpservio' ); ?></option>
-                        <option value="live" <?php selected( $s['mode'], 'live' ); ?>><?php esc_html_e( 'Production (live)', 'wpservio' ); ?></option>
+                    <h2 style="font-size:15px;margin:0 0 16px 0"><?php esc_html_e( 'Mode', 'servio' ); ?></h2>
+                    <select name="servio_stripe_settings[mode]" style="width:100%;max-width:300px;padding:8px 12px;border:1px solid #d0d5dd;border-radius:6px">
+                        <option value="test" <?php selected( $s['mode'], 'test' ); ?>><?php esc_html_e( 'Test (sandbox)', 'servio' ); ?></option>
+                        <option value="live" <?php selected( $s['mode'], 'live' ); ?>><?php esc_html_e( 'Production (live)', 'servio' ); ?></option>
                     </select>
                     <?php if ( $s['mode'] === 'test' ) : ?>
-                        <p style="margin:8px 0 0;color:#f59e0b;font-size:13px">&#9888; <?php esc_html_e( 'Mode test actif — aucun paiement réel ne sera effectué.', 'wpservio' ); ?></p>
+                        <p style="margin:8px 0 0;color:#f59e0b;font-size:13px">&#9888; <?php esc_html_e( 'Mode test actif — aucun paiement réel ne sera effectué.', 'servio' ); ?></p>
                     <?php endif; ?>
                 </div>
 
                 <?php // ── Clés API ── ?>
                 <div style="background:#fff;border:1px solid #e0e0e0;border-radius:10px;padding:20px 24px;margin-bottom:20px">
-                    <h2 style="font-size:15px;margin:0 0 16px 0"><?php esc_html_e( 'Clés API Test', 'wpservio' ); ?></h2>
-                    <?php self::render_field( 'test_publishable', __( 'Clé publique (pk_test_...)', 'wpservio' ), $s['test_publishable'] ); ?>
-                    <?php self::render_field( 'test_secret', __( 'Clé secrète (sk_test_...)', 'wpservio' ), $s['test_secret'], true ); ?>
+                    <h2 style="font-size:15px;margin:0 0 16px 0"><?php esc_html_e( 'Clés API Test', 'servio' ); ?></h2>
+                    <?php self::render_field( 'test_publishable', __( 'Clé publique (pk_test_...)', 'servio' ), $s['test_publishable'] ); ?>
+                    <?php self::render_field( 'test_secret', __( 'Clé secrète (sk_test_...)', 'servio' ), $s['test_secret'], true ); ?>
 
-                    <h2 style="font-size:15px;margin:24px 0 16px 0"><?php esc_html_e( 'Clés API Production', 'wpservio' ); ?></h2>
-                    <?php self::render_field( 'live_publishable', __( 'Clé publique (pk_live_...)', 'wpservio' ), $s['live_publishable'] ); ?>
-                    <?php self::render_field( 'live_secret', __( 'Clé secrète (sk_live_...)', 'wpservio' ), $s['live_secret'], true ); ?>
+                    <h2 style="font-size:15px;margin:24px 0 16px 0"><?php esc_html_e( 'Clés API Production', 'servio' ); ?></h2>
+                    <?php self::render_field( 'live_publishable', __( 'Clé publique (pk_live_...)', 'servio' ), $s['live_publishable'] ); ?>
+                    <?php self::render_field( 'live_secret', __( 'Clé secrète (sk_live_...)', 'servio' ), $s['live_secret'], true ); ?>
                 </div>
 
                 <?php // ── Webhook ── ?>
                 <div style="background:#fff;border:1px solid #e0e0e0;border-radius:10px;padding:20px 24px;margin-bottom:20px">
-                    <h2 style="font-size:15px;margin:0 0 16px 0"><?php esc_html_e( 'Webhook', 'wpservio' ); ?></h2>
+                    <h2 style="font-size:15px;margin:0 0 16px 0"><?php esc_html_e( 'Webhook', 'servio' ); ?></h2>
 
                     <div style="margin-bottom:20px">
-                        <label style="display:block;font-size:13px;font-weight:600;color:#555;margin-bottom:6px"><?php esc_html_e( 'URL du webhook', 'wpservio' ); ?></label>
+                        <label style="display:block;font-size:13px;font-weight:600;color:#555;margin-bottom:6px"><?php esc_html_e( 'URL du webhook', 'servio' ); ?></label>
                         <div style="display:flex;gap:8px">
                             <input type="text" readonly value="<?php echo esc_attr( self::get_webhook_url() ); ?>" id="serviceflow-webhook-url"
                                    style="flex:1;padding:8px 12px;border:1px solid #d0d5dd;border-radius:6px;background:#f9fafb;font-family:monospace;font-size:12px" />
-                            <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('serviceflow-webhook-url').value);this.textContent='<?php esc_attr_e( 'Copié !', 'wpservio' ); ?>';setTimeout(()=>{this.textContent='<?php esc_attr_e( 'Copier', 'wpservio' ); ?>'},2000)"
-                                    style="padding:8px 16px;border:1px solid #d0d5dd;border-radius:6px;background:#fff;cursor:pointer;font-size:13px"><?php esc_html_e( 'Copier', 'wpservio' ); ?></button>
+                            <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('serviceflow-webhook-url').value);this.textContent='<?php esc_attr_e( 'Copié !', 'servio' ); ?>';setTimeout(()=>{this.textContent='<?php esc_attr_e( 'Copier', 'servio' ); ?>'},2000)"
+                                    style="padding:8px 16px;border:1px solid #d0d5dd;border-radius:6px;background:#fff;cursor:pointer;font-size:13px"><?php esc_html_e( 'Copier', 'servio' ); ?></button>
                         </div>
                     </div>
 
@@ -174,53 +174,53 @@ class WpServio_Stripe {
                     <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;margin-bottom:20px">
                         <div style="font-size:13px;font-weight:700;color:#334155;margin-bottom:12px;display:flex;align-items:center;gap:6px">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                            <?php esc_html_e( 'Comment configurer le webhook dans Stripe', 'wpservio' ); ?>
+                            <?php esc_html_e( 'Comment configurer le webhook dans Stripe', 'servio' ); ?>
                         </div>
                         <ol style="margin:0;padding:0 0 0 20px;font-size:13px;color:#475569;line-height:2">
                             <li><?php
                             printf(
                                 /* translators: %s: HTML link to Stripe Dashboard */
-                                esc_html__( 'Allez dans votre %s', 'wpservio' ),
+                                esc_html__( 'Allez dans votre %s', 'servio' ),
                                 '<a href="https://dashboard.stripe.com/webhooks" target="_blank" rel="noopener" style="color:' . esc_attr( $color ) . ';font-weight:600">Stripe Dashboard &rarr; Developers &rarr; Webhooks</a>'
                             ); ?></li>
-                            <li><?php esc_html_e( 'Cliquez sur "Ajouter un endpoint" (ou "Add endpoint")', 'wpservio' ); ?></li>
-                            <li><?php esc_html_e( 'Collez l\'URL du webhook ci-dessus dans le champ "Endpoint URL"', 'wpservio' ); ?></li>
-                            <li><?php esc_html_e( 'Dans "Select events to listen to", cliquez sur "Select events"', 'wpservio' ); ?></li>
+                            <li><?php esc_html_e( 'Cliquez sur "Ajouter un endpoint" (ou "Add endpoint")', 'servio' ); ?></li>
+                            <li><?php esc_html_e( 'Collez l\'URL du webhook ci-dessus dans le champ "Endpoint URL"', 'servio' ); ?></li>
+                            <li><?php esc_html_e( 'Dans "Select events to listen to", cliquez sur "Select events"', 'servio' ); ?></li>
                             <li>
-                                <?php esc_html_e( 'Cochez uniquement l\'événement suivant :', 'wpservio' ); ?>
+                                <?php esc_html_e( 'Cochez uniquement l\'événement suivant :', 'servio' ); ?>
                                 <code style="background:#e2e8f0;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;color:#1e293b">checkout.session.completed</code>
                             </li>
-                            <li><?php esc_html_e( 'Cliquez sur "Add endpoint" pour sauvegarder', 'wpservio' ); ?></li>
-                            <li><?php esc_html_e( 'Sur la page du webhook, cliquez sur "Reveal" sous "Signing secret" et copiez la clé (whsec_...)', 'wpservio' ); ?></li>
-                            <li><?php esc_html_e( 'Collez cette clé dans le champ "Secret du webhook" ci-dessous', 'wpservio' ); ?></li>
+                            <li><?php esc_html_e( 'Cliquez sur "Add endpoint" pour sauvegarder', 'servio' ); ?></li>
+                            <li><?php esc_html_e( 'Sur la page du webhook, cliquez sur "Reveal" sous "Signing secret" et copiez la clé (whsec_...)', 'servio' ); ?></li>
+                            <li><?php esc_html_e( 'Collez cette clé dans le champ "Secret du webhook" ci-dessous', 'servio' ); ?></li>
                         </ol>
 
                         <?php if ( $s['mode'] === 'test' ) : ?>
                         <div style="margin-top:12px;padding:10px 14px;background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;font-size:12px;color:#92400e;display:flex;align-items:flex-start;gap:8px">
                             <span style="flex-shrink:0;margin-top:1px">&#9888;</span>
-                            <span><?php esc_html_e( 'En mode test, utilisez le Stripe Dashboard en mode "Test" (toggle en haut à droite) pour créer le webhook et obtenir les clés de test.', 'wpservio' ); ?></span>
+                            <span><?php esc_html_e( 'En mode test, utilisez le Stripe Dashboard en mode "Test" (toggle en haut à droite) pour créer le webhook et obtenir les clés de test.', 'servio' ); ?></span>
                         </div>
                         <?php endif; ?>
                     </div>
 
-                    <?php self::render_field( 'webhook_secret', __( 'Secret du webhook (whsec_...)', 'wpservio' ), $s['webhook_secret'], true ); ?>
+                    <?php self::render_field( 'webhook_secret', __( 'Secret du webhook (whsec_...)', 'servio' ), $s['webhook_secret'], true ); ?>
                 </div>
 
                 <?php // ── Mode de paiement par défaut ── ?>
                 <div style="background:#fff;border:1px solid #e0e0e0;border-radius:10px;padding:20px 24px;margin-bottom:20px">
-                    <h2 style="font-size:15px;margin:0 0 8px 0"><?php esc_html_e( 'Mode de paiement par défaut', 'wpservio' ); ?></h2>
-                    <p style="font-size:13px;color:#666;margin:0 0 16px 0"><?php esc_html_e( 'Applicable à tous les services. Peut être surchargé par service dans l\'éditeur.', 'wpservio' ); ?></p>
-                    <select name="wpservio_stripe_settings[default_payment_mode]" style="width:100%;max-width:320px;padding:8px 12px;border:1px solid #d0d5dd;border-radius:6px">
-                        <option value="single"       <?php selected( $s['default_payment_mode'] ?? 'single', 'single' ); ?>><?php esc_html_e( 'Paiement unique (100%)', 'wpservio' ); ?></option>
-                        <option value="deposit"      <?php selected( $s['default_payment_mode'] ?? 'single', 'deposit' ); ?>><?php esc_html_e( 'Acompte — 50% maintenant + 50% à la livraison', 'wpservio' ); ?></option>
-                        <option value="installments" <?php selected( $s['default_payment_mode'] ?? 'single', 'installments' ); ?>><?php esc_html_e( 'Mensualités — 40% maintenant + N mensualités', 'wpservio' ); ?></option>
+                    <h2 style="font-size:15px;margin:0 0 8px 0"><?php esc_html_e( 'Mode de paiement par défaut', 'servio' ); ?></h2>
+                    <p style="font-size:13px;color:#666;margin:0 0 16px 0"><?php esc_html_e( 'Applicable à tous les services. Peut être surchargé par service dans l\'éditeur.', 'servio' ); ?></p>
+                    <select name="servio_stripe_settings[default_payment_mode]" style="width:100%;max-width:320px;padding:8px 12px;border:1px solid #d0d5dd;border-radius:6px">
+                        <option value="single"       <?php selected( $s['default_payment_mode'] ?? 'single', 'single' ); ?>><?php esc_html_e( 'Paiement unique (100%)', 'servio' ); ?></option>
+                        <option value="deposit"      <?php selected( $s['default_payment_mode'] ?? 'single', 'deposit' ); ?>><?php esc_html_e( 'Acompte — 50% maintenant + 50% à la livraison', 'servio' ); ?></option>
+                        <option value="installments" <?php selected( $s['default_payment_mode'] ?? 'single', 'installments' ); ?>><?php esc_html_e( 'Mensualités — 40% maintenant + N mensualités', 'servio' ); ?></option>
                     </select>
                 </div>
 
                 <?php // ── Devise ── ?>
                 <div style="background:#fff;border:1px solid #e0e0e0;border-radius:10px;padding:20px 24px;margin-bottom:20px">
-                    <h2 style="font-size:15px;margin:0 0 16px 0"><?php esc_html_e( 'Devise', 'wpservio' ); ?></h2>
-                    <select name="wpservio_stripe_settings[currency]" style="width:100%;max-width:200px;padding:8px 12px;border:1px solid #d0d5dd;border-radius:6px">
+                    <h2 style="font-size:15px;margin:0 0 16px 0"><?php esc_html_e( 'Devise', 'servio' ); ?></h2>
+                    <select name="servio_stripe_settings[currency]" style="width:100%;max-width:200px;padding:8px 12px;border:1px solid #d0d5dd;border-radius:6px">
                         <?php
                         $currencies = [ 'eur' => 'EUR (€)', 'usd' => 'USD ($)', 'gbp' => 'GBP (£)', 'chf' => 'CHF', 'cad' => 'CAD ($)', 'xof' => 'XOF (FCFA)' ];
                         foreach ( $currencies as $code => $label ) :
@@ -230,7 +230,7 @@ class WpServio_Stripe {
                     </select>
                 </div>
 
-                <?php submit_button( __( 'Enregistrer', 'wpservio' ) ); ?>
+                <?php submit_button( __( 'Enregistrer', 'servio' ) ); ?>
             </form>
         </div>
         <?php
@@ -241,7 +241,7 @@ class WpServio_Stripe {
         ?>
         <div style="margin-bottom:16px">
             <label style="display:block;font-size:13px;font-weight:600;color:#555;margin-bottom:6px"><?php echo esc_html( $label ); ?></label>
-            <input type="<?php echo esc_attr( $type ); ?>" name="wpservio_stripe_settings[<?php echo esc_attr( $key ); ?>]"
+            <input type="<?php echo esc_attr( $type ); ?>" name="servio_stripe_settings[<?php echo esc_attr( $key ); ?>]"
                    value="<?php echo esc_attr( $value ); ?>"
                    style="width:100%;padding:8px 12px;border:1px solid #d0d5dd;border-radius:6px;font-family:monospace;font-size:13px" />
         </div>
@@ -251,14 +251,14 @@ class WpServio_Stripe {
     /* ─── AJAX : Créer une session Stripe Checkout ────────── */
 
     public static function ajax_create_checkout_session(): void {
-        check_ajax_referer( 'wpservio_nonce', 'nonce' );
+        check_ajax_referer( 'servio_nonce', 'nonce' );
 
         if ( ! is_user_logged_in() ) {
-            wp_send_json_error( [ 'message' => __( 'Non connecté.', 'wpservio' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Non connecté.', 'servio' ) ], 403 );
         }
 
         if ( current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( [ 'message' => __( 'Les administrateurs ne peuvent pas commander.', 'wpservio' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Les administrateurs ne peuvent pas commander.', 'servio' ) ], 403 );
         }
 
         $post_id           = absint( $_POST['post_id'] ?? 0 );
@@ -269,28 +269,28 @@ class WpServio_Stripe {
         $adv_data          = is_array( $adv_data ) ? $adv_data : [];
 
         if ( ! $post_id || ! is_array( $selected_indices ) ) {
-            wp_send_json_error( [ 'message' => __( 'Données manquantes.', 'wpservio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Données manquantes.', 'servio' ) ], 400 );
         }
 
         $post = get_post( $post_id );
-        if ( ! $post || $post->post_type !== WpServio_Admin::get_post_type() ) {
-            wp_send_json_error( [ 'message' => __( 'Post invalide.', 'wpservio' ) ], 400 );
+        if ( ! $post || $post->post_type !== Servio_Admin::get_post_type() ) {
+            wp_send_json_error( [ 'message' => __( 'Post invalide.', 'servio' ) ], 400 );
         }
 
         $client_id = get_current_user_id();
 
         // Vérifier qu'il n'y a pas de commande active non modifiable
-        $existing = WpServio_Orders::get_order_for_client( $post_id, $client_id );
-        if ( $existing && ! in_array( $existing->status, [ WpServio_Orders::STATUS_PENDING, WpServio_Orders::STATUS_ACCEPTED ], true ) ) {
-            wp_send_json_error( [ 'message' => __( 'Une commande est déjà en cours.', 'wpservio' ) ], 403 );
+        $existing = Servio_Orders::get_order_for_client( $post_id, $client_id );
+        if ( $existing && ! in_array( $existing->status, [ Servio_Orders::STATUS_PENDING, Servio_Orders::STATUS_ACCEPTED ], true ) ) {
+            wp_send_json_error( [ 'message' => __( 'Une commande est déjà en cours.', 'servio' ) ], 403 );
         }
 
         // Récupérer le pack + options
-        $packs    = WpServio_Options::get_packs( $post_id );
-        $all_opts = WpServio_Options::get_options( $post_id );
+        $packs    = Servio_Options::get_packs( $post_id );
+        $all_opts = Servio_Options::get_options( $post_id );
 
         if ( empty( $packs ) || ! isset( $packs[ $selected_pack_idx ] ) ) {
-            wp_send_json_error( [ 'message' => __( 'Pack invalide.', 'wpservio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Pack invalide.', 'servio' ) ], 400 );
         }
 
         $base_offer = $packs[ $selected_pack_idx ];
@@ -331,12 +331,12 @@ class WpServio_Stripe {
 
         $settings           = self::get_settings();
         $currency           = $settings['currency'];
-        $tax_rate           = floatval( WpServio_Invoices::get_settings()['tax_rate'] ?? 0 );
-        $payment_mode       = WpServio_Options::get_payment_mode( $post_id );
-        $installments_count = WpServio_Options::get_installments_count( $post_id );
+        $tax_rate           = floatval( Servio_Invoices::get_settings()['tax_rate'] ?? 0 );
+        $payment_mode       = Servio_Options::get_payment_mode( $post_id );
+        $installments_count = Servio_Options::get_installments_count( $post_id );
 
         // Calculer le total TTC (un mois pour monthly, total contrat pour les autres)
-        $single_ttc = WpServio_Payments::compute_total_ttc(
+        $single_ttc = Servio_Payments::compute_total_ttc(
             $base_offer, $selected, $extra_pages, $extra_page_price,
             $maintenance_price, $express_days, $express_price, $tax_rate
         );
@@ -348,20 +348,20 @@ class WpServio_Stripe {
         // Pour 'monthly' : total contrat = tarif mensuel × N mois ; upfront = 1 mois
         if ( $payment_mode === 'monthly' ) {
             $full_total_ttc = round( $single_ttc * $installments_count, 2 );
-            $upfront_amount = WpServio_Payments::get_monthly_fee( $full_total_ttc, $installments_count );
+            $upfront_amount = Servio_Payments::get_monthly_fee( $full_total_ttc, $installments_count );
         } else {
             $full_total_ttc = $single_ttc;
-            $upfront_amount = WpServio_Payments::get_upfront_amount( $full_total_ttc, $payment_mode );
+            $upfront_amount = Servio_Payments::get_upfront_amount( $full_total_ttc, $payment_mode );
         }
 
         // Libellé de paiement partiel ajouté au nom du pack (affiché sur Stripe Checkout)
         $pack_suffix = match ( $payment_mode ) {
             /* translators: deposit percentage label on checkout */
-            'deposit'      => __( 'Acompte 50%', 'wpservio' ),
+            'deposit'      => __( 'Acompte 50%', 'servio' ),
             /* translators: first installment label on checkout */
-            'installments' => __( 'Premier versement 40%', 'wpservio' ),
+            'installments' => __( 'Premier versement 40%', 'servio' ),
             /* translators: %d: total number of monthly installments */
-            'monthly'      => sprintf( __( 'Mois 1 / %d', 'wpservio' ), $installments_count ),
+            'monthly'      => sprintf( __( 'Mois 1 / %d', 'servio' ), $installments_count ),
             default        => '',
         };
 
@@ -424,7 +424,7 @@ class WpServio_Stripe {
         // Pack principal
         $pack_ht   = floatval( $base_offer['price'] ?? 0 );
         $total_ht += $pack_ht;
-        $pack_name = $base_offer['name'] ?? __( 'Pack', 'wpservio' );
+        $pack_name = $base_offer['name'] ?? __( 'Pack', 'servio' );
         if ( $pack_suffix ) {
             $pack_name .= ' — ' . $pack_suffix;
         }
@@ -445,7 +445,7 @@ class WpServio_Stripe {
                 'price_data' => [
                     'currency'     => $currency,
                     'unit_amount'  => (int) round( $opt_ht * 100 ),
-                    'product_data' => [ 'name' => $opt['name'] ?? __( 'Option', 'wpservio' ) ],
+                    'product_data' => [ 'name' => $opt['name'] ?? __( 'Option', 'servio' ) ],
                 ],
                 'quantity' => 1,
             ];
@@ -458,7 +458,7 @@ class WpServio_Stripe {
                 'price_data' => [
                     'currency'     => $currency,
                     'unit_amount'  => (int) round( $extra_page_price * 100 ),
-                    'product_data' => [ 'name' => WpServio_Admin::get_extra_pages_label( $post_id ) ],
+                    'product_data' => [ 'name' => Servio_Admin::get_extra_pages_label( $post_id ) ],
                 ],
                 'quantity' => $extra_pages,
             ];
@@ -471,7 +471,7 @@ class WpServio_Stripe {
                 'price_data' => [
                     'currency'     => $currency,
                     'unit_amount'  => (int) round( $maintenance_price * 100 ),
-                    'product_data' => [ 'name' => WpServio_Admin::get_maintenance_label( $post_id ) ],
+                    'product_data' => [ 'name' => Servio_Admin::get_maintenance_label( $post_id ) ],
                 ],
                 'quantity' => 1,
             ];
@@ -484,7 +484,7 @@ class WpServio_Stripe {
                 'price_data' => [
                     'currency'     => $currency,
                     'unit_amount'  => (int) round( $express_price * 100 ),
-                    'product_data' => [ 'name' => WpServio_Admin::get_express_label( $post_id ) ],
+                    'product_data' => [ 'name' => Servio_Admin::get_express_label( $post_id ) ],
                 ],
                 'quantity' => $express_days,
             ];
@@ -495,7 +495,7 @@ class WpServio_Stripe {
             $qty   = absint( $sel['qty'] ?? 0 );
             $price = floatval( $sel['price'] ?? 0 );
             $mode  = $sel['mode'] ?? 'unit';
-            $lbl   = sanitize_text_field( $sel['label'] ?? __( 'Option', 'wpservio' ) );
+            $lbl   = sanitize_text_field( $sel['label'] ?? __( 'Option', 'servio' ) );
             if ( $mode === 'daily' || ! $qty || ! $price ) {
                 continue;
             }
@@ -542,7 +542,7 @@ class WpServio_Stripe {
                         'unit_amount'  => $tax_cents,
                         'product_data' => [
                             /* translators: %s: tax rate percentage, e.g. "20" */
-                            'name' => sprintf( __( 'TVA (%s%%)', 'wpservio' ), $tax_rate ),
+                            'name' => sprintf( __( 'TVA (%s%%)', 'servio' ), $tax_rate ),
                         ],
                     ],
                     'quantity' => 1,
@@ -620,18 +620,18 @@ class WpServio_Stripe {
     private static function process_schedule_payment_session( $session ): void {
         $meta        = $session->metadata;
         $schedule_id = (int) ( $meta->sf_schedule_id ?? 0 );
-        if ( ! $schedule_id || ! class_exists( 'WpServio_Payments' ) ) {
+        if ( ! $schedule_id || ! class_exists( 'Servio_Payments' ) ) {
             return;
         }
 
-        $row = WpServio_Payments::get_row( $schedule_id );
+        $row = Servio_Payments::get_row( $schedule_id );
         if ( ! $row || $row->status === 'paid' ) {
             return; // Idempotence
         }
 
         global $wpdb;
         $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            WpServio_Payments::table_name(),
+            Servio_Payments::table_name(),
             [
                 'status'            => 'paid',
                 'stripe_session_id' => $session->id,
@@ -641,13 +641,13 @@ class WpServio_Stripe {
         );
 
         // Créer la facture partielle
-        if ( class_exists( 'WpServio_Invoices' ) ) {
+        if ( class_exists( 'Servio_Invoices' ) ) {
             $type = match ( $row->type ) {
                 'deposit_balance' => 'solde',
                 'installment'     => 'mensualite',
                 default           => 'solde',
             };
-            WpServio_Invoices::create_partial_invoice(
+            Servio_Invoices::create_partial_invoice(
                 (int) $row->order_id,
                 floatval( $row->amount_ttc ),
                 $type,
@@ -659,7 +659,7 @@ class WpServio_Stripe {
 
     private static function build_order_summary_message( array $base_offer, array $selected, float $total_price, int $total_delay, int $extra_pages = 0, float $extra_page_price = 0, float $maintenance_price = 0, int $express_days = 0, float $express_price = 0, string $payment_mode = 'single', float $upfront_paid = 0.0, int $post_id = 0 ): string {
         $lines   = [];
-        $lines[] = "\xF0\x9F\x93\x8B " . __( 'Ma sélection :', 'wpservio' );
+        $lines[] = "\xF0\x9F\x93\x8B " . __( 'Ma sélection :', 'servio' );
 
         $p_delay = absint( $base_offer['delay'] ?? 0 );
         $p_str   = $p_delay > 0 ? " (\xE2\x8F\xB1 {$p_delay}j)" : '';
@@ -678,8 +678,8 @@ class WpServio_Stripe {
             $pages_total = $extra_pages * $extra_page_price;
             $lines[] = "\xF0\x9F\x93\x84 " . sprintf(
                 /* translators: %1$s: extra pages label, %2$d: number of pages, %3$s: unit price, %4$s: total price */
-                __( '%1$s : %2$d × %3$s = %4$s', 'wpservio' ),
-                WpServio_Admin::get_extra_pages_label( $post_id ),
+                __( '%1$s : %2$d × %3$s = %4$s', 'servio' ),
+                Servio_Admin::get_extra_pages_label( $post_id ),
                 $extra_pages,
                 number_format( $extra_page_price, 2, ',', ' ' ) . " \xE2\x82\xAC",
                 number_format( $pages_total, 2, ',', ' ' ) . " \xE2\x82\xAC"
@@ -691,8 +691,8 @@ class WpServio_Stripe {
             $express_total = $express_days * $express_price;
             $lines[] = "\xE2\x9A\xA1 " . sprintf(
                 /* translators: %1$s: express label, %2$d: number of days saved, %3$s: express delivery total cost */
-                __( '%1$s : -%2$d jour(s) — %3$s', 'wpservio' ),
-                WpServio_Admin::get_express_label( $post_id ),
+                __( '%1$s : -%2$d jour(s) — %3$s', 'servio' ),
+                Servio_Admin::get_express_label( $post_id ),
                 $express_days,
                 number_format( $express_total, 2, ',', ' ' ) . " \xE2\x82\xAC"
             );
@@ -702,8 +702,8 @@ class WpServio_Stripe {
         if ( $maintenance_price > 0 ) {
             $lines[] = "\xF0\x9F\x94\xA7 " . sprintf(
                 /* translators: %1$s: maintenance label, %2$s: formatted monthly maintenance price */
-                __( '%1$s : %2$s / mois', 'wpservio' ),
-                WpServio_Admin::get_maintenance_label( $post_id ),
+                __( '%1$s : %2$s / mois', 'servio' ),
+                Servio_Admin::get_maintenance_label( $post_id ),
                 number_format( $maintenance_price, 2, ',', ' ' ) . " \xE2\x82\xAC"
             );
         }
@@ -711,24 +711,24 @@ class WpServio_Stripe {
         // Total + ligne paiement selon le mode
         if ( $payment_mode === 'single' || $upfront_paid <= 0 ) {
             $lines[] = "\xF0\x9F\x92\xB0 Total : " . number_format( $total_price, 2, ',', ' ' ) . " \xE2\x82\xAC";
-            $lines[] = "\xE2\x9C\x85 " . __( 'Payé par Stripe', 'wpservio' );
+            $lines[] = "\xE2\x9C\x85 " . __( 'Payé par Stripe', 'servio' );
         } elseif ( $payment_mode === 'monthly' ) {
             $n_months = $upfront_paid > 0 ? (int) round( $total_price / $upfront_paid ) : 1;
             /* translators: %s: formatted monthly fee */
-            $lines[] = "\xF0\x9F\x92\xB0 " . sprintf( __( 'Tarif mensuel : %s', 'wpservio' ), number_format( $upfront_paid, 2, ',', ' ' ) . " \xE2\x82\xAC" );
+            $lines[] = "\xF0\x9F\x92\xB0 " . sprintf( __( 'Tarif mensuel : %s', 'servio' ), number_format( $upfront_paid, 2, ',', ' ' ) . " \xE2\x82\xAC" );
             /* translators: %1$d: number of months, %2$s: total price */
-            $lines[] = "\xF0\x9F\x93\x85 " . sprintf( __( 'Durée : %1$d mois (total : %2$s)', 'wpservio' ), $n_months, number_format( $total_price, 2, ',', ' ' ) . " \xE2\x82\xAC" );
-            $lines[] = "\xE2\x9C\x85 " . __( 'Mois 1 payé via Stripe', 'wpservio' );
+            $lines[] = "\xF0\x9F\x93\x85 " . sprintf( __( 'Durée : %1$d mois (total : %2$s)', 'servio' ), $n_months, number_format( $total_price, 2, ',', ' ' ) . " \xE2\x82\xAC" );
+            $lines[] = "\xE2\x9C\x85 " . __( 'Mois 1 payé via Stripe', 'servio' );
         } else {
-            $lines[] = "\xF0\x9F\x92\xB0 " . __( 'Total contrat :', 'wpservio' ) . ' ' . number_format( $total_price, 2, ',', ' ' ) . " \xE2\x82\xAC";
+            $lines[] = "\xF0\x9F\x92\xB0 " . __( 'Total contrat :', 'servio' ) . ' ' . number_format( $total_price, 2, ',', ' ' ) . " \xE2\x82\xAC";
             $acompte_label = $payment_mode === 'deposit'
-                ? __( 'Acompte versé (50%) :', 'wpservio' )
-                : __( 'Premier versement (40%) :', 'wpservio' );
+                ? __( 'Acompte versé (50%) :', 'servio' )
+                : __( 'Premier versement (40%) :', 'servio' );
             $lines[] = "\xE2\x9C\x85 " . $acompte_label . ' ' . number_format( $upfront_paid, 2, ',', ' ' ) . " \xE2\x82\xAC";
         }
 
         if ( $total_delay > 0 ) {
-            $lines[] = "\xE2\x8F\xB0 " . __( 'Délai total', 'wpservio' ) . ' : ' . $total_delay . ' ' . __( 'jour(s)', 'wpservio' );
+            $lines[] = "\xE2\x8F\xB0 " . __( 'Délai total', 'servio' ) . ' : ' . $total_delay . ' ' . __( 'jour(s)', 'servio' );
         }
 
         return implode( "\n", $lines );
@@ -749,7 +749,7 @@ class WpServio_Stripe {
 
         // Éviter le double traitement si le webhook a déjà agi
         global $wpdb;
-        $table  = WpServio_Orders::table_name();
+        $table  = Servio_Orders::table_name();
         // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $exists = $wpdb->get_var( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
             "SELECT id FROM {$table} WHERE stripe_session_id = %s LIMIT 1",
@@ -790,7 +790,7 @@ class WpServio_Stripe {
         }
 
         global $wpdb;
-        $table  = WpServio_Orders::table_name();
+        $table  = Servio_Orders::table_name();
 
         // Idempotence
         // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -823,7 +823,7 @@ class WpServio_Stripe {
         if ( ! empty( $advanced_options_data ) ) {
             $adv_compact = json_decode( $advanced_options_data, true ) ?: [];
             if ( ! empty( $adv_compact ) && array_key_exists( 'i', (array) ( $adv_compact[0] ?? [] ) ) ) {
-                $post_adv_opts = json_decode( get_post_meta( $post_id, '_wpservio_advanced_options', true ) ?: '[]', true ) ?: [];
+                $post_adv_opts = json_decode( get_post_meta( $post_id, '_servio_advanced_options', true ) ?: '[]', true ) ?: [];
                 $adv_full = [];
                 foreach ( $adv_compact as $item ) {
                     $idx        = absint( $item['i'] ?? 0 );
@@ -839,8 +839,8 @@ class WpServio_Stripe {
             }
         }
 
-        $packs    = WpServio_Options::get_packs( $post_id );
-        $all_opts = WpServio_Options::get_options( $post_id );
+        $packs    = Servio_Options::get_packs( $post_id );
+        $all_opts = Servio_Options::get_options( $post_id );
 
         if ( empty( $packs ) || ! isset( $packs[ $selected_pack_idx ] ) ) {
             return;
@@ -866,7 +866,7 @@ class WpServio_Stripe {
             'installments_count' => $installments_count,
         ];
 
-        $order_id = WpServio_Orders::create_order_paid(
+        $order_id = Servio_Orders::create_order_paid(
             $post_id,
             $client_id,
             $base_offer,
@@ -885,32 +885,32 @@ class WpServio_Stripe {
         );
 
         if ( $order_id ) {
-            $order   = WpServio_Orders::get_order( $order_id );
-            $message = WpServio_Orders::format_status_message( 'started', $order, '', '' );
+            $order   = Servio_Orders::get_order( $order_id );
+            $message = Servio_Orders::format_status_message( 'started', $order, '', '' );
             if ( $message ) {
-                WpServio_DB::insert_message( $post_id, 0, $message, $client_id );
+                Servio_DB::insert_message( $post_id, 0, $message, $client_id );
             }
 
             $upfront_paid = $payment_mode === 'monthly'
-                ? WpServio_Payments::get_monthly_fee( $total_price, $installments_count )
-                : WpServio_Payments::get_upfront_amount( $total_price, $payment_mode );
+                ? Servio_Payments::get_monthly_fee( $total_price, $installments_count )
+                : Servio_Payments::get_upfront_amount( $total_price, $payment_mode );
             $summary = self::build_order_summary_message( $base_offer, $selected, $total_price, $total_delay, $extra_pages, $extra_page_price, $maintenance_price, $express_days, $express_price, $payment_mode, $upfront_paid, $post_id );
-            WpServio_DB::insert_message( $post_id, $client_id, $summary, $client_id );
+            Servio_DB::insert_message( $post_id, $client_id, $summary, $client_id );
 
-            do_action( 'wpservio_order_created', $order_id, $post_id, $client_id );
-            do_action( 'wpservio_order_status_changed', $order_id, 'started', '', 0 );
+            do_action( 'servio_order_created', $order_id, $post_id, $client_id );
+            do_action( 'servio_order_status_changed', $order_id, 'started', '', 0 );
 
             // Créer l'échéancier + facture du premier paiement si nécessaire
             if ( $payment_mode !== 'single' ) {
-                WpServio_Payments::create_schedule_for_order( $order_id );
+                Servio_Payments::create_schedule_for_order( $order_id );
 
-                if ( class_exists( 'WpServio_Invoices' ) ) {
-                    $schedule = WpServio_Payments::get_schedule_for_order( $order_id );
+                if ( class_exists( 'Servio_Invoices' ) ) {
+                    $schedule = Servio_Payments::get_schedule_for_order( $order_id );
                     foreach ( $schedule as $row ) {
                         // deposit/installments : ligne 'upfront' | monthly : installment_no=1 paid
                         if ( $row->type === 'upfront' || ( $payment_mode === 'monthly' && (int) $row->installment_no === 1 ) ) {
                             $inv_type = $payment_mode === 'monthly' ? 'mensualite' : 'acompte';
-                            WpServio_Invoices::create_partial_invoice(
+                            Servio_Invoices::create_partial_invoice(
                                 $order_id,
                                 floatval( $row->amount_ttc ),
                                 $inv_type,

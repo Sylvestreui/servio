@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class WpServio_Options {
+class Servio_Options {
 
     public static function init(): void {
         add_action( 'add_meta_boxes', [ __CLASS__, 'add_meta_box' ] );
@@ -13,11 +13,11 @@ class WpServio_Options {
     }
 
     public static function add_meta_box(): void {
-        $cpt = WpServio_Admin::get_post_type();
+        $cpt = Servio_Admin::get_post_type();
 
         add_meta_box(
-            'wpservio_options',
-            __( 'Options de service', 'wpservio' ),
+            'servio_options',
+            __( 'Options de service', 'servio' ),
             [ __CLASS__, 'render_meta_box' ],
             $cpt,
             'normal',
@@ -30,12 +30,12 @@ class WpServio_Options {
      */
     public static function count_active_services( int $exclude_id = 0 ): int {
         global $wpdb;
-        $cpt = WpServio_Admin::get_post_type();
+        $cpt = Servio_Admin::get_post_type();
         $sql = $wpdb->prepare(
             "SELECT COUNT(DISTINCT p.ID) FROM {$wpdb->posts} p
              INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
              WHERE p.post_type = %s AND p.post_status IN ('publish','draft')
-             AND pm.meta_key = '_wpservio_packs' AND pm.meta_value != '' AND pm.meta_value != 'a:0:{}'
+             AND pm.meta_key = '_servio_packs' AND pm.meta_value != '' AND pm.meta_value != 'a:0:{}'
              AND p.ID != %d",
             $cpt,
             $exclude_id
@@ -44,25 +44,25 @@ class WpServio_Options {
     }
 
     public static function render_meta_box( \WP_Post $post ): void {
-        wp_nonce_field( 'wpservio_options_save', 'wpservio_options_nonce' );
+        wp_nonce_field( 'servio_options_save', 'servio_options_nonce' );
 
-        $packs   = get_post_meta( $post->ID, '_wpservio_packs', true );
-        $options = get_post_meta( $post->ID, '_wpservio_options', true );
+        $packs   = get_post_meta( $post->ID, '_servio_packs', true );
+        $options = get_post_meta( $post->ID, '_servio_options', true );
 
         // Free = 1 seul service autorisé
-        if ( ! wpservio_is_premium() && empty( $packs ) && self::count_active_services( $post->ID ) >= 1 ) {
+        if ( ! servio_is_premium() && empty( $packs ) && self::count_active_services( $post->ID ) >= 1 ) {
             printf(
                 '<div style="padding:20px;text-align:center;color:#666"><p>%s</p><a href="%s" class="button button-primary">%s</a></div>',
-                esc_html__( 'La version gratuite est limitée à 1 service. Passez à Pro pour des services illimités.', 'wpservio' ),
+                esc_html__( 'La version gratuite est limitée à 1 service. Passez à Pro pour des services illimités.', 'servio' ),
                 esc_url( admin_url( 'admin.php?page=serviceflow-pricing' ) ),
-                esc_html__( 'Passer à Pro', 'wpservio' )
+                esc_html__( 'Passer à Pro', 'servio' )
             );
             return;
         }
 
         // Migration : ancien format base_offer → packs
         if ( ! is_array( $packs ) || empty( $packs ) ) {
-            $base = get_post_meta( $post->ID, '_wpservio_base_offer', true );
+            $base = get_post_meta( $post->ID, '_servio_base_offer', true );
             if ( is_array( $base ) && ! empty( $base['name'] ) ) {
                 $packs = [ $base ];
             } else {
@@ -75,70 +75,70 @@ class WpServio_Options {
         ?>
         <!-- Packs -->
         <div class="serviceflow-meta-section">
-            <h4><?php esc_html_e( 'Packs', 'wpservio' ); ?></h4>
-            <p class="serviceflow-section-desc"><?php esc_html_e( 'Le client en choisit un seul. Ajoutez au moins un pack.', 'wpservio' ); ?></p>
+            <h4><?php esc_html_e( 'Packs', 'servio' ); ?></h4>
+            <p class="serviceflow-section-desc"><?php esc_html_e( 'Le client en choisit un seul. Ajoutez au moins un pack.', 'servio' ); ?></p>
             <div id="serviceflow-packs-list">
                 <?php foreach ( $packs as $i => $pack ) : ?>
                     <div class="serviceflow-pack-item" data-index="<?php echo absint( $i ); ?>">
-                        <button type="button" class="serviceflow-pack-remove"><?php esc_html_e( 'Supprimer', 'wpservio' ); ?></button>
+                        <button type="button" class="serviceflow-pack-remove"><?php esc_html_e( 'Supprimer', 'servio' ); ?></button>
                         <div class="serviceflow-meta-row">
                             <div class="serviceflow-field">
-                                <label><?php esc_html_e( 'Nom', 'wpservio' ); ?></label>
-                                <input type="text" name="wpservio_packs[<?php echo absint( $i ); ?>][name]" value="<?php echo esc_attr( $pack['name'] ?? '' ); ?>" placeholder="<?php esc_attr_e( 'Ex: Pack Basique', 'wpservio' ); ?>" />
+                                <label><?php esc_html_e( 'Nom', 'servio' ); ?></label>
+                                <input type="text" name="servio_packs[<?php echo absint( $i ); ?>][name]" value="<?php echo esc_attr( $pack['name'] ?? '' ); ?>" placeholder="<?php esc_attr_e( 'Ex: Pack Basique', 'servio' ); ?>" />
                             </div>
                             <div class="serviceflow-field-price">
-                                <label><?php esc_html_e( 'Prix (€)', 'wpservio' ); ?></label>
-                                <input type="number" name="wpservio_packs[<?php echo absint( $i ); ?>][price]" value="<?php echo esc_attr( $pack['price'] ?? '' ); ?>" min="0" step="0.01" />
+                                <label><?php esc_html_e( 'Prix (€)', 'servio' ); ?></label>
+                                <input type="number" name="servio_packs[<?php echo absint( $i ); ?>][price]" value="<?php echo esc_attr( $pack['price'] ?? '' ); ?>" min="0" step="0.01" />
                             </div>
                             <div class="serviceflow-field-price">
-                                <label><?php esc_html_e( 'Délai (jours)', 'wpservio' ); ?></label>
-                                <input type="number" name="wpservio_packs[<?php echo absint( $i ); ?>][delay]" value="<?php echo esc_attr( $pack['delay'] ?? '' ); ?>" min="0" step="1" />
+                                <label><?php esc_html_e( 'Délai (jours)', 'servio' ); ?></label>
+                                <input type="number" name="servio_packs[<?php echo absint( $i ); ?>][delay]" value="<?php echo esc_attr( $pack['delay'] ?? '' ); ?>" min="0" step="1" />
                             </div>
                         </div>
                         <div class="serviceflow-meta-row">
                             <div class="serviceflow-field">
-                                <label><?php esc_html_e( 'Description (infobulle)', 'wpservio' ); ?></label>
-                                <input type="text" name="wpservio_packs[<?php echo absint( $i ); ?>][description]" value="<?php echo esc_attr( $pack['description'] ?? '' ); ?>" placeholder="<?php esc_attr_e( 'Texte affiché au survol de l\'icône info', 'wpservio' ); ?>" />
+                                <label><?php esc_html_e( 'Description (infobulle)', 'servio' ); ?></label>
+                                <input type="text" name="servio_packs[<?php echo absint( $i ); ?>][description]" value="<?php echo esc_attr( $pack['description'] ?? '' ); ?>" placeholder="<?php esc_attr_e( 'Texte affiché au survol de l\'icône info', 'servio' ); ?>" />
                             </div>
                         </div>
                         <div class="serviceflow-features-section">
-                            <label><?php esc_html_e( 'Caractéristiques du pack', 'wpservio' ); ?></label>
+                            <label><?php esc_html_e( 'Caractéristiques du pack', 'servio' ); ?></label>
                             <div class="serviceflow-features-list">
                                 <?php
                                 $features = $pack['features'] ?? [];
                                 if ( is_array( $features ) ) :
                                     foreach ( $features as $fi => $feat ) : ?>
                                         <div class="serviceflow-feature-item">
-                                            <input type="text" name="wpservio_packs[<?php echo absint( $i ); ?>][features][]" value="<?php echo esc_attr( $feat ); ?>" placeholder="<?php esc_attr_e( 'Ex: 5 pages incluses', 'wpservio' ); ?>" />
+                                            <input type="text" name="servio_packs[<?php echo absint( $i ); ?>][features][]" value="<?php echo esc_attr( $feat ); ?>" placeholder="<?php esc_attr_e( 'Ex: 5 pages incluses', 'servio' ); ?>" />
                                             <button type="button" class="serviceflow-feature-rm">&times;</button>
                                         </div>
                                     <?php endforeach;
                                 endif; ?>
                             </div>
-                            <button type="button" class="serviceflow-add-feature" data-pack-index="<?php echo absint( $i ); ?>">+ <?php esc_html_e( 'Ajouter une caractéristique', 'wpservio' ); ?></button>
+                            <button type="button" class="serviceflow-add-feature" data-pack-index="<?php echo absint( $i ); ?>">+ <?php esc_html_e( 'Ajouter une caractéristique', 'servio' ); ?></button>
                         </div>
                     </div>
                 <?php endforeach; ?>
             </div>
-            <button type="button" id="serviceflow-add-pack" class="button"><?php esc_html_e( '+ Ajouter un pack', 'wpservio' ); ?></button>
+            <button type="button" id="serviceflow-add-pack" class="button"><?php esc_html_e( '+ Ajouter un pack', 'servio' ); ?></button>
         </div>
 
-        <?php if ( wpservio_is_premium() ) :
-            $adv_opts_raw = get_post_meta( $post->ID, '_wpservio_advanced_options', true );
+        <?php if ( servio_is_premium() ) :
+            $adv_opts_raw = get_post_meta( $post->ID, '_servio_advanced_options', true );
             $adv_opts     = $adv_opts_raw ? json_decode( $adv_opts_raw, true ) : [];
             if ( ! is_array( $adv_opts ) ) {
                 $adv_opts = [];
             }
             $mode_labels = [
-                'unit'    => __( 'Par unité', 'wpservio' ),
-                'monthly' => __( 'Par mois', 'wpservio' ),
-                'fixed'   => __( 'Forfait', 'wpservio' ),
-                'daily'   => __( 'Express (jours)', 'wpservio' ),
+                'unit'    => __( 'Par unité', 'servio' ),
+                'monthly' => __( 'Par mois', 'servio' ),
+                'fixed'   => __( 'Forfait', 'servio' ),
+                'daily'   => __( 'Express (jours)', 'servio' ),
             ];
         ?>
         <div class="serviceflow-meta-section">
-            <h4><?php esc_html_e( 'Options avancées', 'wpservio' ); ?></h4>
-            <p class="serviceflow-section-desc"><?php esc_html_e( 'Ajoutez des options avec tarification flexible. Chaque option est affichée sur le widget de commande.', 'wpservio' ); ?></p>
+            <h4><?php esc_html_e( 'Options avancées', 'servio' ); ?></h4>
+            <p class="serviceflow-section-desc"><?php esc_html_e( 'Ajoutez des options avec tarification flexible. Chaque option est affichée sur le widget de commande.', 'servio' ); ?></p>
 
             <div id="sf-adv-opts-list">
                 <?php foreach ( $adv_opts as $i => $opt ) :
@@ -151,11 +151,11 @@ class WpServio_Options {
                     <div class="sf-adv-opt-handle" style="cursor:grab;color:#aaa;padding:0 6px;font-size:18px;line-height:36px">&#8942;&#8942;</div>
                     <div class="sf-adv-opt-fields" style="flex:1;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px;align-items:end">
                         <div>
-                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Libellé', 'wpservio' ); ?></label>
-                            <input type="text" name="sf_adv_opt_label[]" value="<?php echo esc_attr( $opt_label ); ?>" placeholder="<?php esc_attr_e( 'Nom de l\'option', 'wpservio' ); ?>" style="width:100%" required />
+                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Libellé', 'servio' ); ?></label>
+                            <input type="text" name="sf_adv_opt_label[]" value="<?php echo esc_attr( $opt_label ); ?>" placeholder="<?php esc_attr_e( 'Nom de l\'option', 'servio' ); ?>" style="width:100%" required />
                         </div>
                         <div>
-                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Mode', 'wpservio' ); ?></label>
+                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Mode', 'servio' ); ?></label>
                             <select name="sf_adv_opt_mode[]" class="sf-adv-opt-mode" style="width:100%">
                                 <?php foreach ( $mode_labels as $mval => $mlabel ) : ?>
                                 <option value="<?php echo esc_attr( $mval ); ?>" <?php selected( $opt_mode, $mval ); ?>><?php echo esc_html( $mlabel ); ?></option>
@@ -163,15 +163,15 @@ class WpServio_Options {
                             </select>
                         </div>
                         <div class="sf-adv-opt-unit-wrap" <?php if ( in_array( $opt_mode, [ 'monthly', 'fixed' ], true ) ) : ?>style="visibility:hidden"<?php endif; ?>>
-                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Libellé unité', 'wpservio' ); ?></label>
-                            <input type="text" name="sf_adv_opt_unit[]" value="<?php echo esc_attr( $opt_unit_label ); ?>" placeholder="<?php esc_attr_e( 'ex. page, heure...', 'wpservio' ); ?>" style="width:100%" />
+                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Libellé unité', 'servio' ); ?></label>
+                            <input type="text" name="sf_adv_opt_unit[]" value="<?php echo esc_attr( $opt_unit_label ); ?>" placeholder="<?php esc_attr_e( 'ex. page, heure...', 'servio' ); ?>" style="width:100%" />
                         </div>
                         <div>
-                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Prix (€)', 'wpservio' ); ?></label>
+                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Prix (€)', 'servio' ); ?></label>
                             <input type="number" name="sf_adv_opt_price[]" value="<?php echo esc_attr( $opt_price ); ?>" min="0" step="0.01" placeholder="0" style="width:100%" />
                         </div>
                     </div>
-                    <button type="button" class="sf-adv-opt-remove button-link" style="color:#a00;margin-left:8px;padding:0 6px;line-height:36px;font-size:18px" title="<?php esc_attr_e( 'Supprimer', 'wpservio' ); ?>">&times;</button>
+                    <button type="button" class="sf-adv-opt-remove button-link" style="color:#a00;margin-left:8px;padding:0 6px;line-height:36px;font-size:18px" title="<?php esc_attr_e( 'Supprimer', 'servio' ); ?>">&times;</button>
                 </div>
                 <?php endforeach; ?>
             </div>
@@ -181,58 +181,58 @@ class WpServio_Options {
                     <div class="sf-adv-opt-handle" style="cursor:grab;color:#aaa;padding:0 6px;font-size:18px;line-height:36px">&#8942;&#8942;</div>
                     <div class="sf-adv-opt-fields" style="flex:1;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px;align-items:end">
                         <div>
-                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Libellé', 'wpservio' ); ?></label>
-                            <input type="text" name="sf_adv_opt_label[]" value="" placeholder="<?php esc_attr_e( 'Nom de l\'option', 'wpservio' ); ?>" style="width:100%" required />
+                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Libellé', 'servio' ); ?></label>
+                            <input type="text" name="sf_adv_opt_label[]" value="" placeholder="<?php esc_attr_e( 'Nom de l\'option', 'servio' ); ?>" style="width:100%" required />
                         </div>
                         <div>
-                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Mode', 'wpservio' ); ?></label>
+                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Mode', 'servio' ); ?></label>
                             <select name="sf_adv_opt_mode[]" class="sf-adv-opt-mode" style="width:100%">
-                                <option value="unit"><?php esc_html_e( 'Par unité', 'wpservio' ); ?></option>
-                                <option value="monthly"><?php esc_html_e( 'Par mois', 'wpservio' ); ?></option>
-                                <option value="fixed"><?php esc_html_e( 'Forfait', 'wpservio' ); ?></option>
-                                <option value="daily"><?php esc_html_e( 'Express (jours)', 'wpservio' ); ?></option>
+                                <option value="unit"><?php esc_html_e( 'Par unité', 'servio' ); ?></option>
+                                <option value="monthly"><?php esc_html_e( 'Par mois', 'servio' ); ?></option>
+                                <option value="fixed"><?php esc_html_e( 'Forfait', 'servio' ); ?></option>
+                                <option value="daily"><?php esc_html_e( 'Express (jours)', 'servio' ); ?></option>
                             </select>
                         </div>
                         <div class="sf-adv-opt-unit-wrap">
-                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Libellé unité', 'wpservio' ); ?></label>
-                            <input type="text" name="sf_adv_opt_unit[]" value="" placeholder="<?php esc_attr_e( 'ex. page, heure...', 'wpservio' ); ?>" style="width:100%" />
+                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Libellé unité', 'servio' ); ?></label>
+                            <input type="text" name="sf_adv_opt_unit[]" value="" placeholder="<?php esc_attr_e( 'ex. page, heure...', 'servio' ); ?>" style="width:100%" />
                         </div>
                         <div>
-                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Prix (€)', 'wpservio' ); ?></label>
+                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Prix (€)', 'servio' ); ?></label>
                             <input type="number" name="sf_adv_opt_price[]" value="" min="0" step="0.01" placeholder="0" style="width:100%" />
                         </div>
                     </div>
-                    <button type="button" class="sf-adv-opt-remove button-link" style="color:#a00;margin-left:8px;padding:0 6px;line-height:36px;font-size:18px" title="<?php esc_attr_e( 'Supprimer', 'wpservio' ); ?>">&times;</button>
+                    <button type="button" class="sf-adv-opt-remove button-link" style="color:#a00;margin-left:8px;padding:0 6px;line-height:36px;font-size:18px" title="<?php esc_attr_e( 'Supprimer', 'servio' ); ?>">&times;</button>
                 </div>
             </template>
 
             <button type="button" id="sf-adv-opts-add" class="button" style="margin-top:10px">
-                + <?php esc_html_e( 'Ajouter une option', 'wpservio' ); ?>
+                + <?php esc_html_e( 'Ajouter une option', 'servio' ); ?>
             </button>
         </div>
 
         <?php endif; ?>
 
-        <?php if ( wpservio_is_premium() && WpServio_Stripe::is_enabled() ) :
-            $payment_mode       = get_post_meta( $post->ID, '_wpservio_payment_mode', true ) ?: ( WpServio_Stripe::get_settings()['default_payment_mode'] ?? 'single' );
-            $installments_count = (int) get_post_meta( $post->ID, '_wpservio_installments_count', true ) ?: 3;
+        <?php if ( servio_is_premium() && Servio_Stripe::is_enabled() ) :
+            $payment_mode       = get_post_meta( $post->ID, '_servio_payment_mode', true ) ?: ( Servio_Stripe::get_settings()['default_payment_mode'] ?? 'single' );
+            $installments_count = (int) get_post_meta( $post->ID, '_servio_installments_count', true ) ?: 3;
         ?>
         <div class="serviceflow-meta-section">
-            <h4><?php esc_html_e( 'Mode de paiement', 'wpservio' ); ?></h4>
+            <h4><?php esc_html_e( 'Mode de paiement', 'servio' ); ?></h4>
             <div class="serviceflow-meta-row">
                 <div class="serviceflow-field">
-                    <label><?php esc_html_e( 'Type de paiement', 'wpservio' ); ?></label>
-                    <select name="wpservio_payment_mode" id="sf-payment-mode-select">
-                        <option value="single"       <?php selected( $payment_mode, 'single' ); ?>><?php esc_html_e( 'Paiement unique', 'wpservio' ); ?></option>
-                        <option value="deposit"      <?php selected( $payment_mode, 'deposit' ); ?>><?php esc_html_e( 'Acompte 50% + solde à la livraison', 'wpservio' ); ?></option>
-                        <option value="installments" <?php selected( $payment_mode, 'installments' ); ?>><?php esc_html_e( 'Mensualités (40% initial + N mensualités)', 'wpservio' ); ?></option>
-                        <option value="monthly"      <?php selected( $payment_mode, 'monthly' ); ?>><?php esc_html_e( 'Abonnement mensuel pur (N × tarif mensuel)', 'wpservio' ); ?></option>
+                    <label><?php esc_html_e( 'Type de paiement', 'servio' ); ?></label>
+                    <select name="servio_payment_mode" id="sf-payment-mode-select">
+                        <option value="single"       <?php selected( $payment_mode, 'single' ); ?>><?php esc_html_e( 'Paiement unique', 'servio' ); ?></option>
+                        <option value="deposit"      <?php selected( $payment_mode, 'deposit' ); ?>><?php esc_html_e( 'Acompte 50% + solde à la livraison', 'servio' ); ?></option>
+                        <option value="installments" <?php selected( $payment_mode, 'installments' ); ?>><?php esc_html_e( 'Mensualités (40% initial + N mensualités)', 'servio' ); ?></option>
+                        <option value="monthly"      <?php selected( $payment_mode, 'monthly' ); ?>><?php esc_html_e( 'Abonnement mensuel pur (N × tarif mensuel)', 'servio' ); ?></option>
                     </select>
-                    <p id="sf-monthly-hint" style="font-size:11px;color:#888;margin:4px 0 0;<?php echo $payment_mode !== 'monthly' ? 'display:none' : ''; ?>"><?php esc_html_e( 'Le prix du pack = tarif mensuel. Le 1er mois est réglé au départ, les suivants sont envoyés manuellement.', 'wpservio' ); ?></p>
+                    <p id="sf-monthly-hint" style="font-size:11px;color:#888;margin:4px 0 0;<?php echo $payment_mode !== 'monthly' ? 'display:none' : ''; ?>"><?php esc_html_e( 'Le prix du pack = tarif mensuel. Le 1er mois est réglé au départ, les suivants sont envoyés manuellement.', 'servio' ); ?></p>
                 </div>
                 <div class="serviceflow-field-price" id="sf-installments-field" style="<?php echo in_array( $payment_mode, [ 'installments', 'monthly' ], true ) ? '' : 'display:none'; ?>">
-                    <label id="sf-installments-label"><?php echo $payment_mode === 'monthly' ? esc_html__( 'Nombre de mois', 'wpservio' ) : esc_html__( 'Nombre de mensualités', 'wpservio' ); ?></label>
-                    <input type="number" name="wpservio_installments_count" value="<?php echo esc_attr( $installments_count ); ?>" min="1" max="60" step="1" />
+                    <label id="sf-installments-label"><?php echo $payment_mode === 'monthly' ? esc_html__( 'Nombre de mois', 'servio' ) : esc_html__( 'Nombre de mensualités', 'servio' ); ?></label>
+                    <input type="number" name="servio_installments_count" value="<?php echo esc_attr( $installments_count ); ?>" min="1" max="60" step="1" />
                 </div>
             </div>
         </div>
@@ -240,36 +240,36 @@ class WpServio_Options {
 
         <!-- Options supplémentaires -->
         <div class="serviceflow-meta-section">
-            <h4><?php esc_html_e( 'Options supplémentaires', 'wpservio' ); ?></h4>
-            <p class="serviceflow-section-desc"><?php esc_html_e( 'Cumulables avec le pack choisi.', 'wpservio' ); ?></p>
+            <h4><?php esc_html_e( 'Options supplémentaires', 'servio' ); ?></h4>
+            <p class="serviceflow-section-desc"><?php esc_html_e( 'Cumulables avec le pack choisi.', 'servio' ); ?></p>
             <div id="serviceflow-options-list">
                 <?php foreach ( $options as $i => $opt ) : ?>
                     <div class="serviceflow-option-item" data-index="<?php echo absint( $i ); ?>">
-                        <button type="button" class="serviceflow-option-remove"><?php esc_html_e( 'Supprimer', 'wpservio' ); ?></button>
+                        <button type="button" class="serviceflow-option-remove"><?php esc_html_e( 'Supprimer', 'servio' ); ?></button>
                         <div class="serviceflow-meta-row">
                             <div class="serviceflow-field">
-                                <label><?php esc_html_e( 'Nom', 'wpservio' ); ?></label>
-                                <input type="text" name="wpservio_opts[<?php echo absint( $i ); ?>][name]" value="<?php echo esc_attr( $opt['name'] ?? '' ); ?>" />
+                                <label><?php esc_html_e( 'Nom', 'servio' ); ?></label>
+                                <input type="text" name="servio_opts[<?php echo absint( $i ); ?>][name]" value="<?php echo esc_attr( $opt['name'] ?? '' ); ?>" />
                             </div>
                             <div class="serviceflow-field-price">
-                                <label><?php esc_html_e( 'Prix (€)', 'wpservio' ); ?></label>
-                                <input type="number" name="wpservio_opts[<?php echo absint( $i ); ?>][price]" value="<?php echo esc_attr( $opt['price'] ?? '' ); ?>" min="0" step="0.01" />
+                                <label><?php esc_html_e( 'Prix (€)', 'servio' ); ?></label>
+                                <input type="number" name="servio_opts[<?php echo absint( $i ); ?>][price]" value="<?php echo esc_attr( $opt['price'] ?? '' ); ?>" min="0" step="0.01" />
                             </div>
                             <div class="serviceflow-field-price">
-                                <label><?php esc_html_e( 'Délai (jours)', 'wpservio' ); ?></label>
-                                <input type="number" name="wpservio_opts[<?php echo absint( $i ); ?>][delay]" value="<?php echo esc_attr( $opt['delay'] ?? '' ); ?>" min="0" step="1" />
+                                <label><?php esc_html_e( 'Délai (jours)', 'servio' ); ?></label>
+                                <input type="number" name="servio_opts[<?php echo absint( $i ); ?>][delay]" value="<?php echo esc_attr( $opt['delay'] ?? '' ); ?>" min="0" step="1" />
                             </div>
                         </div>
                         <div class="serviceflow-meta-row">
                             <div class="serviceflow-field">
-                                <label><?php esc_html_e( 'Description', 'wpservio' ); ?></label>
-                                <input type="text" name="wpservio_opts[<?php echo absint( $i ); ?>][description]" value="<?php echo esc_attr( $opt['description'] ?? '' ); ?>" />
+                                <label><?php esc_html_e( 'Description', 'servio' ); ?></label>
+                                <input type="text" name="servio_opts[<?php echo absint( $i ); ?>][description]" value="<?php echo esc_attr( $opt['description'] ?? '' ); ?>" />
                             </div>
                         </div>
                     </div>
                 <?php endforeach; ?>
             </div>
-            <button type="button" id="serviceflow-add-option" class="button"><?php esc_html_e( '+ Ajouter une option', 'wpservio' ); ?></button>
+            <button type="button" id="serviceflow-add-option" class="button"><?php esc_html_e( '+ Ajouter une option', 'servio' ); ?></button>
         </div>
         <?php
     }
@@ -280,7 +280,7 @@ class WpServio_Options {
         }
 
         $screen = get_current_screen();
-        if ( ! $screen || $screen->post_type !== WpServio_Admin::get_post_type() ) {
+        if ( ! $screen || $screen->post_type !== Servio_Admin::get_post_type() ) {
             return;
         }
 
@@ -310,7 +310,7 @@ class WpServio_Options {
             '.sf-adv-opt-row{display:flex;align-items:center;background:#f9f9f9;border:1px solid #e0e0e0;border-radius:4px;padding:8px;margin-bottom:6px}' .
             '.sf-adv-opt-handle{cursor:grab}.sf-adv-opt-handle:active{cursor:grabbing}' .
             '.sf-adv-opt-placeholder{background:#e8f0fe;border:2px dashed #4a90d9;border-radius:4px;margin-bottom:6px}' .
-            '#sf-adv-opts-list:empty::before{content:"' . esc_js( __( 'Aucune option. Cliquez sur Ajouter.', 'wpservio' ) ) . '";color:#999;font-style:italic;font-size:12px;display:block;padding:8px 0}'
+            '#sf-adv-opts-list:empty::before{content:"' . esc_js( __( 'Aucune option. Cliquez sur Ajouter.', 'servio' ) ) . '";color:#999;font-style:italic;font-size:12px;display:block;padding:8px 0}'
         );
 
         wp_add_inline_script( 'jquery-ui-sortable', '
@@ -357,7 +357,7 @@ class WpServio_Options {
                     sel.addEventListener("change",function(){
                         var v=sel.value;
                         field.style.display=(v==="installments"||v==="monthly")?"":"none";
-                        if(lbl) lbl.textContent=v==="monthly"?"' . esc_js( __( 'Nombre de mois', 'wpservio' ) ) . '":"' . esc_js( __( 'Nombre de mensualités', 'wpservio' ) ) . '";
+                        if(lbl) lbl.textContent=v==="monthly"?"' . esc_js( __( 'Nombre de mois', 'servio' ) ) . '":"' . esc_js( __( 'Nombre de mensualités', 'servio' ) ) . '";
                         if(hint) hint.style.display=v==="monthly"?"":"none";
                     });
                 }
@@ -372,19 +372,19 @@ class WpServio_Options {
 
                 $('#serviceflow-add-pack').on('click', function(){
                     var html = '<div class=\"serviceflow-pack-item\" data-index=\"'+packIdx+'\">' +
-                        '<button type=\"button\" class=\"serviceflow-pack-remove\">" . esc_js( __( 'Supprimer', 'wpservio' ) ) . "</button>' +
+                        '<button type=\"button\" class=\"serviceflow-pack-remove\">" . esc_js( __( 'Supprimer', 'servio' ) ) . "</button>' +
                         '<div class=\"serviceflow-meta-row\">' +
-                            '<div class=\"serviceflow-field\"><label>" . esc_js( __( 'Nom', 'wpservio' ) ) . "</label><input type=\"text\" name=\"wpservio_packs['+packIdx+'][name]\" placeholder=\"" . esc_js( __( 'Ex: Pack Basique', 'wpservio' ) ) . "\" /></div>' +
-                            '<div class=\"serviceflow-field-price\"><label>" . esc_js( __( 'Prix (€)', 'wpservio' ) ) . "</label><input type=\"number\" name=\"wpservio_packs['+packIdx+'][price]\" min=\"0\" step=\"0.01\" /></div>' +
-                            '<div class=\"serviceflow-field-price\"><label>" . esc_js( __( 'Délai (jours)', 'wpservio' ) ) . "</label><input type=\"number\" name=\"wpservio_packs['+packIdx+'][delay]\" min=\"0\" step=\"1\" /></div>' +
+                            '<div class=\"serviceflow-field\"><label>" . esc_js( __( 'Nom', 'servio' ) ) . "</label><input type=\"text\" name=\"servio_packs['+packIdx+'][name]\" placeholder=\"" . esc_js( __( 'Ex: Pack Basique', 'servio' ) ) . "\" /></div>' +
+                            '<div class=\"serviceflow-field-price\"><label>" . esc_js( __( 'Prix (€)', 'servio' ) ) . "</label><input type=\"number\" name=\"servio_packs['+packIdx+'][price]\" min=\"0\" step=\"0.01\" /></div>' +
+                            '<div class=\"serviceflow-field-price\"><label>" . esc_js( __( 'Délai (jours)', 'servio' ) ) . "</label><input type=\"number\" name=\"servio_packs['+packIdx+'][delay]\" min=\"0\" step=\"1\" /></div>' +
                         '</div>' +
                         '<div class=\"serviceflow-meta-row\">' +
-                            '<div class=\"serviceflow-field\"><label>" . esc_js( __( 'Description (infobulle)', 'wpservio' ) ) . "</label><input type=\"text\" name=\"wpservio_packs['+packIdx+'][description]\" placeholder=\"" . esc_js( __( "Texte affiché au survol de l'icône info", 'wpservio' ) ) . "\" /></div>' +
+                            '<div class=\"serviceflow-field\"><label>" . esc_js( __( 'Description (infobulle)', 'servio' ) ) . "</label><input type=\"text\" name=\"servio_packs['+packIdx+'][description]\" placeholder=\"" . esc_js( __( "Texte affiché au survol de l'icône info", 'servio' ) ) . "\" /></div>' +
                         '</div>' +
                         '<div class=\"serviceflow-features-section\">' +
-                            '<label>" . esc_js( __( 'Caractéristiques du pack', 'wpservio' ) ) . "</label>' +
+                            '<label>" . esc_js( __( 'Caractéristiques du pack', 'servio' ) ) . "</label>' +
                             '<div class=\"serviceflow-features-list\"></div>' +
-                            '<button type=\"button\" class=\"serviceflow-add-feature\" data-pack-index=\"'+packIdx+'\">+ " . esc_js( __( 'Ajouter une caractéristique', 'wpservio' ) ) . "</button>' +
+                            '<button type=\"button\" class=\"serviceflow-add-feature\" data-pack-index=\"'+packIdx+'\">+ " . esc_js( __( 'Ajouter une caractéristique', 'servio' ) ) . "</button>' +
                         '</div>' +
                     '</div>';
                     $('#serviceflow-packs-list').append(html);
@@ -399,7 +399,7 @@ class WpServio_Options {
                 $(document).on('click', '.serviceflow-add-feature', function(){
                     var idx = $(this).closest('.serviceflow-pack-item').data('index');
                     var html = '<div class=\"serviceflow-feature-item\">' +
-                        '<input type=\"text\" name=\"wpservio_packs['+idx+'][features][]\" placeholder=\"" . esc_js( __( 'Ex: 5 pages incluses', 'wpservio' ) ) . "\" />' +
+                        '<input type=\"text\" name=\"servio_packs['+idx+'][features][]\" placeholder=\"" . esc_js( __( 'Ex: 5 pages incluses', 'servio' ) ) . "\" />' +
                         '<button type=\"button\" class=\"serviceflow-feature-rm\">&times;</button>' +
                     '</div>';
                     $(this).siblings('.serviceflow-features-list').append(html);
@@ -414,14 +414,14 @@ class WpServio_Options {
 
                 $('#serviceflow-add-option').on('click', function(){
                     var html = '<div class=\"serviceflow-option-item\" data-index=\"'+optIdx+'\">' +
-                        '<button type=\"button\" class=\"serviceflow-option-remove\">" . esc_js( __( 'Supprimer', 'wpservio' ) ) . "</button>' +
+                        '<button type=\"button\" class=\"serviceflow-option-remove\">" . esc_js( __( 'Supprimer', 'servio' ) ) . "</button>' +
                         '<div class=\"serviceflow-meta-row\">' +
-                            '<div class=\"serviceflow-field\"><label>" . esc_js( __( 'Nom', 'wpservio' ) ) . "</label><input type=\"text\" name=\"wpservio_opts['+optIdx+'][name]\" /></div>' +
-                            '<div class=\"serviceflow-field-price\"><label>" . esc_js( __( 'Prix (€)', 'wpservio' ) ) . "</label><input type=\"number\" name=\"wpservio_opts['+optIdx+'][price]\" min=\"0\" step=\"0.01\" /></div>' +
-                            '<div class=\"serviceflow-field-price\"><label>" . esc_js( __( 'Délai (jours)', 'wpservio' ) ) . "</label><input type=\"number\" name=\"wpservio_opts['+optIdx+'][delay]\" min=\"0\" step=\"1\" /></div>' +
+                            '<div class=\"serviceflow-field\"><label>" . esc_js( __( 'Nom', 'servio' ) ) . "</label><input type=\"text\" name=\"servio_opts['+optIdx+'][name]\" /></div>' +
+                            '<div class=\"serviceflow-field-price\"><label>" . esc_js( __( 'Prix (€)', 'servio' ) ) . "</label><input type=\"number\" name=\"servio_opts['+optIdx+'][price]\" min=\"0\" step=\"0.01\" /></div>' +
+                            '<div class=\"serviceflow-field-price\"><label>" . esc_js( __( 'Délai (jours)', 'servio' ) ) . "</label><input type=\"number\" name=\"servio_opts['+optIdx+'][delay]\" min=\"0\" step=\"1\" /></div>' +
                         '</div>' +
                         '<div class=\"serviceflow-meta-row\">' +
-                            '<div class=\"serviceflow-field\"><label>" . esc_js( __( 'Description', 'wpservio' ) ) . "</label><input type=\"text\" name=\"wpservio_opts['+optIdx+'][description]\" /></div>' +
+                            '<div class=\"serviceflow-field\"><label>" . esc_js( __( 'Description', 'servio' ) ) . "</label><input type=\"text\" name=\"servio_opts['+optIdx+'][description]\" /></div>' +
                         '</div>' +
                     '</div>';
                     $('#serviceflow-options-list').append(html);
@@ -436,16 +436,16 @@ class WpServio_Options {
     }
 
     public static function save_meta( int $post_id, \WP_Post $post ): void {
-        if ( ! isset( $_POST['wpservio_options_nonce'] ) ) {
+        if ( ! isset( $_POST['servio_options_nonce'] ) ) {
             return;
         }
-        if ( ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['wpservio_options_nonce'] ) ), 'wpservio_options_save' ) ) {
+        if ( ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['servio_options_nonce'] ) ), 'servio_options_save' ) ) {
             return;
         }
         if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
             return;
         }
-        if ( $post->post_type !== WpServio_Admin::get_post_type() ) {
+        if ( $post->post_type !== Servio_Admin::get_post_type() ) {
             return;
         }
         if ( ! current_user_can( 'edit_post', $post_id ) ) {
@@ -453,15 +453,15 @@ class WpServio_Options {
         }
 
         // Free = 1 seul service autorisé
-        if ( ! wpservio_is_premium() ) {
-            $existing_packs = get_post_meta( $post_id, '_wpservio_packs', true );
+        if ( ! servio_is_premium() ) {
+            $existing_packs = get_post_meta( $post_id, '_servio_packs', true );
             if ( empty( $existing_packs ) && self::count_active_services( $post_id ) >= 1 ) {
                 return;
             }
         }
 
         // Packs
-        $packs_raw = wp_unslash( $_POST['wpservio_packs'] ?? [] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field is sanitized individually in the loop below.
+        $packs_raw = wp_unslash( $_POST['servio_packs'] ?? [] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field is sanitized individually in the loop below.
         $packs = [];
         if ( is_array( $packs_raw ) ) {
             foreach ( $packs_raw as $pack ) {
@@ -482,10 +482,10 @@ class WpServio_Options {
                 ];
             }
         }
-        update_post_meta( $post_id, '_wpservio_packs', $packs );
+        update_post_meta( $post_id, '_servio_packs', $packs );
 
         // Options supplémentaires
-        $opts_raw = wp_unslash( $_POST['wpservio_opts'] ?? [] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field is sanitized individually in the loop below.
+        $opts_raw = wp_unslash( $_POST['servio_opts'] ?? [] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field is sanitized individually in the loop below.
         $opts = [];
         if ( is_array( $opts_raw ) ) {
             foreach ( $opts_raw as $opt ) {
@@ -501,7 +501,7 @@ class WpServio_Options {
                 ];
             }
         }
-        update_post_meta( $post_id, '_wpservio_options', $opts );
+        update_post_meta( $post_id, '_servio_options', $opts );
 
         // Options avancées dynamiques
         $adv_opts   = [];
@@ -522,46 +522,46 @@ class WpServio_Options {
                 'unit_label' => sanitize_text_field( $adv_units[ $i ] ?? '' ),
             ];
         }
-        update_post_meta( $post_id, '_wpservio_advanced_options', wp_json_encode( $adv_opts, JSON_UNESCAPED_UNICODE ) );
+        update_post_meta( $post_id, '_servio_advanced_options', wp_json_encode( $adv_opts, JSON_UNESCAPED_UNICODE ) );
 
         // Mode de paiement
-        if ( isset( $_POST['wpservio_payment_mode'] ) ) {
-            $mode = sanitize_text_field( wp_unslash( $_POST['wpservio_payment_mode'] ) );
+        if ( isset( $_POST['servio_payment_mode'] ) ) {
+            $mode = sanitize_text_field( wp_unslash( $_POST['servio_payment_mode'] ) );
             if ( in_array( $mode, [ 'single', 'deposit', 'installments', 'monthly' ], true ) ) {
-                update_post_meta( $post_id, '_wpservio_payment_mode', $mode );
+                update_post_meta( $post_id, '_servio_payment_mode', $mode );
             }
         }
-        if ( isset( $_POST['wpservio_installments_count'] ) ) {
-            update_post_meta( $post_id, '_wpservio_installments_count', absint( wp_unslash( $_POST['wpservio_installments_count'] ) ) );
+        if ( isset( $_POST['servio_installments_count'] ) ) {
+            update_post_meta( $post_id, '_servio_installments_count', absint( wp_unslash( $_POST['servio_installments_count'] ) ) );
         }
     }
 
     public static function get_payment_mode( int $post_id ): string {
-        if ( ! wpservio_is_premium() ) {
+        if ( ! servio_is_premium() ) {
             return 'single';
         }
-        $meta = get_post_meta( $post_id, '_wpservio_payment_mode', true );
+        $meta = get_post_meta( $post_id, '_servio_payment_mode', true );
         if ( in_array( $meta, [ 'single', 'deposit', 'installments', 'monthly' ], true ) ) {
             return $meta;
         }
-        return WpServio_Stripe::get_settings()['default_payment_mode'] ?? 'single';
+        return Servio_Stripe::get_settings()['default_payment_mode'] ?? 'single';
     }
 
     public static function get_installments_count( int $post_id ): int {
-        return max( 1, (int) get_post_meta( $post_id, '_wpservio_installments_count', true ) ?: 3 );
+        return max( 1, (int) get_post_meta( $post_id, '_servio_installments_count', true ) ?: 3 );
     }
 
     /**
      * Récupère les packs d'un post (avec migration depuis l'ancien format).
      */
     public static function get_packs( int $post_id ): array {
-        $packs = get_post_meta( $post_id, '_wpservio_packs', true );
+        $packs = get_post_meta( $post_id, '_servio_packs', true );
         if ( is_array( $packs ) && ! empty( $packs ) ) {
             return $packs;
         }
 
         // Migration : ancien format base_offer → pack unique
-        $base = get_post_meta( $post_id, '_wpservio_base_offer', true );
+        $base = get_post_meta( $post_id, '_servio_base_offer', true );
         if ( is_array( $base ) && ! empty( $base['name'] ) ) {
             return [ $base ];
         }
@@ -573,7 +573,7 @@ class WpServio_Options {
      * Récupère les options supplémentaires d'un post.
      */
     public static function get_options( int $post_id ): array {
-        $opts = get_post_meta( $post_id, '_wpservio_options', true );
+        $opts = get_post_meta( $post_id, '_servio_options', true );
         return is_array( $opts ) ? $opts : [];
     }
 }

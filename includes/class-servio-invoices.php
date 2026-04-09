@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class WpServio_Invoices {
+class Servio_Invoices {
 
     const STATUS_DRAFT     = 'draft';
     const STATUS_PENDING   = 'pending';
@@ -13,7 +13,7 @@ class WpServio_Invoices {
     const STATUS_CANCELLED = 'cancelled';
 
     public static function init(): void {
-        if ( ! wpservio_is_premium() ) {
+        if ( ! servio_is_premium() ) {
             return;
         }
 
@@ -21,21 +21,21 @@ class WpServio_Invoices {
         add_action( 'admin_enqueue_scripts', [ __CLASS__, 'enqueue_admin_scripts' ] );
 
         // Auto-génération de facture quand commande acceptée
-        add_action( 'wpservio_order_status_changed', [ __CLASS__, 'on_order_accepted' ], 10, 4 );
+        add_action( 'servio_order_status_changed', [ __CLASS__, 'on_order_accepted' ], 10, 4 );
 
         // AJAX admin
-        add_action( 'wp_ajax_wpservio_invoice_validate',  [ __CLASS__, 'ajax_validate' ] );
-        add_action( 'wp_ajax_wpservio_invoice_mark_paid', [ __CLASS__, 'ajax_mark_paid' ] );
-        add_action( 'wp_ajax_wpservio_invoice_cancel',    [ __CLASS__, 'ajax_cancel' ] );
-        add_action( 'wp_ajax_wpservio_invoice_save',      [ __CLASS__, 'ajax_save_invoice' ] );
-        add_action( 'wp_ajax_wpservio_invoice_update',    [ __CLASS__, 'ajax_update_invoice' ] );
-        add_action( 'wp_ajax_wpservio_invoice_set_status', [ __CLASS__, 'ajax_set_status' ] );
-        add_action( 'wp_ajax_wpservio_save_ext_client',   [ __CLASS__, 'ajax_save_client' ] );
-        add_action( 'wp_ajax_wpservio_delete_ext_client', [ __CLASS__, 'ajax_delete_client' ] );
-        add_action( 'wp_ajax_wpservio_save_invoice_settings', [ __CLASS__, 'ajax_save_settings' ] );
+        add_action( 'wp_ajax_servio_invoice_validate',  [ __CLASS__, 'ajax_validate' ] );
+        add_action( 'wp_ajax_servio_invoice_mark_paid', [ __CLASS__, 'ajax_mark_paid' ] );
+        add_action( 'wp_ajax_servio_invoice_cancel',    [ __CLASS__, 'ajax_cancel' ] );
+        add_action( 'wp_ajax_servio_invoice_save',      [ __CLASS__, 'ajax_save_invoice' ] );
+        add_action( 'wp_ajax_servio_invoice_update',    [ __CLASS__, 'ajax_update_invoice' ] );
+        add_action( 'wp_ajax_servio_invoice_set_status', [ __CLASS__, 'ajax_set_status' ] );
+        add_action( 'wp_ajax_servio_save_ext_client',   [ __CLASS__, 'ajax_save_client' ] );
+        add_action( 'wp_ajax_servio_delete_ext_client', [ __CLASS__, 'ajax_delete_client' ] );
+        add_action( 'wp_ajax_servio_save_invoice_settings', [ __CLASS__, 'ajax_save_settings' ] );
 
         // AJAX frontend (vue client)
-        add_action( 'wp_ajax_wpservio_view_invoice', [ __CLASS__, 'ajax_client_view_invoice' ] );
+        add_action( 'wp_ajax_servio_view_invoice', [ __CLASS__, 'ajax_client_view_invoice' ] );
     }
 
     /* ================================================================
@@ -44,12 +44,12 @@ class WpServio_Invoices {
 
     public static function invoices_table_name(): string {
         global $wpdb;
-        return $wpdb->prefix . 'wpservio_invoices';
+        return $wpdb->prefix . 'servio_invoices';
     }
 
     public static function clients_table_name(): string {
         global $wpdb;
-        return $wpdb->prefix . 'wpservio_clients';
+        return $wpdb->prefix . 'servio_clients';
     }
 
     public static function create_invoices_table(): void {
@@ -137,10 +137,10 @@ class WpServio_Invoices {
             'invoice_prefix'  => 'FACT-',
             'tax_rate'        => 20,
             'tax_notice'      => '',
-            'payment_terms'   => __( 'Paiement à réception de facture.', 'wpservio' ),
+            'payment_terms'   => __( 'Paiement à réception de facture.', 'servio' ),
             'footer_text'     => '',
         ];
-        $saved = get_option( 'wpservio_invoice_settings', [] );
+        $saved = get_option( 'servio_invoice_settings', [] );
         if ( ! is_array( $saved ) ) {
             $saved = [];
         }
@@ -153,11 +153,11 @@ class WpServio_Invoices {
 
     private static function get_status_labels(): array {
         return [
-            self::STATUS_DRAFT     => __( 'Brouillon', 'wpservio' ),
-            self::STATUS_PENDING   => __( 'En attente', 'wpservio' ),
-            self::STATUS_VALIDATED => __( 'Validée', 'wpservio' ),
-            self::STATUS_PAID      => __( 'Payée', 'wpservio' ),
-            self::STATUS_CANCELLED => __( 'Annulée', 'wpservio' ),
+            self::STATUS_DRAFT     => __( 'Brouillon', 'servio' ),
+            self::STATUS_PENDING   => __( 'En attente', 'servio' ),
+            self::STATUS_VALIDATED => __( 'Validée', 'servio' ),
+            self::STATUS_PAID      => __( 'Payée', 'servio' ),
+            self::STATUS_CANCELLED => __( 'Annulée', 'servio' ),
         ];
     }
 
@@ -301,33 +301,33 @@ class WpServio_Invoices {
 
     public static function add_menu(): void {
         add_submenu_page(
-            'wpservio',
-            __( 'Factures', 'wpservio' ),
-            __( 'Factures', 'wpservio' ),
+            'servio',
+            __( 'Factures', 'servio' ),
+            __( 'Factures', 'servio' ),
             'manage_options',
             'serviceflow-invoices',
             [ __CLASS__, 'render_invoices_list' ]
         );
         add_submenu_page(
-            'wpservio',
-            __( 'Nouvelle facture', 'wpservio' ),
-            __( 'Nouvelle facture', 'wpservio' ),
+            'servio',
+            __( 'Nouvelle facture', 'servio' ),
+            __( 'Nouvelle facture', 'servio' ),
             'manage_options',
             'serviceflow-invoice-new',
             [ __CLASS__, 'render_invoice_new' ]
         );
         add_submenu_page(
-            'wpservio',
-            __( 'Clients externes', 'wpservio' ),
-            __( 'Clients externes', 'wpservio' ),
+            'servio',
+            __( 'Clients externes', 'servio' ),
+            __( 'Clients externes', 'servio' ),
             'manage_options',
             'serviceflow-clients',
             [ __CLASS__, 'render_clients_page' ]
         );
         add_submenu_page(
-            'wpservio',
-            __( 'Réglages facturation', 'wpservio' ),
-            __( 'Réglages facturation', 'wpservio' ),
+            'servio',
+            __( 'Réglages facturation', 'servio' ),
+            __( 'Réglages facturation', 'servio' ),
             'manage_options',
             'serviceflow-invoice-settings',
             [ __CLASS__, 'render_settings_page' ]
@@ -335,7 +335,7 @@ class WpServio_Invoices {
         // Page cachée pour voir une facture
         add_submenu_page(
             null,
-            __( 'Voir facture', 'wpservio' ),
+            __( 'Voir facture', 'servio' ),
             '',
             'manage_options',
             'serviceflow-invoice-view',
@@ -344,7 +344,7 @@ class WpServio_Invoices {
         // Page cachée pour modifier une facture brouillon
         add_submenu_page(
             null,
-            __( 'Modifier facture', 'wpservio' ),
+            __( 'Modifier facture', 'servio' ),
             '',
             'manage_options',
             'serviceflow-invoice-edit',
@@ -403,12 +403,12 @@ class WpServio_Invoices {
             wp_enqueue_media();
         }
 
-        if ( ! wp_script_is( 'wpservio-invoices-js', 'registered' ) ) {
-            wp_register_script( 'wpservio-invoices-js', false, [ 'jquery' ], WPSERVIO_VERSION, true ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
+        if ( ! wp_script_is( 'servio-invoices-js', 'registered' ) ) {
+            wp_register_script( 'servio-invoices-js', false, [ 'jquery' ], SERVIO_VERSION, true ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
         }
-        wp_enqueue_script( 'wpservio-invoices-js' );
+        wp_enqueue_script( 'servio-invoices-js' );
 
-        $color = esc_attr( WpServio_Admin::get_color() );
+        $color = esc_attr( Servio_Admin::get_color() );
 
         wp_add_inline_style(
             'wp-admin',
@@ -488,7 +488,7 @@ class WpServio_Invoices {
      * ================================================================ */
 
     public static function on_order_accepted( int $order_id, string $new_status, string $old_status, int $acting_user_id ): void {
-        if ( $new_status !== WpServio_Orders::STATUS_ACCEPTED && $new_status !== WpServio_Orders::STATUS_COMPLETED ) {
+        if ( $new_status !== Servio_Orders::STATUS_ACCEPTED && $new_status !== Servio_Orders::STATUS_COMPLETED ) {
             return;
         }
 
@@ -506,7 +506,7 @@ class WpServio_Invoices {
             return;
         }
 
-        $order = WpServio_Orders::get_order( $order_id );
+        $order = Servio_Orders::get_order( $order_id );
         if ( ! $order ) {
             return;
         }
@@ -562,7 +562,7 @@ class WpServio_Invoices {
                     continue;
                 }
                 $items[] = [
-                    'description' => $lbl . ( $mode === 'monthly' ? ' (' . __( 'mensuel', 'wpservio' ) . ')' : '' ),
+                    'description' => $lbl . ( $mode === 'monthly' ? ' (' . __( 'mensuel', 'servio' ) . ')' : '' ),
                     'quantity'    => $qty,
                     'unit_price'  => $price,
                     'total'       => round( $qty * $price, 2 ),
@@ -578,7 +578,7 @@ class WpServio_Invoices {
 
             if ( $extra_pages > 0 && $extra_page_price > 0 ) {
                 $items[] = [
-                    'description' => WpServio_Admin::get_extra_pages_label( (int) $order->post_id ),
+                    'description' => Servio_Admin::get_extra_pages_label( (int) $order->post_id ),
                     'quantity'    => $extra_pages,
                     'unit_price'  => $extra_page_price,
                     'total'       => round( $extra_pages * $extra_page_price, 2 ),
@@ -586,7 +586,7 @@ class WpServio_Invoices {
             }
             if ( $maintenance > 0 ) {
                 $items[] = [
-                    'description' => WpServio_Admin::get_maintenance_label( (int) $order->post_id ),
+                    'description' => Servio_Admin::get_maintenance_label( (int) $order->post_id ),
                     'quantity'    => 1,
                     'unit_price'  => $maintenance,
                     'total'       => $maintenance,
@@ -594,7 +594,7 @@ class WpServio_Invoices {
             }
             if ( $express_days > 0 && $express_price > 0 ) {
                 $items[] = [
-                    'description' => WpServio_Admin::get_express_label( (int) $order->post_id ),
+                    'description' => Servio_Admin::get_express_label( (int) $order->post_id ),
                     'quantity'    => $express_days,
                     'unit_price'  => $express_price,
                     'total'       => round( $express_days * $express_price, 2 ),
@@ -608,7 +608,7 @@ class WpServio_Invoices {
 
         // Stripe encaissé OU commande auto-terminée → facture directement « paid »
         $is_stripe_paid = ! empty( $order->stripe_payment_intent );
-        $invoice_status = ( $is_stripe_paid || $new_status === WpServio_Orders::STATUS_COMPLETED )
+        $invoice_status = ( $is_stripe_paid || $new_status === Servio_Orders::STATUS_COMPLETED )
             ? self::STATUS_PAID
             : self::STATUS_PENDING;
 
@@ -627,7 +627,7 @@ class WpServio_Invoices {
             'notes'          => $settings['payment_terms'],
             'created_at'     => current_time( 'mysql' ),
             'updated_at'     => current_time( 'mysql' ),
-            'paid_at'        => ( $is_stripe_paid || $new_status === WpServio_Orders::STATUS_COMPLETED ) ? current_time( 'mysql' ) : null,
+            'paid_at'        => ( $is_stripe_paid || $new_status === Servio_Orders::STATUS_COMPLETED ) ? current_time( 'mysql' ) : null,
         ] );
 
         if ( ! $inserted ) {
@@ -645,7 +645,7 @@ class WpServio_Invoices {
      * @param int    $order_id       ID commande
      * @param float  $amount_ttc     Montant TTC de cette facture
      * @param string $invoice_type   'acompte' | 'solde' | 'mensualite'
-     * @param int    $schedule_id    ID ligne wpservio_payment_schedule (0 si inconnu)
+     * @param int    $schedule_id    ID ligne servio_payment_schedule (0 si inconnu)
      * @param int    $installment_no Numéro de mensualité
      * @return int|false  ID facture ou false
      */
@@ -666,7 +666,7 @@ class WpServio_Invoices {
             }
         }
 
-        $order = WpServio_Orders::get_order( $order_id );
+        $order = Servio_Orders::get_order( $order_id );
         if ( ! $order ) {
             return false;
         }
@@ -680,10 +680,10 @@ class WpServio_Invoices {
 
         $type_label = match ( $invoice_type ) {
             /* translators: deposit percentage label on invoice */
-            'acompte'    => __( 'Acompte 50%', 'wpservio' ),
-            'solde'      => __( 'Solde', 'wpservio' ),
+            'acompte'    => __( 'Acompte 50%', 'servio' ),
+            'solde'      => __( 'Solde', 'servio' ),
             /* translators: %d: installment number */
-            'mensualite' => sprintf( __( 'Mensualité %d', 'wpservio' ), $installment_no ),
+            'mensualite' => sprintf( __( 'Mensualité %d', 'servio' ), $installment_no ),
             default      => '',
         };
 
@@ -755,7 +755,7 @@ class WpServio_Invoices {
                 $total_ht = round( $unit_ht * $extra_pages, 2 );
                 $items_ht_sum += $total_ht;
                 $items[] = [
-                    'description' => WpServio_Admin::get_extra_pages_label( (int) $order->post_id ),
+                    'description' => Servio_Admin::get_extra_pages_label( (int) $order->post_id ),
                     'quantity'    => $extra_pages,
                     'unit_price'  => $unit_ht,
                     'total'       => $total_ht,
@@ -766,7 +766,7 @@ class WpServio_Invoices {
                 $unit_ht = round( $maintenance * $factor, 2 );
                 $items_ht_sum += $unit_ht;
                 $items[] = [
-                    'description' => WpServio_Admin::get_maintenance_label( (int) $order->post_id ),
+                    'description' => Servio_Admin::get_maintenance_label( (int) $order->post_id ),
                     'quantity'    => 1,
                     'unit_price'  => $unit_ht,
                     'total'       => $unit_ht,
@@ -778,7 +778,7 @@ class WpServio_Invoices {
                 $total_ht = round( $unit_ht * $express_days, 2 );
                 $items_ht_sum += $total_ht;
                 $items[] = [
-                    'description' => WpServio_Admin::get_express_label( (int) $order->post_id ),
+                    'description' => Servio_Admin::get_express_label( (int) $order->post_id ),
                     'quantity'    => $express_days,
                     'unit_price'  => $unit_ht,
                     'total'       => $total_ht,
@@ -818,15 +818,15 @@ class WpServio_Invoices {
      * ================================================================ */
 
     public static function ajax_validate(): void {
-        check_ajax_referer( 'wpservio_nonce', 'nonce' );
+        check_ajax_referer( 'servio_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'wpservio' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'servio' ) ], 403 );
         }
 
         global $wpdb;
         $invoice_id = absint( $_POST['invoice_id'] ?? 0 );
         if ( ! $invoice_id ) {
-            wp_send_json_error( [ 'message' => __( 'ID manquant.', 'wpservio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'ID manquant.', 'servio' ) ], 400 );
         }
 
         $table = self::invoices_table_name();
@@ -841,15 +841,15 @@ class WpServio_Invoices {
     }
 
     public static function ajax_mark_paid(): void {
-        check_ajax_referer( 'wpservio_nonce', 'nonce' );
+        check_ajax_referer( 'servio_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'wpservio' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'servio' ) ], 403 );
         }
 
         global $wpdb;
         $invoice_id = absint( $_POST['invoice_id'] ?? 0 );
         if ( ! $invoice_id ) {
-            wp_send_json_error( [ 'message' => __( 'ID manquant.', 'wpservio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'ID manquant.', 'servio' ) ], 400 );
         }
 
         $table = self::invoices_table_name();
@@ -864,15 +864,15 @@ class WpServio_Invoices {
     }
 
     public static function ajax_cancel(): void {
-        check_ajax_referer( 'wpservio_nonce', 'nonce' );
+        check_ajax_referer( 'servio_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'wpservio' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'servio' ) ], 403 );
         }
 
         global $wpdb;
         $invoice_id = absint( $_POST['invoice_id'] ?? 0 );
         if ( ! $invoice_id ) {
-            wp_send_json_error( [ 'message' => __( 'ID manquant.', 'wpservio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'ID manquant.', 'servio' ) ], 400 );
         }
 
         $table = self::invoices_table_name();
@@ -890,9 +890,9 @@ class WpServio_Invoices {
      * ================================================================ */
 
     public static function ajax_save_invoice(): void {
-        check_ajax_referer( 'wpservio_nonce', 'nonce' );
+        check_ajax_referer( 'servio_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'wpservio' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'servio' ) ], 403 );
         }
 
         global $wpdb;
@@ -926,14 +926,14 @@ class WpServio_Invoices {
         }
 
         if ( empty( $items ) ) {
-            wp_send_json_error( [ 'message' => __( 'Ajoutez au moins un article.', 'wpservio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Ajoutez au moins un article.', 'servio' ) ], 400 );
         }
 
         if ( $client_type === 'wp' && ! $client_id ) {
-            wp_send_json_error( [ 'message' => __( 'Sélectionnez un client.', 'wpservio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Sélectionnez un client.', 'servio' ) ], 400 );
         }
         if ( $client_type === 'ext' && ! $ext_client_id ) {
-            wp_send_json_error( [ 'message' => __( 'Sélectionnez un client externe.', 'wpservio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Sélectionnez un client externe.', 'servio' ) ], 400 );
         }
 
         $subtotal   = array_sum( array_column( $items, 'total' ) );
@@ -969,7 +969,7 @@ class WpServio_Invoices {
         $inserted = $wpdb->insert( self::invoices_table_name(), $data );
 
         if ( ! $inserted ) {
-            wp_send_json_error( [ 'message' => __( 'Erreur lors de la création.', 'wpservio' ) ], 500 );
+            wp_send_json_error( [ 'message' => __( 'Erreur lors de la création.', 'servio' ) ], 500 );
         }
 
         wp_send_json_success( [ 'invoice_id' => (int) $wpdb->insert_id ] );
@@ -980,21 +980,21 @@ class WpServio_Invoices {
      * ================================================================ */
 
     public static function ajax_update_invoice(): void {
-        check_ajax_referer( 'wpservio_nonce', 'nonce' );
+        check_ajax_referer( 'servio_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'wpservio' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'servio' ) ], 403 );
         }
 
         global $wpdb;
 
         $invoice_id = absint( $_POST['invoice_id'] ?? 0 );
         if ( ! $invoice_id ) {
-            wp_send_json_error( [ 'message' => __( 'Facture introuvable.', 'wpservio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Facture introuvable.', 'servio' ) ], 400 );
         }
 
         $invoice = self::get_invoice( $invoice_id );
         if ( ! $invoice || $invoice->status !== self::STATUS_DRAFT ) {
-            wp_send_json_error( [ 'message' => __( 'Seuls les brouillons peuvent être modifiés.', 'wpservio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Seuls les brouillons peuvent être modifiés.', 'servio' ) ], 400 );
         }
 
         $client_type   = sanitize_text_field( wp_unslash( $_POST['client_type'] ?? 'wp' ) );
@@ -1024,14 +1024,14 @@ class WpServio_Invoices {
         }
 
         if ( empty( $items ) ) {
-            wp_send_json_error( [ 'message' => __( 'Ajoutez au moins un article.', 'wpservio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Ajoutez au moins un article.', 'servio' ) ], 400 );
         }
 
         if ( $client_type === 'wp' && ! $client_id ) {
-            wp_send_json_error( [ 'message' => __( 'Sélectionnez un client.', 'wpservio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Sélectionnez un client.', 'servio' ) ], 400 );
         }
         if ( $client_type === 'ext' && ! $ext_client_id ) {
-            wp_send_json_error( [ 'message' => __( 'Sélectionnez un client externe.', 'wpservio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Sélectionnez un client externe.', 'servio' ) ], 400 );
         }
 
         $subtotal   = array_sum( array_column( $items, 'total' ) );
@@ -1064,7 +1064,7 @@ class WpServio_Invoices {
         $updated = $wpdb->update( self::invoices_table_name(), $data, [ 'id' => $invoice_id ] );
 
         if ( $updated === false ) {
-            wp_send_json_error( [ 'message' => __( 'Erreur lors de la mise à jour.', 'wpservio' ) ], 500 );
+            wp_send_json_error( [ 'message' => __( 'Erreur lors de la mise à jour.', 'servio' ) ], 500 );
         }
 
         wp_send_json_success( [ 'invoice_id' => $invoice_id ] );
@@ -1075,9 +1075,9 @@ class WpServio_Invoices {
      * ================================================================ */
 
     public static function ajax_set_status(): void {
-        check_ajax_referer( 'wpservio_nonce', 'nonce' );
+        check_ajax_referer( 'servio_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'wpservio' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'servio' ) ], 403 );
         }
 
         global $wpdb;
@@ -1086,12 +1086,12 @@ class WpServio_Invoices {
         $new_status = sanitize_text_field( wp_unslash( $_POST['new_status'] ?? '' ) );
 
         if ( ! $invoice_id ) {
-            wp_send_json_error( [ 'message' => __( 'Facture introuvable.', 'wpservio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Facture introuvable.', 'servio' ) ], 400 );
         }
 
         $invoice = self::get_invoice( $invoice_id );
         if ( ! $invoice ) {
-            wp_send_json_error( [ 'message' => __( 'Facture introuvable.', 'wpservio' ) ], 404 );
+            wp_send_json_error( [ 'message' => __( 'Facture introuvable.', 'servio' ) ], 404 );
         }
 
         // Transitions autorisées
@@ -1105,7 +1105,7 @@ class WpServio_Invoices {
 
         $transitions = $allowed[ $invoice->status ] ?? [];
         if ( ! in_array( $new_status, $transitions, true ) ) {
-            wp_send_json_error( [ 'message' => __( 'Transition de statut non autorisée.', 'wpservio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Transition de statut non autorisée.', 'servio' ) ], 400 );
         }
 
         $data = [
@@ -1131,9 +1131,9 @@ class WpServio_Invoices {
      * ================================================================ */
 
     public static function ajax_save_client(): void {
-        check_ajax_referer( 'wpservio_nonce', 'nonce' );
+        check_ajax_referer( 'servio_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'wpservio' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'servio' ) ], 403 );
         }
 
         global $wpdb;
@@ -1142,7 +1142,7 @@ class WpServio_Invoices {
         $name = sanitize_text_field( wp_unslash( $_POST['name'] ?? '' ) );
 
         if ( empty( $name ) ) {
-            wp_send_json_error( [ 'message' => __( 'Le nom est obligatoire.', 'wpservio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Le nom est obligatoire.', 'servio' ) ], 400 );
         }
 
         $data = [
@@ -1174,15 +1174,15 @@ class WpServio_Invoices {
     }
 
     public static function ajax_delete_client(): void {
-        check_ajax_referer( 'wpservio_nonce', 'nonce' );
+        check_ajax_referer( 'servio_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'wpservio' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'servio' ) ], 403 );
         }
 
         global $wpdb;
         $id = absint( $_POST['client_id'] ?? 0 );
         if ( ! $id ) {
-            wp_send_json_error( [ 'message' => __( 'ID manquant.', 'wpservio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'ID manquant.', 'servio' ) ], 400 );
         }
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -1195,9 +1195,9 @@ class WpServio_Invoices {
      * ================================================================ */
 
     public static function ajax_save_settings(): void {
-        check_ajax_referer( 'wpservio_nonce', 'nonce' );
+        check_ajax_referer( 'servio_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'wpservio' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'servio' ) ], 403 );
         }
 
         $settings = [
@@ -1219,7 +1219,7 @@ class WpServio_Invoices {
             'footer_text'     => sanitize_textarea_field( wp_unslash( $_POST['footer_text'] ?? '' ) ),
         ];
 
-        update_option( 'wpservio_invoice_settings', $settings );
+        update_option( 'servio_invoice_settings', $settings );
         wp_send_json_success();
     }
 
@@ -1229,37 +1229,37 @@ class WpServio_Invoices {
 
     public static function ajax_client_view_invoice(): void {
         if ( ! is_user_logged_in() ) {
-            wp_die( esc_html__( 'Vous devez être connecté.', 'wpservio' ) );
+            wp_die( esc_html__( 'Vous devez être connecté.', 'servio' ) );
         }
 
         $invoice_id = absint( $_GET['invoice_id'] ?? 0 ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only view; ownership verified below.
         if ( ! $invoice_id ) {
-            wp_die( esc_html__( 'Facture introuvable.', 'wpservio' ) );
+            wp_die( esc_html__( 'Facture introuvable.', 'servio' ) );
         }
 
         $invoice = self::get_invoice( $invoice_id );
         if ( ! $invoice ) {
-            wp_die( esc_html__( 'Facture introuvable.', 'wpservio' ) );
+            wp_die( esc_html__( 'Facture introuvable.', 'servio' ) );
         }
 
         // Vérifier que la facture appartient à l'utilisateur
         if ( (int) $invoice->client_id !== get_current_user_id() ) {
-            wp_die( esc_html__( 'Accès non autorisé.', 'wpservio' ) );
+            wp_die( esc_html__( 'Accès non autorisé.', 'servio' ) );
         }
 
         // Seules validated / paid visibles
         if ( ! in_array( $invoice->status, [ self::STATUS_VALIDATED, self::STATUS_PAID ], true ) ) {
-            wp_die( esc_html__( 'Cette facture n\'est pas encore disponible.', 'wpservio' ) );
+            wp_die( esc_html__( 'Cette facture n\'est pas encore disponible.', 'servio' ) );
         }
 
-        $color = esc_attr( WpServio_Admin::get_color() );
+        $color = esc_attr( Servio_Admin::get_color() );
         header( 'Content-Type: text/html; charset=utf-8' );
         ?><!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title><?php esc_html_e( 'Facture', 'wpservio' ); ?></title>
+<title><?php esc_html_e( 'Facture', 'servio' ); ?></title>
 <style><?php echo self::get_invoice_view_css( $color ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSS built from hardcoded strings and already-escaped color value. ?></style>
 </head>
 <body>
@@ -1283,48 +1283,48 @@ class WpServio_Invoices {
         }
 
         $s     = self::get_settings();
-        $color = esc_attr( WpServio_Admin::get_color() );
-        $nonce = wp_create_nonce( 'wpservio_nonce' );
+        $color = esc_attr( Servio_Admin::get_color() );
+        $nonce = wp_create_nonce( 'servio_nonce' );
         ?>
         <div class="wrap serviceflow-dashboard">
             <h1 style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
                 <span class="dashicons dashicons-media-text" style="font-size:28px;width:28px;height:28px;color:<?php echo esc_attr( $color ); ?>"></span>
-                <?php esc_html_e( 'WpServio — Réglages facturation', 'wpservio' ); ?>
+                <?php esc_html_e( 'Servio — Réglages facturation', 'servio' ); ?>
             </h1>
 
             <div id="serviceflow-inv-settings-form">
                 <!-- Entreprise -->
                 <div class="serviceflow-inv-section">
-                    <h2><span class="dashicons dashicons-building"></span> <?php esc_html_e( 'Informations de l\'entreprise', 'wpservio' ); ?></h2>
+                    <h2><span class="dashicons dashicons-building"></span> <?php esc_html_e( 'Informations de l\'entreprise', 'servio' ); ?></h2>
                     <div class="serviceflow-inv-field">
-                        <label><?php esc_html_e( 'Nom de l\'entreprise', 'wpservio' ); ?></label>
+                        <label><?php esc_html_e( 'Nom de l\'entreprise', 'servio' ); ?></label>
                         <input type="text" id="serviceflow-inv-company-name" value="<?php echo esc_attr( $s['company_name'] ); ?>" />
                     </div>
                     <div class="serviceflow-inv-field">
-                        <label><?php esc_html_e( 'Adresse', 'wpservio' ); ?></label>
+                        <label><?php esc_html_e( 'Adresse', 'servio' ); ?></label>
                         <textarea id="serviceflow-inv-company-address"><?php echo esc_textarea( $s['company_address'] ); ?></textarea>
                     </div>
                     <div class="serviceflow-inv-row">
                         <div class="serviceflow-inv-field">
-                            <label><?php esc_html_e( 'Code postal', 'wpservio' ); ?></label>
+                            <label><?php esc_html_e( 'Code postal', 'servio' ); ?></label>
                             <input type="text" id="serviceflow-inv-company-postal" value="<?php echo esc_attr( $s['company_postal'] ); ?>" />
                         </div>
                         <div class="serviceflow-inv-field">
-                            <label><?php esc_html_e( 'Ville', 'wpservio' ); ?></label>
+                            <label><?php esc_html_e( 'Ville', 'servio' ); ?></label>
                             <input type="text" id="serviceflow-inv-company-city" value="<?php echo esc_attr( $s['company_city'] ); ?>" />
                         </div>
                         <div class="serviceflow-inv-field">
-                            <label><?php esc_html_e( 'Pays', 'wpservio' ); ?></label>
+                            <label><?php esc_html_e( 'Pays', 'servio' ); ?></label>
                             <input type="text" id="serviceflow-inv-company-country" value="<?php echo esc_attr( $s['company_country'] ); ?>" />
                         </div>
                     </div>
                     <div class="serviceflow-inv-row">
                         <div class="serviceflow-inv-field">
-                            <label><?php esc_html_e( 'Téléphone', 'wpservio' ); ?></label>
+                            <label><?php esc_html_e( 'Téléphone', 'servio' ); ?></label>
                             <input type="text" id="serviceflow-inv-company-phone" value="<?php echo esc_attr( $s['company_phone'] ); ?>" />
                         </div>
                         <div class="serviceflow-inv-field">
-                            <label><?php esc_html_e( 'Email', 'wpservio' ); ?></label>
+                            <label><?php esc_html_e( 'Email', 'servio' ); ?></label>
                             <input type="email" id="serviceflow-inv-company-email" value="<?php echo esc_attr( $s['company_email'] ); ?>" />
                         </div>
                     </div>
@@ -1332,11 +1332,11 @@ class WpServio_Invoices {
 
                 <!-- Logo -->
                 <div class="serviceflow-inv-section">
-                    <h2><span class="dashicons dashicons-format-image"></span> <?php esc_html_e( 'Logo', 'wpservio' ); ?></h2>
+                    <h2><span class="dashicons dashicons-format-image"></span> <?php esc_html_e( 'Logo', 'servio' ); ?></h2>
                     <div class="serviceflow-inv-field">
                         <input type="hidden" id="serviceflow-inv-company-logo" value="<?php echo esc_url( $s['company_logo'] ); ?>" />
-                        <button type="button" id="serviceflow-inv-upload-logo" class="button"><?php esc_html_e( 'Choisir un logo', 'wpservio' ); ?></button>
-                        <button type="button" id="serviceflow-inv-remove-logo" class="button" style="<?php echo empty( $s['company_logo'] ) ? 'display:none' : ''; ?>"><?php esc_html_e( 'Supprimer', 'wpservio' ); ?></button>
+                        <button type="button" id="serviceflow-inv-upload-logo" class="button"><?php esc_html_e( 'Choisir un logo', 'servio' ); ?></button>
+                        <button type="button" id="serviceflow-inv-remove-logo" class="button" style="<?php echo empty( $s['company_logo'] ) ? 'display:none' : ''; ?>"><?php esc_html_e( 'Supprimer', 'servio' ); ?></button>
                         <div class="serviceflow-inv-logo-preview">
                             <?php if ( ! empty( $s['company_logo'] ) ) : ?>
                                 <img src="<?php echo esc_url( $s['company_logo'] ); ?>" />
@@ -1347,25 +1347,25 @@ class WpServio_Invoices {
 
                 <!-- Identification -->
                 <div class="serviceflow-inv-section">
-                    <h2><span class="dashicons dashicons-id-alt"></span> <?php esc_html_e( 'Identification', 'wpservio' ); ?></h2>
+                    <h2><span class="dashicons dashicons-id-alt"></span> <?php esc_html_e( 'Identification', 'servio' ); ?></h2>
                     <div class="serviceflow-inv-row">
                         <div class="serviceflow-inv-field">
-                            <label><?php esc_html_e( 'Numéro de TVA', 'wpservio' ); ?></label>
+                            <label><?php esc_html_e( 'Numéro de TVA', 'servio' ); ?></label>
                             <input type="text" id="serviceflow-inv-vat" value="<?php echo esc_attr( $s['vat_number'] ); ?>" />
                         </div>
                         <div class="serviceflow-inv-field">
-                            <label><?php esc_html_e( 'Libellé identifiant', 'wpservio' ); ?></label>
+                            <label><?php esc_html_e( 'Libellé identifiant', 'servio' ); ?></label>
                             <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
                                 <select id="serviceflow-inv-siret-label-select" style="max-width:180px">
                                     <option value="SIRET" <?php selected( $s['siret_label'], 'SIRET' ); ?>>SIRET</option>
                                     <option value="IFU" <?php selected( $s['siret_label'], 'IFU' ); ?>>IFU</option>
                                     <option value="SIRET/IFU" <?php selected( $s['siret_label'], 'SIRET/IFU' ); ?>>SIRET/IFU</option>
-                                    <option value="custom" <?php echo ! in_array( $s['siret_label'], [ 'SIRET', 'IFU', 'SIRET/IFU' ], true ) ? 'selected' : ''; ?>><?php esc_html_e( 'Personnalisé', 'wpservio' ); ?></option>
+                                    <option value="custom" <?php echo ! in_array( $s['siret_label'], [ 'SIRET', 'IFU', 'SIRET/IFU' ], true ) ? 'selected' : ''; ?>><?php esc_html_e( 'Personnalisé', 'servio' ); ?></option>
                                 </select>
-                                <input type="text" id="serviceflow-inv-siret-label-custom" value="<?php echo esc_attr( $s['siret_label'] ); ?>" placeholder="<?php esc_attr_e( 'Ex: RCS, SIREN...', 'wpservio' ); ?>" style="max-width:200px;<?php echo in_array( $s['siret_label'], [ 'SIRET', 'IFU', 'SIRET/IFU' ], true ) ? 'display:none' : ''; ?>" />
+                                <input type="text" id="serviceflow-inv-siret-label-custom" value="<?php echo esc_attr( $s['siret_label'] ); ?>" placeholder="<?php esc_attr_e( 'Ex: RCS, SIREN...', 'servio' ); ?>" style="max-width:200px;<?php echo in_array( $s['siret_label'], [ 'SIRET', 'IFU', 'SIRET/IFU' ], true ) ? 'display:none' : ''; ?>" />
                             </div>
                             <input type="hidden" id="serviceflow-inv-siret-label" value="<?php echo esc_attr( $s['siret_label'] ); ?>" />
-                            <label><?php esc_html_e( 'Numéro', 'wpservio' ); ?></label>
+                            <label><?php esc_html_e( 'Numéro', 'servio' ); ?></label>
                             <input type="text" id="serviceflow-inv-siret" value="<?php echo esc_attr( $s['siret_ifu'] ); ?>" />
                         </div>
                     </div>
@@ -1373,38 +1373,38 @@ class WpServio_Invoices {
 
                 <!-- Facturation -->
                 <div class="serviceflow-inv-section">
-                    <h2><span class="dashicons dashicons-money-alt"></span> <?php esc_html_e( 'Facturation', 'wpservio' ); ?></h2>
+                    <h2><span class="dashicons dashicons-money-alt"></span> <?php esc_html_e( 'Facturation', 'servio' ); ?></h2>
                     <div class="serviceflow-inv-row">
                         <div class="serviceflow-inv-field">
-                            <label><?php esc_html_e( 'Préfixe des factures', 'wpservio' ); ?></label>
+                            <label><?php esc_html_e( 'Préfixe des factures', 'servio' ); ?></label>
                             <input type="text" id="serviceflow-inv-prefix" value="<?php echo esc_attr( $s['invoice_prefix'] ); ?>" placeholder="FACT-" />
                         </div>
                         <div class="serviceflow-inv-field">
-                            <label><?php esc_html_e( 'Taux de TVA (%)', 'wpservio' ); ?></label>
+                            <label><?php esc_html_e( 'Taux de TVA (%)', 'servio' ); ?></label>
                             <input type="number" id="serviceflow-inv-taxrate" value="<?php echo esc_attr( $s['tax_rate'] ); ?>" min="0" max="100" step="0.01" />
                         </div>
                     </div>
                     <div class="serviceflow-inv-field">
-                        <label><?php esc_html_e( 'Mention TVA (affiché si taux = 0%)', 'wpservio' ); ?></label>
-                        <input type="text" id="serviceflow-inv-taxnotice" value="<?php echo esc_attr( $s['tax_notice'] ); ?>" placeholder="<?php esc_attr_e( 'TVA non applicable, article 293 B du CGI', 'wpservio' ); ?>" style="width:100%" />
+                        <label><?php esc_html_e( 'Mention TVA (affiché si taux = 0%)', 'servio' ); ?></label>
+                        <input type="text" id="serviceflow-inv-taxnotice" value="<?php echo esc_attr( $s['tax_notice'] ); ?>" placeholder="<?php esc_attr_e( 'TVA non applicable, article 293 B du CGI', 'servio' ); ?>" style="width:100%" />
                     </div>
                 </div>
 
                 <!-- Textes -->
                 <div class="serviceflow-inv-section">
-                    <h2><span class="dashicons dashicons-editor-alignleft"></span> <?php esc_html_e( 'Textes', 'wpservio' ); ?></h2>
+                    <h2><span class="dashicons dashicons-editor-alignleft"></span> <?php esc_html_e( 'Textes', 'servio' ); ?></h2>
                     <div class="serviceflow-inv-field">
-                        <label><?php esc_html_e( 'Conditions de paiement', 'wpservio' ); ?></label>
+                        <label><?php esc_html_e( 'Conditions de paiement', 'servio' ); ?></label>
                         <textarea id="serviceflow-inv-terms"><?php echo esc_textarea( $s['payment_terms'] ); ?></textarea>
                     </div>
                     <div class="serviceflow-inv-field">
-                        <label><?php esc_html_e( 'Pied de page facture', 'wpservio' ); ?></label>
+                        <label><?php esc_html_e( 'Pied de page facture', 'servio' ); ?></label>
                         <textarea id="serviceflow-inv-footer"><?php echo esc_textarea( $s['footer_text'] ); ?></textarea>
                     </div>
                 </div>
 
                 <button type="button" id="serviceflow-inv-save-settings" class="button button-primary" style="background:<?php echo esc_attr( $color ); ?>;border-color:<?php echo esc_attr( $color ); ?>;padding:8px 24px;font-size:14px">
-                    <?php esc_html_e( 'Enregistrer', 'wpservio' ); ?>
+                    <?php esc_html_e( 'Enregistrer', 'servio' ); ?>
                 </button>
             </div>
 
@@ -1423,7 +1423,7 @@ class WpServio_Invoices {
 
                 if(uploadBtn){
                     uploadBtn.addEventListener('click', function(){
-                        var frame = wp.media({ title: '<?php echo esc_js( __( 'Choisir un logo', 'wpservio' ) ); ?>', multiple: false });
+                        var frame = wp.media({ title: '<?php echo esc_js( __( 'Choisir un logo', 'servio' ) ); ?>', multiple: false });
                         frame.on('select', function(){
                             var attachment = frame.state().get('selection').first().toJSON();
                             logoInput.value = attachment.url;
@@ -1461,10 +1461,10 @@ class WpServio_Invoices {
                 document.getElementById('serviceflow-inv-save-settings').addEventListener('click', function(){
                     var btn = this;
                     btn.disabled = true;
-                    btn.textContent = '<?php echo esc_js( __( 'Enregistrement...', 'wpservio' ) ); ?>';
+                    btn.textContent = '<?php echo esc_js( __( 'Enregistrement...', 'servio' ) ); ?>';
 
                     var fd = new FormData();
-                    fd.append('action', 'wpservio_save_invoice_settings');
+                    fd.append('action', 'servio_save_invoice_settings');
                     fd.append('nonce', nonce);
                     fd.append('company_name', document.getElementById('serviceflow-inv-company-name').value);
                     fd.append('company_address', document.getElementById('serviceflow-inv-company-address').value);
@@ -1487,10 +1487,10 @@ class WpServio_Invoices {
                     .then(function(r){ return r.json(); })
                     .then(function(res){
                         btn.disabled = false;
-                        btn.textContent = '<?php echo esc_js( __( 'Enregistrer', 'wpservio' ) ); ?>';
+                        btn.textContent = '<?php echo esc_js( __( 'Enregistrer', 'servio' ) ); ?>';
                         if(res.success){
-                            btn.textContent = '<?php echo esc_js( __( 'Enregistré !', 'wpservio' ) ); ?>';
-                            setTimeout(function(){ btn.textContent = '<?php echo esc_js( __( 'Enregistrer', 'wpservio' ) ); ?>'; }, 2000);
+                            btn.textContent = '<?php echo esc_js( __( 'Enregistré !', 'servio' ) ); ?>';
+                            setTimeout(function(){ btn.textContent = '<?php echo esc_js( __( 'Enregistrer', 'servio' ) ); ?>'; }, 2000);
                         } else {
                             alert(res.data && res.data.message ? res.data.message : 'Erreur');
                         }
@@ -1498,7 +1498,7 @@ class WpServio_Invoices {
                 });
             })();
             <?php
-            wp_add_inline_script( 'wpservio-invoices-js', ob_get_clean() );
+            wp_add_inline_script( 'servio-invoices-js', ob_get_clean() );
             ?>
         </div>
         <?php
@@ -1514,13 +1514,13 @@ class WpServio_Invoices {
         }
 
         $clients = self::get_all_ext_clients();
-        $color   = esc_attr( WpServio_Admin::get_color() );
-        $nonce   = wp_create_nonce( 'wpservio_nonce' );
+        $color   = esc_attr( Servio_Admin::get_color() );
+        $nonce   = wp_create_nonce( 'servio_nonce' );
         ?>
         <div class="wrap serviceflow-dashboard">
             <h1 style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
                 <span class="dashicons dashicons-groups" style="font-size:28px;width:28px;height:28px;color:<?php echo esc_attr( $color ); ?>"></span>
-                <?php esc_html_e( 'WpServio — Clients externes', 'wpservio' ); ?>
+                <?php esc_html_e( 'Servio — Clients externes', 'servio' ); ?>
             </h1>
 
             <div class="serviceflow-clients-wrap">
@@ -1528,16 +1528,16 @@ class WpServio_Invoices {
                     <table class="serviceflow-clients-table" id="serviceflow-cl-table">
                         <thead>
                             <tr>
-                                <th><?php esc_html_e( 'Nom', 'wpservio' ); ?></th>
-                                <th><?php esc_html_e( 'Email', 'wpservio' ); ?></th>
-                                <th><?php esc_html_e( 'Société', 'wpservio' ); ?></th>
-                                <th><?php esc_html_e( 'Ville', 'wpservio' ); ?></th>
-                                <th><?php esc_html_e( 'Actions', 'wpservio' ); ?></th>
+                                <th><?php esc_html_e( 'Nom', 'servio' ); ?></th>
+                                <th><?php esc_html_e( 'Email', 'servio' ); ?></th>
+                                <th><?php esc_html_e( 'Société', 'servio' ); ?></th>
+                                <th><?php esc_html_e( 'Ville', 'servio' ); ?></th>
+                                <th><?php esc_html_e( 'Actions', 'servio' ); ?></th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if ( empty( $clients ) ) : ?>
-                                <tr><td colspan="5" style="text-align:center;color:#888;padding:24px"><?php esc_html_e( 'Aucun client externe.', 'wpservio' ); ?></td></tr>
+                                <tr><td colspan="5" style="text-align:center;color:#888;padding:24px"><?php esc_html_e( 'Aucun client externe.', 'servio' ); ?></td></tr>
                             <?php else : ?>
                                 <?php foreach ( $clients as $cl ) : ?>
                                     <tr data-id="<?php echo (int) $cl->id; ?>"
@@ -1557,8 +1557,8 @@ class WpServio_Invoices {
                                         <td><?php echo esc_html( $cl->company ); ?></td>
                                         <td><?php echo esc_html( $cl->city ); ?></td>
                                         <td class="serviceflow-cl-actions">
-                                            <a class="edit" data-id="<?php echo (int) $cl->id; ?>"><?php esc_html_e( 'Modifier', 'wpservio' ); ?></a>
-                                            <a class="delete" data-id="<?php echo (int) $cl->id; ?>"><?php esc_html_e( 'Supprimer', 'wpservio' ); ?></a>
+                                            <a class="edit" data-id="<?php echo (int) $cl->id; ?>"><?php esc_html_e( 'Modifier', 'servio' ); ?></a>
+                                            <a class="delete" data-id="<?php echo (int) $cl->id; ?>"><?php esc_html_e( 'Supprimer', 'servio' ); ?></a>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -1569,62 +1569,62 @@ class WpServio_Invoices {
 
                 <div class="serviceflow-clients-form">
                     <div class="serviceflow-cl-form-card">
-                        <h3 id="serviceflow-cl-form-title"><?php esc_html_e( 'Ajouter un client', 'wpservio' ); ?></h3>
+                        <h3 id="serviceflow-cl-form-title"><?php esc_html_e( 'Ajouter un client', 'servio' ); ?></h3>
                         <input type="hidden" id="serviceflow-cl-id" value="0" />
                         <div class="serviceflow-cl-field">
-                            <label><?php esc_html_e( 'Nom *', 'wpservio' ); ?></label>
+                            <label><?php esc_html_e( 'Nom *', 'servio' ); ?></label>
                             <input type="text" id="serviceflow-cl-name" />
                         </div>
                         <div class="serviceflow-cl-field">
-                            <label><?php esc_html_e( 'Email', 'wpservio' ); ?></label>
+                            <label><?php esc_html_e( 'Email', 'servio' ); ?></label>
                             <input type="email" id="serviceflow-cl-email" />
                         </div>
                         <div class="serviceflow-cl-field">
-                            <label><?php esc_html_e( 'Société', 'wpservio' ); ?></label>
+                            <label><?php esc_html_e( 'Société', 'servio' ); ?></label>
                             <input type="text" id="serviceflow-cl-company" />
                         </div>
                         <div class="serviceflow-cl-field">
-                            <label><?php esc_html_e( 'Adresse', 'wpservio' ); ?></label>
+                            <label><?php esc_html_e( 'Adresse', 'servio' ); ?></label>
                             <textarea id="serviceflow-cl-address"></textarea>
                         </div>
                         <div class="serviceflow-cl-row">
                             <div class="serviceflow-cl-field">
-                                <label><?php esc_html_e( 'Code postal', 'wpservio' ); ?></label>
+                                <label><?php esc_html_e( 'Code postal', 'servio' ); ?></label>
                                 <input type="text" id="serviceflow-cl-postal" />
                             </div>
                             <div class="serviceflow-cl-field">
-                                <label><?php esc_html_e( 'Ville', 'wpservio' ); ?></label>
+                                <label><?php esc_html_e( 'Ville', 'servio' ); ?></label>
                                 <input type="text" id="serviceflow-cl-city" />
                             </div>
                         </div>
                         <div class="serviceflow-cl-row">
                             <div class="serviceflow-cl-field">
-                                <label><?php esc_html_e( 'Pays', 'wpservio' ); ?></label>
+                                <label><?php esc_html_e( 'Pays', 'servio' ); ?></label>
                                 <input type="text" id="serviceflow-cl-country" value="France" />
                             </div>
                             <div class="serviceflow-cl-field">
-                                <label><?php esc_html_e( 'Téléphone', 'wpservio' ); ?></label>
+                                <label><?php esc_html_e( 'Téléphone', 'servio' ); ?></label>
                                 <input type="text" id="serviceflow-cl-phone" />
                             </div>
                         </div>
                         <div class="serviceflow-cl-row">
                             <div class="serviceflow-cl-field">
-                                <label><?php esc_html_e( 'N° TVA', 'wpservio' ); ?></label>
+                                <label><?php esc_html_e( 'N° TVA', 'servio' ); ?></label>
                                 <input type="text" id="serviceflow-cl-vat" />
                             </div>
                             <div class="serviceflow-cl-field">
-                                <label><?php esc_html_e( 'SIRET / IFU', 'wpservio' ); ?></label>
+                                <label><?php esc_html_e( 'SIRET / IFU', 'servio' ); ?></label>
                                 <input type="text" id="serviceflow-cl-siret" />
                             </div>
                         </div>
                         <div class="serviceflow-cl-field">
-                            <label><?php esc_html_e( 'Notes', 'wpservio' ); ?></label>
+                            <label><?php esc_html_e( 'Notes', 'servio' ); ?></label>
                             <textarea id="serviceflow-cl-notes"></textarea>
                         </div>
                         <button type="button" id="serviceflow-cl-save" class="button button-primary" style="background:<?php echo esc_attr( $color ); ?>;border-color:<?php echo esc_attr( $color ); ?>;margin-right:8px">
-                            <?php esc_html_e( 'Enregistrer', 'wpservio' ); ?>
+                            <?php esc_html_e( 'Enregistrer', 'servio' ); ?>
                         </button>
-                        <button type="button" id="serviceflow-cl-reset" class="button"><?php esc_html_e( 'Annuler', 'wpservio' ); ?></button>
+                        <button type="button" id="serviceflow-cl-reset" class="button"><?php esc_html_e( 'Annuler', 'servio' ); ?></button>
                     </div>
                 </div>
             </div>
@@ -1638,7 +1638,7 @@ class WpServio_Invoices {
 
                 function resetForm(){
                     document.getElementById('serviceflow-cl-id').value = '0';
-                    document.getElementById('serviceflow-cl-form-title').textContent = '<?php echo esc_js( __( 'Ajouter un client', 'wpservio' ) ); ?>';
+                    document.getElementById('serviceflow-cl-form-title').textContent = '<?php echo esc_js( __( 'Ajouter un client', 'servio' ) ); ?>';
                     ['name','email','company','address','postal','city','phone','vat','siret','notes'].forEach(function(f){
                         document.getElementById('serviceflow-cl-'+f).value = '';
                     });
@@ -1663,7 +1663,7 @@ class WpServio_Invoices {
                         document.getElementById('serviceflow-cl-vat').value = tr.dataset.vat;
                         document.getElementById('serviceflow-cl-siret').value = tr.dataset.siret;
                         document.getElementById('serviceflow-cl-notes').value = tr.dataset.notes;
-                        document.getElementById('serviceflow-cl-form-title').textContent = '<?php echo esc_js( __( 'Modifier le client', 'wpservio' ) ); ?>';
+                        document.getElementById('serviceflow-cl-form-title').textContent = '<?php echo esc_js( __( 'Modifier le client', 'servio' ) ); ?>';
                         document.querySelector('.serviceflow-clients-form').scrollIntoView({behavior:'smooth'});
                     });
                 });
@@ -1671,10 +1671,10 @@ class WpServio_Invoices {
                 // Delete
                 document.querySelectorAll('.serviceflow-cl-actions .delete').forEach(function(a){
                     a.addEventListener('click', function(){
-                        if(!confirm('<?php echo esc_js( __( 'Supprimer ce client ?', 'wpservio' ) ); ?>')) return;
+                        if(!confirm('<?php echo esc_js( __( 'Supprimer ce client ?', 'servio' ) ); ?>')) return;
                         var id = this.dataset.id;
                         var fd = new FormData();
-                        fd.append('action','wpservio_delete_ext_client');
+                        fd.append('action','servio_delete_ext_client');
                         fd.append('nonce',nonce);
                         fd.append('client_id',id);
                         fetch(ajaxUrl,{method:'POST',body:fd,credentials:'same-origin'})
@@ -1688,7 +1688,7 @@ class WpServio_Invoices {
                     var btn = this;
                     btn.disabled = true;
                     var fd = new FormData();
-                    fd.append('action','wpservio_save_ext_client');
+                    fd.append('action','servio_save_ext_client');
                     fd.append('nonce',nonce);
                     fd.append('client_id', document.getElementById('serviceflow-cl-id').value);
                     fd.append('name', document.getElementById('serviceflow-cl-name').value);
@@ -1708,7 +1708,7 @@ class WpServio_Invoices {
                 });
             })();
             <?php
-            wp_add_inline_script( 'wpservio-invoices-js', ob_get_clean() );
+            wp_add_inline_script( 'servio-invoices-js', ob_get_clean() );
             ?>
         </div>
         <?php
@@ -1728,21 +1728,21 @@ class WpServio_Invoices {
         $counts   = self::get_status_counts();
         $labels   = self::get_status_labels();
         $colors   = self::get_status_colors();
-        $color    = esc_attr( WpServio_Admin::get_color() );
-        $nonce    = wp_create_nonce( 'wpservio_nonce' );
+        $color    = esc_attr( Servio_Admin::get_color() );
+        $nonce    = wp_create_nonce( 'servio_nonce' );
         $page_url = admin_url( 'admin.php?page=serviceflow-invoices' );
         ?>
         <div class="wrap serviceflow-dashboard">
             <h1 style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
                 <span class="dashicons dashicons-media-text" style="font-size:28px;width:28px;height:28px;color:<?php echo esc_attr( $color ); ?>"></span>
-                <?php esc_html_e( 'WpServio — Factures', 'wpservio' ); ?>
-                <a href="<?php echo esc_url( admin_url( 'admin.php?page=serviceflow-invoice-new' ) ); ?>" class="page-title-action"><?php esc_html_e( 'Nouvelle facture', 'wpservio' ); ?></a>
+                <?php esc_html_e( 'Servio — Factures', 'servio' ); ?>
+                <a href="<?php echo esc_url( admin_url( 'admin.php?page=serviceflow-invoice-new' ) ); ?>" class="page-title-action"><?php esc_html_e( 'Nouvelle facture', 'servio' ); ?></a>
             </h1>
 
             <!-- Filtres -->
             <div class="serviceflow-inv-filters">
                 <a href="<?php echo esc_url( $page_url ); ?>" class="serviceflow-inv-filter <?php echo empty( $filter ) ? 'active' : ''; ?>">
-                    <?php esc_html_e( 'Toutes', 'wpservio' ); ?> <span class="count">(<?php echo absint( $counts['all'] ); ?>)</span>
+                    <?php esc_html_e( 'Toutes', 'servio' ); ?> <span class="count">(<?php echo absint( $counts['all'] ); ?>)</span>
                 </a>
                 <?php foreach ( $labels as $key => $label ) : ?>
                     <a href="<?php echo esc_url( add_query_arg( 'status', $key, $page_url ) ); ?>" class="serviceflow-inv-filter <?php echo $filter === $key ? 'active' : ''; ?>">
@@ -1755,18 +1755,18 @@ class WpServio_Invoices {
             <table class="serviceflow-inv-table">
                 <thead>
                     <tr>
-                        <th><?php esc_html_e( 'N° Facture', 'wpservio' ); ?></th>
-                        <th><?php esc_html_e( 'Client', 'wpservio' ); ?></th>
-                        <th><?php esc_html_e( 'Commande', 'wpservio' ); ?></th>
-                        <th><?php esc_html_e( 'Statut', 'wpservio' ); ?></th>
-                        <th><?php esc_html_e( 'Total TTC', 'wpservio' ); ?></th>
-                        <th><?php esc_html_e( 'Date', 'wpservio' ); ?></th>
-                        <th><?php esc_html_e( 'Actions', 'wpservio' ); ?></th>
+                        <th><?php esc_html_e( 'N° Facture', 'servio' ); ?></th>
+                        <th><?php esc_html_e( 'Client', 'servio' ); ?></th>
+                        <th><?php esc_html_e( 'Commande', 'servio' ); ?></th>
+                        <th><?php esc_html_e( 'Statut', 'servio' ); ?></th>
+                        <th><?php esc_html_e( 'Total TTC', 'servio' ); ?></th>
+                        <th><?php esc_html_e( 'Date', 'servio' ); ?></th>
+                        <th><?php esc_html_e( 'Actions', 'servio' ); ?></th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if ( empty( $invoices ) ) : ?>
-                        <tr><td colspan="7" style="text-align:center;color:#888;padding:24px"><?php esc_html_e( 'Aucune facture.', 'wpservio' ); ?></td></tr>
+                        <tr><td colspan="7" style="text-align:center;color:#888;padding:24px"><?php esc_html_e( 'Aucune facture.', 'servio' ); ?></td></tr>
                     <?php else : ?>
                         <?php
                         $transitions_map = [
@@ -1807,18 +1807,18 @@ class WpServio_Invoices {
                             <td><strong><?php echo esc_html( number_format( (float) $inv->total, 2, ',', ' ' ) ); ?> &euro;</strong></td>
                             <td><?php echo esc_html( date_i18n( 'd/m/Y', strtotime( $inv->created_at ) ) ); ?></td>
                             <td>
-                                <a href="<?php echo esc_url( $view_url ); ?>" class="serviceflow-inv-act" style="color:<?php echo esc_attr( $color ); ?>"><?php esc_html_e( 'Voir', 'wpservio' ); ?></a>
+                                <a href="<?php echo esc_url( $view_url ); ?>" class="serviceflow-inv-act" style="color:<?php echo esc_attr( $color ); ?>"><?php esc_html_e( 'Voir', 'servio' ); ?></a>
                                 <?php if ( $inv->status === self::STATUS_DRAFT ) : ?>
-                                    <a href="<?php echo esc_url( admin_url( 'admin.php?page=serviceflow-invoice-edit&invoice_id=' . $inv->id ) ); ?>" class="serviceflow-inv-act" style="color:#f59e0b"><?php esc_html_e( 'Modifier', 'wpservio' ); ?></a>
+                                    <a href="<?php echo esc_url( admin_url( 'admin.php?page=serviceflow-invoice-edit&invoice_id=' . $inv->id ) ); ?>" class="serviceflow-inv-act" style="color:#f59e0b"><?php esc_html_e( 'Modifier', 'servio' ); ?></a>
                                 <?php endif; ?>
                                 <?php if ( in_array( $inv->status, [ self::STATUS_DRAFT, self::STATUS_PENDING ], true ) ) : ?>
-                                    <a class="serviceflow-inv-act serviceflow-inv-action" data-action="wpservio_invoice_validate" data-id="<?php echo (int) $inv->id; ?>" style="color:#10b981"><?php esc_html_e( 'Valider', 'wpservio' ); ?></a>
+                                    <a class="serviceflow-inv-act serviceflow-inv-action" data-action="servio_invoice_validate" data-id="<?php echo (int) $inv->id; ?>" style="color:#10b981"><?php esc_html_e( 'Valider', 'servio' ); ?></a>
                                 <?php endif; ?>
                                 <?php if ( $inv->status === self::STATUS_VALIDATED ) : ?>
-                                    <a class="serviceflow-inv-act serviceflow-inv-action" data-action="wpservio_invoice_mark_paid" data-id="<?php echo (int) $inv->id; ?>" style="color:#10b981"><?php esc_html_e( 'Payer', 'wpservio' ); ?></a>
+                                    <a class="serviceflow-inv-act serviceflow-inv-action" data-action="servio_invoice_mark_paid" data-id="<?php echo (int) $inv->id; ?>" style="color:#10b981"><?php esc_html_e( 'Payer', 'servio' ); ?></a>
                                 <?php endif; ?>
                                 <?php if ( ! in_array( $inv->status, [ self::STATUS_PAID, self::STATUS_CANCELLED ], true ) ) : ?>
-                                    <a class="serviceflow-inv-act serviceflow-inv-action" data-action="wpservio_invoice_cancel" data-id="<?php echo (int) $inv->id; ?>" style="color:#ef4444"><?php esc_html_e( 'Annuler', 'wpservio' ); ?></a>
+                                    <a class="serviceflow-inv-act serviceflow-inv-action" data-action="servio_invoice_cancel" data-id="<?php echo (int) $inv->id; ?>" style="color:#ef4444"><?php esc_html_e( 'Annuler', 'servio' ); ?></a>
                                 <?php endif; ?>
                             </td>
                         </tr>
@@ -1840,7 +1840,7 @@ class WpServio_Invoices {
                         e.preventDefault();
                         var action = this.dataset.action;
                         var id     = this.dataset.id;
-                        var label  = action === 'wpservio_invoice_cancel' ? '<?php echo esc_js( __( 'Annuler cette facture ?', 'wpservio' ) ); ?>' : '<?php echo esc_js( __( 'Confirmer cette action ?', 'wpservio' ) ); ?>';
+                        var label  = action === 'servio_invoice_cancel' ? '<?php echo esc_js( __( 'Annuler cette facture ?', 'servio' ) ); ?>' : '<?php echo esc_js( __( 'Confirmer cette action ?', 'servio' ) ); ?>';
                         if(!confirm(label)) return;
 
                         var fd = new FormData();
@@ -1881,10 +1881,10 @@ class WpServio_Invoices {
                         e.stopPropagation();
                         var id = this.dataset.id;
                         var newStatus = this.dataset.status;
-                        if(!confirm('<?php echo esc_js( __( 'Changer le statut de cette facture ?', 'wpservio' ) ); ?>')) return;
+                        if(!confirm('<?php echo esc_js( __( 'Changer le statut de cette facture ?', 'servio' ) ); ?>')) return;
 
                         var fd = new FormData();
-                        fd.append('action', 'wpservio_invoice_set_status');
+                        fd.append('action', 'servio_invoice_set_status');
                         fd.append('nonce', nonce);
                         fd.append('invoice_id', id);
                         fd.append('new_status', newStatus);
@@ -1895,7 +1895,7 @@ class WpServio_Invoices {
                 });
             })();
             <?php
-            wp_add_inline_script( 'wpservio-invoices-js', ob_get_clean() );
+            wp_add_inline_script( 'servio-invoices-js', ob_get_clean() );
             ?>
         </div>
         <?php
@@ -1911,8 +1911,8 @@ class WpServio_Invoices {
         }
 
         $settings    = self::get_settings();
-        $color       = esc_attr( WpServio_Admin::get_color() );
-        $nonce       = wp_create_nonce( 'wpservio_nonce' );
+        $color       = esc_attr( Servio_Admin::get_color() );
+        $nonce       = wp_create_nonce( 'servio_nonce' );
         $ext_clients = self::get_all_ext_clients();
 
         // Utilisateurs WP non-admin
@@ -1921,54 +1921,54 @@ class WpServio_Invoices {
         <div class="wrap serviceflow-dashboard">
             <h1 style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
                 <span class="dashicons dashicons-plus-alt" style="font-size:28px;width:28px;height:28px;color:<?php echo esc_attr( $color ); ?>"></span>
-                <?php esc_html_e( 'WpServio — Nouvelle facture', 'wpservio' ); ?>
+                <?php esc_html_e( 'Servio — Nouvelle facture', 'servio' ); ?>
             </h1>
 
             <div id="serviceflow-newinv-form">
                 <!-- Client -->
                 <div class="serviceflow-newinv-section">
-                    <h2><span class="dashicons dashicons-admin-users"></span> <?php esc_html_e( 'Client', 'wpservio' ); ?></h2>
+                    <h2><span class="dashicons dashicons-admin-users"></span> <?php esc_html_e( 'Client', 'servio' ); ?></h2>
                     <div class="serviceflow-newinv-radio">
-                        <label><input type="radio" name="wpservio_client_type" value="wp" checked /> <?php esc_html_e( 'Utilisateur WordPress', 'wpservio' ); ?></label>
-                        <label><input type="radio" name="wpservio_client_type" value="ext" /> <?php esc_html_e( 'Client externe', 'wpservio' ); ?></label>
+                        <label><input type="radio" name="servio_client_type" value="wp" checked /> <?php esc_html_e( 'Utilisateur WordPress', 'servio' ); ?></label>
+                        <label><input type="radio" name="servio_client_type" value="ext" /> <?php esc_html_e( 'Client externe', 'servio' ); ?></label>
                     </div>
                     <div class="serviceflow-newinv-field" id="serviceflow-newinv-wp-client">
-                        <label><?php esc_html_e( 'Sélectionner un utilisateur', 'wpservio' ); ?></label>
+                        <label><?php esc_html_e( 'Sélectionner un utilisateur', 'servio' ); ?></label>
                         <select id="serviceflow-newinv-client-id">
-                            <option value=""><?php esc_html_e( '— Choisir —', 'wpservio' ); ?></option>
+                            <option value=""><?php esc_html_e( '— Choisir —', 'servio' ); ?></option>
                             <?php foreach ( $wp_users as $u ) : ?>
                                 <option value="<?php echo (int) $u->ID; ?>"><?php echo esc_html( $u->display_name . ' (' . $u->user_email . ')' ); ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="serviceflow-newinv-field" id="serviceflow-newinv-ext-client" style="display:none">
-                        <label><?php esc_html_e( 'Sélectionner un client externe', 'wpservio' ); ?></label>
+                        <label><?php esc_html_e( 'Sélectionner un client externe', 'servio' ); ?></label>
                         <select id="serviceflow-newinv-ext-id">
-                            <option value=""><?php esc_html_e( '— Choisir —', 'wpservio' ); ?></option>
+                            <option value=""><?php esc_html_e( '— Choisir —', 'servio' ); ?></option>
                             <?php foreach ( $ext_clients as $ec ) : ?>
                                 <option value="<?php echo (int) $ec->id; ?>"><?php echo esc_html( $ec->name . ( $ec->company ? ' — ' . $ec->company : '' ) ); ?></option>
                             <?php endforeach; ?>
                         </select>
-                        <a href="<?php echo esc_url( admin_url( 'admin.php?page=serviceflow-clients' ) ); ?>" style="font-size:12px"><?php esc_html_e( 'Gérer les clients externes', 'wpservio' ); ?></a>
+                        <a href="<?php echo esc_url( admin_url( 'admin.php?page=serviceflow-clients' ) ); ?>" style="font-size:12px"><?php esc_html_e( 'Gérer les clients externes', 'servio' ); ?></a>
                     </div>
                 </div>
 
                 <!-- Articles -->
                 <div class="serviceflow-newinv-section">
-                    <h2><span class="dashicons dashicons-list-view"></span> <?php esc_html_e( 'Articles', 'wpservio' ); ?></h2>
+                    <h2><span class="dashicons dashicons-list-view"></span> <?php esc_html_e( 'Articles', 'servio' ); ?></h2>
                     <table class="serviceflow-items-table" id="serviceflow-items-table">
                         <thead>
                             <tr>
-                                <th style="width:50%"><?php esc_html_e( 'Description', 'wpservio' ); ?></th>
-                                <th style="width:10%"><?php esc_html_e( 'Qté', 'wpservio' ); ?></th>
-                                <th style="width:20%"><?php esc_html_e( 'Prix unitaire HT', 'wpservio' ); ?></th>
-                                <th style="width:15%"><?php esc_html_e( 'Total HT', 'wpservio' ); ?></th>
+                                <th style="width:50%"><?php esc_html_e( 'Description', 'servio' ); ?></th>
+                                <th style="width:10%"><?php esc_html_e( 'Qté', 'servio' ); ?></th>
+                                <th style="width:20%"><?php esc_html_e( 'Prix unitaire HT', 'servio' ); ?></th>
+                                <th style="width:15%"><?php esc_html_e( 'Total HT', 'servio' ); ?></th>
                                 <th style="width:5%"></th>
                             </tr>
                         </thead>
                         <tbody id="serviceflow-items-body">
                             <tr class="serviceflow-item-row">
-                                <td><input type="text" class="serviceflow-item-desc" placeholder="<?php esc_attr_e( 'Description du service', 'wpservio' ); ?>" /></td>
+                                <td><input type="text" class="serviceflow-item-desc" placeholder="<?php esc_attr_e( 'Description du service', 'servio' ); ?>" /></td>
                                 <td><input type="number" class="serviceflow-item-qty" value="1" min="1" step="1" /></td>
                                 <td><input type="number" class="serviceflow-item-price" value="0" min="0" step="0.01" /></td>
                                 <td class="serviceflow-item-total" style="text-align:right;font-weight:600">0,00 &euro;</td>
@@ -1976,31 +1976,31 @@ class WpServio_Invoices {
                             </tr>
                         </tbody>
                     </table>
-                    <button type="button" id="serviceflow-add-item" class="button">+ <?php esc_html_e( 'Ajouter un article', 'wpservio' ); ?></button>
+                    <button type="button" id="serviceflow-add-item" class="button">+ <?php esc_html_e( 'Ajouter un article', 'servio' ); ?></button>
 
                     <div class="serviceflow-newinv-totals" style="margin-top:16px">
-                        <div><?php esc_html_e( 'Sous-total HT', 'wpservio' ); ?> : <span id="serviceflow-newinv-subtotal">0,00</span> &euro;</div>
-                        <div><?php esc_html_e( 'TVA', 'wpservio' ); ?> (<span id="serviceflow-newinv-taxrate-display"><?php echo esc_html( $settings['tax_rate'] ); ?></span>%) : <span id="serviceflow-newinv-tax">0,00</span> &euro;</div>
-                        <div><strong><?php esc_html_e( 'Total TTC', 'wpservio' ); ?> : <span id="serviceflow-newinv-total">0,00</span> &euro;</strong></div>
+                        <div><?php esc_html_e( 'Sous-total HT', 'servio' ); ?> : <span id="serviceflow-newinv-subtotal">0,00</span> &euro;</div>
+                        <div><?php esc_html_e( 'TVA', 'servio' ); ?> (<span id="serviceflow-newinv-taxrate-display"><?php echo esc_html( $settings['tax_rate'] ); ?></span>%) : <span id="serviceflow-newinv-tax">0,00</span> &euro;</div>
+                        <div><strong><?php esc_html_e( 'Total TTC', 'servio' ); ?> : <span id="serviceflow-newinv-total">0,00</span> &euro;</strong></div>
                     </div>
                 </div>
 
                 <!-- TVA et notes -->
                 <div class="serviceflow-newinv-section">
-                    <h2><span class="dashicons dashicons-editor-alignleft"></span> <?php esc_html_e( 'Détails', 'wpservio' ); ?></h2>
+                    <h2><span class="dashicons dashicons-editor-alignleft"></span> <?php esc_html_e( 'Détails', 'servio' ); ?></h2>
                     <div class="serviceflow-newinv-field" style="max-width:200px">
-                        <label><?php esc_html_e( 'Taux TVA (%)', 'wpservio' ); ?></label>
+                        <label><?php esc_html_e( 'Taux TVA (%)', 'servio' ); ?></label>
                         <input type="number" id="serviceflow-newinv-taxrate" value="<?php echo esc_attr( $settings['tax_rate'] ); ?>" min="0" max="100" step="0.01" />
                     </div>
                     <div class="serviceflow-newinv-field">
-                        <label><?php esc_html_e( 'Notes / Conditions', 'wpservio' ); ?></label>
+                        <label><?php esc_html_e( 'Notes / Conditions', 'servio' ); ?></label>
                         <textarea id="serviceflow-newinv-notes"><?php echo esc_textarea( $settings['payment_terms'] ); ?></textarea>
                     </div>
                 </div>
 
                 <!-- Actions -->
-                <button type="button" class="button serviceflow-newinv-save" data-status="draft" style="margin-right:8px"><?php esc_html_e( 'Enregistrer en brouillon', 'wpservio' ); ?></button>
-                <button type="button" class="button button-primary serviceflow-newinv-save" data-status="validated" style="background:<?php echo esc_attr( $color ); ?>;border-color:<?php echo esc_attr( $color ); ?>"><?php esc_html_e( 'Enregistrer et valider', 'wpservio' ); ?></button>
+                <button type="button" class="button serviceflow-newinv-save" data-status="draft" style="margin-right:8px"><?php esc_html_e( 'Enregistrer en brouillon', 'servio' ); ?></button>
+                <button type="button" class="button button-primary serviceflow-newinv-save" data-status="validated" style="background:<?php echo esc_attr( $color ); ?>;border-color:<?php echo esc_attr( $color ); ?>"><?php esc_html_e( 'Enregistrer et valider', 'servio' ); ?></button>
             </div>
 
             <?php
@@ -2011,7 +2011,7 @@ class WpServio_Invoices {
                 var nonce   = '<?php echo esc_js( $nonce ); ?>';
 
                 // Toggle client type
-                document.querySelectorAll('input[name="wpservio_client_type"]').forEach(function(r){
+                document.querySelectorAll('input[name="servio_client_type"]').forEach(function(r){
                     r.addEventListener('change', function(){
                         document.getElementById('serviceflow-newinv-wp-client').style.display = this.value==='wp' ? '' : 'none';
                         document.getElementById('serviceflow-newinv-ext-client').style.display = this.value==='ext' ? '' : 'none';
@@ -2045,7 +2045,7 @@ class WpServio_Invoices {
                 document.getElementById('serviceflow-add-item').addEventListener('click', function(){
                     var row = document.createElement('tr');
                     row.className = 'serviceflow-item-row';
-                    row.innerHTML = '<td><input type="text" class="serviceflow-item-desc" placeholder="<?php echo esc_js( __( 'Description du service', 'wpservio' ) ); ?>" /></td>' +
+                    row.innerHTML = '<td><input type="text" class="serviceflow-item-desc" placeholder="<?php echo esc_js( __( 'Description du service', 'servio' ) ); ?>" /></td>' +
                         '<td><input type="number" class="serviceflow-item-qty" value="1" min="1" step="1" /></td>' +
                         '<td><input type="number" class="serviceflow-item-price" value="0" min="0" step="0.01" /></td>' +
                         '<td class="serviceflow-item-total" style="text-align:right;font-weight:600">0,00 \u20ac</td>' +
@@ -2067,9 +2067,9 @@ class WpServio_Invoices {
                         var status = this.dataset.status;
                         this.disabled = true;
 
-                        var clientType = document.querySelector('input[name="wpservio_client_type"]:checked').value;
+                        var clientType = document.querySelector('input[name="servio_client_type"]:checked').value;
                         var fd = new FormData();
-                        fd.append('action', 'wpservio_invoice_save');
+                        fd.append('action', 'servio_invoice_save');
                         fd.append('nonce', nonce);
                         fd.append('client_type', clientType);
                         fd.append('client_id', document.getElementById('serviceflow-newinv-client-id').value);
@@ -2099,7 +2099,7 @@ class WpServio_Invoices {
                 });
             })();
             <?php
-            wp_add_inline_script( 'wpservio-invoices-js', ob_get_clean() );
+            wp_add_inline_script( 'servio-invoices-js', ob_get_clean() );
             ?>
         </div>
         <?php
@@ -2118,13 +2118,13 @@ class WpServio_Invoices {
         $invoice    = $invoice_id ? self::get_invoice( $invoice_id ) : null;
 
         if ( ! $invoice || $invoice->status !== self::STATUS_DRAFT ) {
-            echo '<div class="wrap"><p>' . esc_html__( 'Seuls les brouillons peuvent être modifiés.', 'wpservio' ) . '</p></div>';
+            echo '<div class="wrap"><p>' . esc_html__( 'Seuls les brouillons peuvent être modifiés.', 'servio' ) . '</p></div>';
             return;
         }
 
         $settings    = self::get_settings();
-        $color       = esc_attr( WpServio_Admin::get_color() );
-        $nonce       = wp_create_nonce( 'wpservio_nonce' );
+        $color       = esc_attr( Servio_Admin::get_color() );
+        $nonce       = wp_create_nonce( 'servio_nonce' );
         $ext_clients = self::get_all_ext_clients();
         $wp_users    = get_users( [ 'role__not_in' => [ 'administrator' ], 'orderby' => 'display_name', 'number' => 200 ] );
         $items       = json_decode( $invoice->items, true ) ?: [];
@@ -2135,30 +2135,30 @@ class WpServio_Invoices {
                 <span class="dashicons dashicons-edit" style="font-size:28px;width:28px;height:28px;color:<?php echo esc_attr( $color ); ?>"></span>
                 <?php
                 /* translators: %s: invoice number */
-                printf( esc_html__( 'Modifier — %s', 'wpservio' ), esc_html( $invoice->invoice_number ) ); ?>
+                printf( esc_html__( 'Modifier — %s', 'servio' ), esc_html( $invoice->invoice_number ) ); ?>
             </h1>
 
             <div id="serviceflow-newinv-form">
                 <!-- Client -->
                 <div class="serviceflow-newinv-section">
-                    <h2><span class="dashicons dashicons-admin-users"></span> <?php esc_html_e( 'Client', 'wpservio' ); ?></h2>
+                    <h2><span class="dashicons dashicons-admin-users"></span> <?php esc_html_e( 'Client', 'servio' ); ?></h2>
                     <div class="serviceflow-newinv-radio">
-                        <label><input type="radio" name="wpservio_client_type" value="wp" <?php checked( $is_wp ); ?> /> <?php esc_html_e( 'Utilisateur WordPress', 'wpservio' ); ?></label>
-                        <label><input type="radio" name="wpservio_client_type" value="ext" <?php checked( ! $is_wp ); ?> /> <?php esc_html_e( 'Client externe', 'wpservio' ); ?></label>
+                        <label><input type="radio" name="servio_client_type" value="wp" <?php checked( $is_wp ); ?> /> <?php esc_html_e( 'Utilisateur WordPress', 'servio' ); ?></label>
+                        <label><input type="radio" name="servio_client_type" value="ext" <?php checked( ! $is_wp ); ?> /> <?php esc_html_e( 'Client externe', 'servio' ); ?></label>
                     </div>
                     <div class="serviceflow-newinv-field" id="serviceflow-newinv-wp-client" style="<?php echo $is_wp ? '' : 'display:none'; ?>">
-                        <label><?php esc_html_e( 'Sélectionner un utilisateur', 'wpservio' ); ?></label>
+                        <label><?php esc_html_e( 'Sélectionner un utilisateur', 'servio' ); ?></label>
                         <select id="serviceflow-newinv-client-id">
-                            <option value=""><?php esc_html_e( '— Choisir —', 'wpservio' ); ?></option>
+                            <option value=""><?php esc_html_e( '— Choisir —', 'servio' ); ?></option>
                             <?php foreach ( $wp_users as $u ) : ?>
                                 <option value="<?php echo (int) $u->ID; ?>" <?php selected( (int) $invoice->client_id, $u->ID ); ?>><?php echo esc_html( $u->display_name . ' (' . $u->user_email . ')' ); ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="serviceflow-newinv-field" id="serviceflow-newinv-ext-client" style="<?php echo $is_wp ? 'display:none' : ''; ?>">
-                        <label><?php esc_html_e( 'Sélectionner un client externe', 'wpservio' ); ?></label>
+                        <label><?php esc_html_e( 'Sélectionner un client externe', 'servio' ); ?></label>
                         <select id="serviceflow-newinv-ext-id">
-                            <option value=""><?php esc_html_e( '— Choisir —', 'wpservio' ); ?></option>
+                            <option value=""><?php esc_html_e( '— Choisir —', 'servio' ); ?></option>
                             <?php foreach ( $ext_clients as $ec ) : ?>
                                 <option value="<?php echo (int) $ec->id; ?>" <?php selected( (int) $invoice->ext_client_id, $ec->id ); ?>><?php echo esc_html( $ec->name . ( $ec->company ? ' — ' . $ec->company : '' ) ); ?></option>
                             <?php endforeach; ?>
@@ -2168,14 +2168,14 @@ class WpServio_Invoices {
 
                 <!-- Articles -->
                 <div class="serviceflow-newinv-section">
-                    <h2><span class="dashicons dashicons-list-view"></span> <?php esc_html_e( 'Articles', 'wpservio' ); ?></h2>
+                    <h2><span class="dashicons dashicons-list-view"></span> <?php esc_html_e( 'Articles', 'servio' ); ?></h2>
                     <table class="serviceflow-items-table" id="serviceflow-items-table">
                         <thead>
                             <tr>
-                                <th style="width:50%"><?php esc_html_e( 'Description', 'wpservio' ); ?></th>
-                                <th style="width:10%"><?php esc_html_e( 'Qté', 'wpservio' ); ?></th>
-                                <th style="width:20%"><?php esc_html_e( 'Prix unitaire HT', 'wpservio' ); ?></th>
-                                <th style="width:15%"><?php esc_html_e( 'Total HT', 'wpservio' ); ?></th>
+                                <th style="width:50%"><?php esc_html_e( 'Description', 'servio' ); ?></th>
+                                <th style="width:10%"><?php esc_html_e( 'Qté', 'servio' ); ?></th>
+                                <th style="width:20%"><?php esc_html_e( 'Prix unitaire HT', 'servio' ); ?></th>
+                                <th style="width:15%"><?php esc_html_e( 'Total HT', 'servio' ); ?></th>
                                 <th style="width:5%"></th>
                             </tr>
                         </thead>
@@ -2191,32 +2191,32 @@ class WpServio_Invoices {
                             <?php endforeach; ?>
                         </tbody>
                     </table>
-                    <button type="button" id="serviceflow-add-item" class="button">+ <?php esc_html_e( 'Ajouter un article', 'wpservio' ); ?></button>
+                    <button type="button" id="serviceflow-add-item" class="button">+ <?php esc_html_e( 'Ajouter un article', 'servio' ); ?></button>
 
                     <div class="serviceflow-newinv-totals" style="margin-top:16px">
-                        <div><?php esc_html_e( 'Sous-total HT', 'wpservio' ); ?> : <span id="serviceflow-newinv-subtotal"><?php echo esc_html( number_format( (float) $invoice->subtotal, 2, ',', '' ) ); ?></span> &euro;</div>
-                        <div><?php esc_html_e( 'TVA', 'wpservio' ); ?> (<span id="serviceflow-newinv-taxrate-display"><?php echo esc_html( $invoice->tax_rate ); ?></span>%) : <span id="serviceflow-newinv-tax"><?php echo esc_html( number_format( (float) $invoice->tax_amount, 2, ',', '' ) ); ?></span> &euro;</div>
-                        <div><strong><?php esc_html_e( 'Total TTC', 'wpservio' ); ?> : <span id="serviceflow-newinv-total"><?php echo esc_html( number_format( (float) $invoice->total, 2, ',', '' ) ); ?></span> &euro;</strong></div>
+                        <div><?php esc_html_e( 'Sous-total HT', 'servio' ); ?> : <span id="serviceflow-newinv-subtotal"><?php echo esc_html( number_format( (float) $invoice->subtotal, 2, ',', '' ) ); ?></span> &euro;</div>
+                        <div><?php esc_html_e( 'TVA', 'servio' ); ?> (<span id="serviceflow-newinv-taxrate-display"><?php echo esc_html( $invoice->tax_rate ); ?></span>%) : <span id="serviceflow-newinv-tax"><?php echo esc_html( number_format( (float) $invoice->tax_amount, 2, ',', '' ) ); ?></span> &euro;</div>
+                        <div><strong><?php esc_html_e( 'Total TTC', 'servio' ); ?> : <span id="serviceflow-newinv-total"><?php echo esc_html( number_format( (float) $invoice->total, 2, ',', '' ) ); ?></span> &euro;</strong></div>
                     </div>
                 </div>
 
                 <!-- TVA et notes -->
                 <div class="serviceflow-newinv-section">
-                    <h2><span class="dashicons dashicons-editor-alignleft"></span> <?php esc_html_e( 'Détails', 'wpservio' ); ?></h2>
+                    <h2><span class="dashicons dashicons-editor-alignleft"></span> <?php esc_html_e( 'Détails', 'servio' ); ?></h2>
                     <div class="serviceflow-newinv-field" style="max-width:200px">
-                        <label><?php esc_html_e( 'Taux TVA (%)', 'wpservio' ); ?></label>
+                        <label><?php esc_html_e( 'Taux TVA (%)', 'servio' ); ?></label>
                         <input type="number" id="serviceflow-newinv-taxrate" value="<?php echo esc_attr( $invoice->tax_rate ); ?>" min="0" max="100" step="0.01" />
                     </div>
                     <div class="serviceflow-newinv-field">
-                        <label><?php esc_html_e( 'Notes / Conditions', 'wpservio' ); ?></label>
+                        <label><?php esc_html_e( 'Notes / Conditions', 'servio' ); ?></label>
                         <textarea id="serviceflow-newinv-notes"><?php echo esc_textarea( $invoice->notes ); ?></textarea>
                     </div>
                 </div>
 
                 <!-- Actions -->
-                <button type="button" class="button serviceflow-newinv-save" data-status="draft" style="margin-right:8px"><?php esc_html_e( 'Enregistrer en brouillon', 'wpservio' ); ?></button>
-                <button type="button" class="button button-primary serviceflow-newinv-save" data-status="validated" style="background:<?php echo esc_attr( $color ); ?>;border-color:<?php echo esc_attr( $color ); ?>"><?php esc_html_e( 'Enregistrer et valider', 'wpservio' ); ?></button>
-                <a href="<?php echo esc_url( admin_url( 'admin.php?page=serviceflow-invoices' ) ); ?>" style="padding:8px 20px;font-size:13px;text-decoration:none;color:#555">&larr; <?php esc_html_e( 'Retour', 'wpservio' ); ?></a>
+                <button type="button" class="button serviceflow-newinv-save" data-status="draft" style="margin-right:8px"><?php esc_html_e( 'Enregistrer en brouillon', 'servio' ); ?></button>
+                <button type="button" class="button button-primary serviceflow-newinv-save" data-status="validated" style="background:<?php echo esc_attr( $color ); ?>;border-color:<?php echo esc_attr( $color ); ?>"><?php esc_html_e( 'Enregistrer et valider', 'servio' ); ?></button>
+                <a href="<?php echo esc_url( admin_url( 'admin.php?page=serviceflow-invoices' ) ); ?>" style="padding:8px 20px;font-size:13px;text-decoration:none;color:#555">&larr; <?php esc_html_e( 'Retour', 'servio' ); ?></a>
             </div>
 
             <?php
@@ -2227,7 +2227,7 @@ class WpServio_Invoices {
                 var nonce   = '<?php echo esc_js( $nonce ); ?>';
                 var invoiceId = <?php echo (int) $invoice->id; ?>;
 
-                document.querySelectorAll('input[name="wpservio_client_type"]').forEach(function(r){
+                document.querySelectorAll('input[name="servio_client_type"]').forEach(function(r){
                     r.addEventListener('change', function(){
                         document.getElementById('serviceflow-newinv-wp-client').style.display = this.value==='wp' ? '' : 'none';
                         document.getElementById('serviceflow-newinv-ext-client').style.display = this.value==='ext' ? '' : 'none';
@@ -2259,7 +2259,7 @@ class WpServio_Invoices {
                 document.getElementById('serviceflow-add-item').addEventListener('click', function(){
                     var row = document.createElement('tr');
                     row.className = 'serviceflow-item-row';
-                    row.innerHTML = '<td><input type="text" class="serviceflow-item-desc" placeholder="<?php echo esc_js( __( 'Description du service', 'wpservio' ) ); ?>" /></td>' +
+                    row.innerHTML = '<td><input type="text" class="serviceflow-item-desc" placeholder="<?php echo esc_js( __( 'Description du service', 'servio' ) ); ?>" /></td>' +
                         '<td><input type="number" class="serviceflow-item-qty" value="1" min="1" step="1" /></td>' +
                         '<td><input type="number" class="serviceflow-item-price" value="0" min="0" step="0.01" /></td>' +
                         '<td class="serviceflow-item-total" style="text-align:right;font-weight:600">0,00 \u20ac</td>' +
@@ -2279,9 +2279,9 @@ class WpServio_Invoices {
                         var status = this.dataset.status;
                         this.disabled = true;
 
-                        var clientType = document.querySelector('input[name="wpservio_client_type"]:checked').value;
+                        var clientType = document.querySelector('input[name="servio_client_type"]:checked').value;
                         var fd = new FormData();
-                        fd.append('action', 'wpservio_invoice_update');
+                        fd.append('action', 'servio_invoice_update');
                         fd.append('nonce', nonce);
                         fd.append('invoice_id', invoiceId);
                         fd.append('client_type', clientType);
@@ -2312,7 +2312,7 @@ class WpServio_Invoices {
                 });
             })();
             <?php
-            wp_add_inline_script( 'wpservio-invoices-js', ob_get_clean() );
+            wp_add_inline_script( 'servio-invoices-js', ob_get_clean() );
             ?>
         </div>
         <?php
@@ -2329,13 +2329,13 @@ class WpServio_Invoices {
 
         $invoice_id = absint( $_GET['invoice_id'] ?? 0 ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Admin-only render, capability checked above.
         if ( ! $invoice_id ) {
-            echo '<div class="wrap"><p>' . esc_html__( 'Facture introuvable.', 'wpservio' ) . '</p></div>';
+            echo '<div class="wrap"><p>' . esc_html__( 'Facture introuvable.', 'servio' ) . '</p></div>';
             return;
         }
 
         $invoice = self::get_invoice( $invoice_id );
         if ( ! $invoice ) {
-            echo '<div class="wrap"><p>' . esc_html__( 'Facture introuvable.', 'wpservio' ) . '</p></div>';
+            echo '<div class="wrap"><p>' . esc_html__( 'Facture introuvable.', 'servio' ) . '</p></div>';
             return;
         }
 
@@ -2348,7 +2348,7 @@ class WpServio_Invoices {
 
     private static function render_invoice_html( object $invoice, bool $is_admin ): void {
         $s           = self::get_settings();
-        $color       = esc_attr( WpServio_Admin::get_color() );
+        $color       = esc_attr( Servio_Admin::get_color() );
         $labels      = self::get_status_labels();
         $colors      = self::get_status_colors();
         $items       = json_decode( $invoice->items, true ) ?: [];
@@ -2356,7 +2356,7 @@ class WpServio_Invoices {
             $invoice->client_id ? (int) $invoice->client_id : null,
             $invoice->ext_client_id ? (int) $invoice->ext_client_id : null
         );
-        $nonce       = wp_create_nonce( 'wpservio_nonce' );
+        $nonce       = wp_create_nonce( 'servio_nonce' );
         $badge_color = $colors[ $invoice->status ] ?? '#9ca3af';
         $status_text = $labels[ $invoice->status ] ?? $invoice->status;
         ?>
@@ -2378,25 +2378,25 @@ class WpServio_Invoices {
                     <h3><?php
                         $invoice_type_val = $invoice->invoice_type ?? 'single';
                         if ( $invoice_type_val === 'acompte' ) {
-                            esc_html_e( "Facture d'acompte", 'wpservio' );
+                            esc_html_e( "Facture d'acompte", 'servio' );
                         } elseif ( $invoice_type_val === 'solde' ) {
-                            esc_html_e( 'Facture de solde', 'wpservio' );
+                            esc_html_e( 'Facture de solde', 'servio' );
                         } elseif ( $invoice_type_val === 'mensualite' ) {
-                            $sched_row = $invoice->schedule_id && class_exists( 'WpServio_Payments' )
-                                ? WpServio_Payments::get_row( (int) $invoice->schedule_id )
+                            $sched_row = $invoice->schedule_id && class_exists( 'Servio_Payments' )
+                                ? Servio_Payments::get_row( (int) $invoice->schedule_id )
                                 : null;
                             $n = $sched_row ? (int) $sched_row->installment_no : 0;
                             /* translators: %d: installment number */
-                            echo esc_html( sprintf( __( 'Facture — Mensualité %d', 'wpservio' ), $n ) );
+                            echo esc_html( sprintf( __( 'Facture — Mensualité %d', 'servio' ), $n ) );
                         } else {
-                            esc_html_e( 'Facture', 'wpservio' );
+                            esc_html_e( 'Facture', 'servio' );
                         }
                     ?></h3>
                     <p>
                         <strong><?php echo esc_html( $invoice->invoice_number ); ?></strong><br />
-                        <?php esc_html_e( 'Date', 'wpservio' ); ?> : <?php echo esc_html( date_i18n( 'd/m/Y', strtotime( $invoice->created_at ) ) ); ?>
-                        <?php if ( $invoice->order_id ) : ?><br /><?php esc_html_e( 'Commande', 'wpservio' ); ?> : #CMD-<?php echo esc_html( $invoice->order_id ); ?><?php endif; ?>
-                        <?php if ( $invoice->paid_at ) : ?><br /><?php esc_html_e( 'Payée le', 'wpservio' ); ?> : <?php echo esc_html( date_i18n( 'd/m/Y', strtotime( $invoice->paid_at ) ) ); ?><?php endif; ?>
+                        <?php esc_html_e( 'Date', 'servio' ); ?> : <?php echo esc_html( date_i18n( 'd/m/Y', strtotime( $invoice->created_at ) ) ); ?>
+                        <?php if ( $invoice->order_id ) : ?><br /><?php esc_html_e( 'Commande', 'servio' ); ?> : #CMD-<?php echo esc_html( $invoice->order_id ); ?><?php endif; ?>
+                        <?php if ( $invoice->paid_at ) : ?><br /><?php esc_html_e( 'Payée le', 'servio' ); ?> : <?php echo esc_html( date_i18n( 'd/m/Y', strtotime( $invoice->paid_at ) ) ); ?><?php endif; ?>
                     </p>
                 </div>
             </div>
@@ -2404,7 +2404,7 @@ class WpServio_Invoices {
             <!-- Émetteur + Client côte à côte -->
             <div class="serviceflow-inv-parties">
                 <div class="serviceflow-inv-emetteur">
-                    <h3><?php esc_html_e( 'Émetteur', 'wpservio' ); ?></h3>
+                    <h3><?php esc_html_e( 'Émetteur', 'servio' ); ?></h3>
                     <p>
                         <strong><?php echo esc_html( $s['company_name'] ); ?></strong><br />
                         <?php if ( $s['company_address'] ) : ?><?php echo nl2br( esc_html( $s['company_address'] ) ); ?><br /><?php endif; ?>
@@ -2417,7 +2417,7 @@ class WpServio_Invoices {
                     </p>
                 </div>
                 <div class="serviceflow-inv-client">
-                <h3><?php esc_html_e( 'Client', 'wpservio' ); ?></h3>
+                <h3><?php esc_html_e( 'Client', 'servio' ); ?></h3>
                 <?php if ( $client_info ) : ?>
                     <p>
                         <strong><?php echo esc_html( $client_info->name ); ?></strong><br />
@@ -2428,7 +2428,7 @@ class WpServio_Invoices {
                         <?php if ( ! empty( $client_info->vat_number ) ) : ?>TVA : <?php echo esc_html( $client_info->vat_number ); ?><?php endif; ?>
                     </p>
                 <?php else : ?>
-                    <p style="color:#999"><?php esc_html_e( 'Client inconnu', 'wpservio' ); ?></p>
+                    <p style="color:#999"><?php esc_html_e( 'Client inconnu', 'servio' ); ?></p>
                 <?php endif; ?>
                 </div>
             </div>
@@ -2437,10 +2437,10 @@ class WpServio_Invoices {
             <table class="serviceflow-inv-items-table">
                 <thead>
                     <tr>
-                        <th><?php esc_html_e( 'Description', 'wpservio' ); ?></th>
-                        <th class="text-right"><?php esc_html_e( 'Qté', 'wpservio' ); ?></th>
-                        <th class="text-right"><?php esc_html_e( 'Prix unitaire HT', 'wpservio' ); ?></th>
-                        <th class="text-right"><?php esc_html_e( 'Total HT', 'wpservio' ); ?></th>
+                        <th><?php esc_html_e( 'Description', 'servio' ); ?></th>
+                        <th class="text-right"><?php esc_html_e( 'Qté', 'servio' ); ?></th>
+                        <th class="text-right"><?php esc_html_e( 'Prix unitaire HT', 'servio' ); ?></th>
+                        <th class="text-right"><?php esc_html_e( 'Total HT', 'servio' ); ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -2456,7 +2456,7 @@ class WpServio_Invoices {
                             </td>
                             <td class="text-right"><?php echo esc_html( $item['quantity'] ?? 1 ); ?></td>
                             <?php if ( $is_info ) : ?>
-                            <td class="text-right" style="color:#aaa"><?php esc_html_e( 'Inclus', 'wpservio' ); ?></td>
+                            <td class="text-right" style="color:#aaa"><?php esc_html_e( 'Inclus', 'servio' ); ?></td>
                             <td class="text-right" style="color:#aaa">—</td>
                             <?php else : ?>
                             <td class="text-right"><?php echo esc_html( number_format( floatval( $item['unit_price'] ?? 0 ), 2, ',', ' ' ) ); ?> &euro;</td>
@@ -2471,20 +2471,20 @@ class WpServio_Invoices {
             <div class="serviceflow-inv-totals">
                 <?php if ( floatval( $invoice->tax_rate ) > 0 ) : ?>
                     <div class="serviceflow-inv-totals-row">
-                        <span><?php esc_html_e( 'Sous-total HT', 'wpservio' ); ?></span>
+                        <span><?php esc_html_e( 'Sous-total HT', 'servio' ); ?></span>
                         <span><?php echo esc_html( number_format( (float) $invoice->subtotal, 2, ',', ' ' ) ); ?> &euro;</span>
                     </div>
                     <div class="serviceflow-inv-totals-row">
-                        <span><?php esc_html_e( 'TVA', 'wpservio' ); ?> (<?php echo esc_html( $invoice->tax_rate ); ?>%)</span>
+                        <span><?php esc_html_e( 'TVA', 'servio' ); ?> (<?php echo esc_html( $invoice->tax_rate ); ?>%)</span>
                         <span><?php echo esc_html( number_format( (float) $invoice->tax_amount, 2, ',', ' ' ) ); ?> &euro;</span>
                     </div>
                     <div class="serviceflow-inv-totals-row total-row">
-                        <span><?php esc_html_e( 'Total TTC', 'wpservio' ); ?></span>
+                        <span><?php esc_html_e( 'Total TTC', 'servio' ); ?></span>
                         <span><?php echo esc_html( number_format( (float) $invoice->total, 2, ',', ' ' ) ); ?> &euro;</span>
                     </div>
                 <?php else : ?>
                     <div class="serviceflow-inv-totals-row total-row">
-                        <span><?php esc_html_e( 'Total', 'wpservio' ); ?></span>
+                        <span><?php esc_html_e( 'Total', 'servio' ); ?></span>
                         <span><?php echo esc_html( number_format( (float) $invoice->total, 2, ',', ' ' ) ); ?> &euro;</span>
                     </div>
                     <?php if ( ! empty( $s['tax_notice'] ) ) : ?>
@@ -2498,7 +2498,7 @@ class WpServio_Invoices {
             <!-- Notes -->
             <?php if ( ! empty( $invoice->notes ) ) : ?>
                 <div class="serviceflow-inv-notes">
-                    <strong><?php esc_html_e( 'Conditions', 'wpservio' ); ?></strong><br />
+                    <strong><?php esc_html_e( 'Conditions', 'servio' ); ?></strong><br />
                     <?php echo nl2br( esc_html( $invoice->notes ) ); ?>
                 </div>
             <?php endif; ?>
@@ -2512,31 +2512,31 @@ class WpServio_Invoices {
         <!-- Actions (non imprimables) -->
         <div class="serviceflow-inv-actions no-print" style="max-width:800px;margin:0 auto">
             <button onclick="sfPrintInvoice()" style="background:<?php echo esc_attr( $color ); ?>;color:#fff">
-                <?php esc_html_e( 'Imprimer', 'wpservio' ); ?>
+                <?php esc_html_e( 'Imprimer', 'servio' ); ?>
             </button>
             <?php if ( $is_admin ) : ?>
                 <?php if ( in_array( $invoice->status, [ self::STATUS_DRAFT, self::STATUS_PENDING ], true ) ) : ?>
-                    <button class="serviceflow-inv-view-action" data-action="wpservio_invoice_validate" data-id="<?php echo (int) $invoice->id; ?>" style="background:#10b981;color:#fff">
-                        <?php esc_html_e( 'Valider', 'wpservio' ); ?>
+                    <button class="serviceflow-inv-view-action" data-action="servio_invoice_validate" data-id="<?php echo (int) $invoice->id; ?>" style="background:#10b981;color:#fff">
+                        <?php esc_html_e( 'Valider', 'servio' ); ?>
                     </button>
                 <?php endif; ?>
                 <?php if ( $invoice->status === self::STATUS_VALIDATED ) : ?>
-                    <button class="serviceflow-inv-view-action" data-action="wpservio_invoice_mark_paid" data-id="<?php echo (int) $invoice->id; ?>" style="background:#10b981;color:#fff">
-                        <?php esc_html_e( 'Marquer comme payée', 'wpservio' ); ?>
+                    <button class="serviceflow-inv-view-action" data-action="servio_invoice_mark_paid" data-id="<?php echo (int) $invoice->id; ?>" style="background:#10b981;color:#fff">
+                        <?php esc_html_e( 'Marquer comme payée', 'servio' ); ?>
                     </button>
                 <?php endif; ?>
                 <?php if ( ! in_array( $invoice->status, [ self::STATUS_PAID, self::STATUS_CANCELLED ], true ) ) : ?>
-                    <button class="serviceflow-inv-view-action" data-action="wpservio_invoice_cancel" data-id="<?php echo (int) $invoice->id; ?>" style="background:#ef4444;color:#fff">
-                        <?php esc_html_e( 'Annuler', 'wpservio' ); ?>
+                    <button class="serviceflow-inv-view-action" data-action="servio_invoice_cancel" data-id="<?php echo (int) $invoice->id; ?>" style="background:#ef4444;color:#fff">
+                        <?php esc_html_e( 'Annuler', 'servio' ); ?>
                     </button>
                 <?php endif; ?>
-                <a href="<?php echo esc_url( admin_url( 'admin.php?page=serviceflow-invoices' ) ); ?>" style="padding:8px 20px;font-size:13px;text-decoration:none;color:#555">&larr; <?php esc_html_e( 'Retour à la liste', 'wpservio' ); ?></a>
+                <a href="<?php echo esc_url( admin_url( 'admin.php?page=serviceflow-invoices' ) ); ?>" style="padding:8px 20px;font-size:13px;text-decoration:none;color:#555">&larr; <?php esc_html_e( 'Retour à la liste', 'servio' ); ?></a>
             <?php endif; ?>
         </div>
 
         <?php
         wp_add_inline_script(
-            'wpservio-invoices-js',
+            'servio-invoices-js',
             'function sfPrintInvoice(){' .
             'var content=document.querySelector(".serviceflow-invoice-page");' .
             'if(!content){window.print();return;}' .
@@ -2560,7 +2560,7 @@ class WpServio_Invoices {
                 var nonce   = '<?php echo esc_js( $nonce ); ?>';
                 document.querySelectorAll('.serviceflow-inv-view-action').forEach(function(btn){
                     btn.addEventListener('click', function(){
-                        if(!confirm('<?php echo esc_js( __( 'Confirmer cette action ?', 'wpservio' ) ); ?>')) return;
+                        if(!confirm('<?php echo esc_js( __( 'Confirmer cette action ?', 'servio' ) ); ?>')) return;
                         btn.disabled = true;
                         var fd = new FormData();
                         fd.append('action', this.dataset.action);
@@ -2573,7 +2573,7 @@ class WpServio_Invoices {
                 });
             })();
             <?php
-            wp_add_inline_script( 'wpservio-invoices-js', ob_get_clean() );
+            wp_add_inline_script( 'servio-invoices-js', ob_get_clean() );
         endif; ?>
         <?php
     }

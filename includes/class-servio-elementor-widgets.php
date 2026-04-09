@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class WpServio_Elementor_Widgets {
+class Servio_Elementor_Widgets {
 
     public static function init(): void {
         add_action( 'elementor/elements/categories_registered', [ __CLASS__, 'add_category' ] );
@@ -12,16 +12,16 @@ class WpServio_Elementor_Widgets {
     }
 
     public static function add_category( $elements_manager ): void {
-        $elements_manager->add_category( 'wpservio', [
-            'title' => 'WpServio',
+        $elements_manager->add_category( 'servio', [
+            'title' => 'Servio',
             'icon'  => 'eicon-plug',
         ] );
     }
 
     public static function register_widgets( $widgets_manager ): void {
-        $widgets_manager->register( new WpServio_Widget_Pack() );
-        $widgets_manager->register( new WpServio_Widget_Option() );
-        $widgets_manager->register( new WpServio_Widget_Advanced_Price() );
+        $widgets_manager->register( new Servio_Widget_Pack() );
+        $widgets_manager->register( new Servio_Widget_Option() );
+        $widgets_manager->register( new Servio_Widget_Advanced_Price() );
     }
 }
 
@@ -29,10 +29,10 @@ class WpServio_Elementor_Widgets {
  *  BASE WIDGET
  * ================================================================ */
 
-abstract class WpServio_Widget_Base extends \Elementor\Widget_Base {
+abstract class Servio_Widget_Base extends \Elementor\Widget_Base {
 
     public function get_categories(): array {
-        return [ 'wpservio' ];
+        return [ 'servio' ];
     }
 
     protected function get_post_id(): int {
@@ -41,7 +41,7 @@ abstract class WpServio_Widget_Base extends \Elementor\Widget_Base {
 
     protected function register_html_tag_control(): void {
         $this->add_control( 'html_tag', [
-            'label'   => __( 'Balise HTML', 'wpservio' ),
+            'label'   => __( 'Balise HTML', 'servio' ),
             'type'    => \Elementor\Controls_Manager::SELECT,
             'default' => 'span',
             'options' => [
@@ -60,12 +60,12 @@ abstract class WpServio_Widget_Base extends \Elementor\Widget_Base {
 
     protected function register_style_section(): void {
         $this->start_controls_section( 'section_style', [
-            'label' => __( 'Style', 'wpservio' ),
+            'label' => __( 'Style', 'servio' ),
             'tab'   => \Elementor\Controls_Manager::TAB_STYLE,
         ] );
 
         $this->add_control( 'text_color', [
-            'label'     => __( 'Couleur', 'wpservio' ),
+            'label'     => __( 'Couleur', 'servio' ),
             'type'      => \Elementor\Controls_Manager::COLOR,
             'selectors' => [ '{{WRAPPER}} .sf-widget-text' => 'color: {{VALUE}};' ],
         ] );
@@ -76,12 +76,12 @@ abstract class WpServio_Widget_Base extends \Elementor\Widget_Base {
         );
 
         $this->add_responsive_control( 'text_align', [
-            'label'     => __( 'Alignement', 'wpservio' ),
+            'label'     => __( 'Alignement', 'servio' ),
             'type'      => \Elementor\Controls_Manager::CHOOSE,
             'options'   => [
-                'left'   => [ 'title' => __( 'Gauche', 'wpservio' ),  'icon' => 'eicon-text-align-left' ],
-                'center' => [ 'title' => __( 'Centre', 'wpservio' ),  'icon' => 'eicon-text-align-center' ],
-                'right'  => [ 'title' => __( 'Droite', 'wpservio' ),  'icon' => 'eicon-text-align-right' ],
+                'left'   => [ 'title' => __( 'Gauche', 'servio' ),  'icon' => 'eicon-text-align-left' ],
+                'center' => [ 'title' => __( 'Centre', 'servio' ),  'icon' => 'eicon-text-align-center' ],
+                'right'  => [ 'title' => __( 'Droite', 'servio' ),  'icon' => 'eicon-text-align-right' ],
             ],
             'selectors' => [ '{{WRAPPER}} .sf-widget-text' => 'text-align: {{VALUE}};' ],
         ] );
@@ -102,36 +102,36 @@ abstract class WpServio_Widget_Base extends \Elementor\Widget_Base {
  *  WIDGET PACK
  * ================================================================ */
 
-class WpServio_Widget_Pack extends WpServio_Widget_Base {
+class Servio_Widget_Pack extends Servio_Widget_Base {
 
     public function get_name(): string  { return 'sf_pack'; }
-    public function get_title(): string { return __( 'SF — Pack', 'wpservio' ); }
+    public function get_title(): string { return __( 'SF — Pack', 'servio' ); }
     public function get_icon(): string  { return 'eicon-archive'; }
 
     protected function register_controls(): void {
 
         /* ── Contenu ── */
         $this->start_controls_section( 'section_content', [
-            'label' => __( 'Contenu', 'wpservio' ),
+            'label' => __( 'Contenu', 'servio' ),
         ] );
 
         $this->add_control( 'field', [
-            'label'   => __( 'Champ', 'wpservio' ),
+            'label'   => __( 'Champ', 'servio' ),
             'type'    => \Elementor\Controls_Manager::SELECT,
             'default' => 'name',
             'options' => [
-                'name'          => __( 'Nom', 'wpservio' ),
-                'price'         => __( 'Prix', 'wpservio' ),
-                'starting_price'=> __( 'Prix de départ (min)', 'wpservio' ),
-                'delay'         => __( 'Délai de livraison', 'wpservio' ),
-                'description'   => __( 'Description', 'wpservio' ),
-                'features'      => __( 'Caractéristiques', 'wpservio' ),
-                'count'         => __( 'Nombre de packs', 'wpservio' ),
+                'name'          => __( 'Nom', 'servio' ),
+                'price'         => __( 'Prix', 'servio' ),
+                'starting_price'=> __( 'Prix de départ (min)', 'servio' ),
+                'delay'         => __( 'Délai de livraison', 'servio' ),
+                'description'   => __( 'Description', 'servio' ),
+                'features'      => __( 'Caractéristiques', 'servio' ),
+                'count'         => __( 'Nombre de packs', 'servio' ),
             ],
         ] );
 
         $this->add_control( 'pack_index', [
-            'label'     => __( 'N° du pack (0 = premier)', 'wpservio' ),
+            'label'     => __( 'N° du pack (0 = premier)', 'servio' ),
             'type'      => \Elementor\Controls_Manager::NUMBER,
             'default'   => 0,
             'min'       => 0,
@@ -139,32 +139,32 @@ class WpServio_Widget_Pack extends WpServio_Widget_Base {
         ] );
 
         $this->add_control( 'currency', [
-            'label'     => __( 'Devise', 'wpservio' ),
+            'label'     => __( 'Devise', 'servio' ),
             'type'      => \Elementor\Controls_Manager::TEXT,
             'default'   => '€',
             'condition' => [ 'field' => [ 'price', 'starting_price' ] ],
         ] );
 
         $this->add_control( 'delay_suffix', [
-            'label'     => __( 'Suffixe', 'wpservio' ),
+            'label'     => __( 'Suffixe', 'servio' ),
             'type'      => \Elementor\Controls_Manager::TEXT,
             'default'   => ' jour(s)',
             'condition' => [ 'field' => 'delay' ],
         ] );
 
         $this->add_control( 'features_format', [
-            'label'     => __( 'Format', 'wpservio' ),
+            'label'     => __( 'Format', 'servio' ),
             'type'      => \Elementor\Controls_Manager::SELECT,
             'default'   => 'list',
             'options'   => [
-                'list'   => __( 'Liste (ul/li)', 'wpservio' ),
-                'inline' => __( 'En ligne', 'wpservio' ),
+                'list'   => __( 'Liste (ul/li)', 'servio' ),
+                'inline' => __( 'En ligne', 'servio' ),
             ],
             'condition' => [ 'field' => 'features' ],
         ] );
 
         $this->add_control( 'features_separator', [
-            'label'     => __( 'Séparateur', 'wpservio' ),
+            'label'     => __( 'Séparateur', 'servio' ),
             'type'      => \Elementor\Controls_Manager::TEXT,
             'default'   => ', ',
             'condition' => [ 'field' => 'features', 'features_format' => 'inline' ],
@@ -179,13 +179,13 @@ class WpServio_Widget_Pack extends WpServio_Widget_Base {
 
         /* ── Style liste (features uniquement) ── */
         $this->start_controls_section( 'section_style_list', [
-            'label'     => __( 'Style liste', 'wpservio' ),
+            'label'     => __( 'Style liste', 'servio' ),
             'tab'       => \Elementor\Controls_Manager::TAB_STYLE,
             'condition' => [ 'field' => 'features' ],
         ] );
 
         $this->add_control( 'list_color', [
-            'label'     => __( 'Couleur texte', 'wpservio' ),
+            'label'     => __( 'Couleur texte', 'servio' ),
             'type'      => \Elementor\Controls_Manager::COLOR,
             'selectors' => [ '{{WRAPPER}} .sf-features-list li' => 'color: {{VALUE}};' ],
         ] );
@@ -196,7 +196,7 @@ class WpServio_Widget_Pack extends WpServio_Widget_Base {
         );
 
         $this->add_responsive_control( 'list_gap', [
-            'label'      => __( 'Espacement items', 'wpservio' ),
+            'label'      => __( 'Espacement items', 'servio' ),
             'type'       => \Elementor\Controls_Manager::SLIDER,
             'size_units' => [ 'px' ],
             'range'      => [ 'px' => [ 'min' => 0, 'max' => 40 ] ],
@@ -205,7 +205,7 @@ class WpServio_Widget_Pack extends WpServio_Widget_Base {
         ] );
 
         $this->add_control( 'list_padding', [
-            'label'      => __( 'Retrait liste', 'wpservio' ),
+            'label'      => __( 'Retrait liste', 'servio' ),
             'type'       => \Elementor\Controls_Manager::SLIDER,
             'size_units' => [ 'px' ],
             'range'      => [ 'px' => [ 'min' => 0, 'max' => 40 ] ],
@@ -218,7 +218,7 @@ class WpServio_Widget_Pack extends WpServio_Widget_Base {
 
     protected function render(): void {
         $s       = $this->get_settings_for_display();
-        $packs   = WpServio_Options::get_packs( $this->get_post_id() ) ?: [];
+        $packs   = Servio_Options::get_packs( $this->get_post_id() ) ?: [];
         $idx     = (int) ( $s['pack_index'] ?? 0 );
         $field   = $s['field'] ?? 'name';
         $currency = esc_html( $s['currency'] ?? '€' );
@@ -275,33 +275,33 @@ class WpServio_Widget_Pack extends WpServio_Widget_Base {
  *  WIDGET OPTION
  * ================================================================ */
 
-class WpServio_Widget_Option extends WpServio_Widget_Base {
+class Servio_Widget_Option extends Servio_Widget_Base {
 
     public function get_name(): string  { return 'sf_option'; }
-    public function get_title(): string { return __( 'SF — Option', 'wpservio' ); }
+    public function get_title(): string { return __( 'SF — Option', 'servio' ); }
     public function get_icon(): string  { return 'eicon-plus-circle'; }
 
     protected function register_controls(): void {
 
         $this->start_controls_section( 'section_content', [
-            'label' => __( 'Contenu', 'wpservio' ),
+            'label' => __( 'Contenu', 'servio' ),
         ] );
 
         $this->add_control( 'field', [
-            'label'   => __( 'Champ', 'wpservio' ),
+            'label'   => __( 'Champ', 'servio' ),
             'type'    => \Elementor\Controls_Manager::SELECT,
             'default' => 'name',
             'options' => [
-                'name'        => __( 'Nom', 'wpservio' ),
-                'price'       => __( 'Prix', 'wpservio' ),
-                'delay'       => __( 'Délai', 'wpservio' ),
-                'description' => __( 'Description', 'wpservio' ),
-                'count'       => __( 'Nombre d\'options', 'wpservio' ),
+                'name'        => __( 'Nom', 'servio' ),
+                'price'       => __( 'Prix', 'servio' ),
+                'delay'       => __( 'Délai', 'servio' ),
+                'description' => __( 'Description', 'servio' ),
+                'count'       => __( 'Nombre d\'options', 'servio' ),
             ],
         ] );
 
         $this->add_control( 'option_index', [
-            'label'     => __( 'N° de l\'option (0 = première)', 'wpservio' ),
+            'label'     => __( 'N° de l\'option (0 = première)', 'servio' ),
             'type'      => \Elementor\Controls_Manager::NUMBER,
             'default'   => 0,
             'min'       => 0,
@@ -309,14 +309,14 @@ class WpServio_Widget_Option extends WpServio_Widget_Base {
         ] );
 
         $this->add_control( 'currency', [
-            'label'     => __( 'Devise', 'wpservio' ),
+            'label'     => __( 'Devise', 'servio' ),
             'type'      => \Elementor\Controls_Manager::TEXT,
             'default'   => '€',
             'condition' => [ 'field' => 'price' ],
         ] );
 
         $this->add_control( 'delay_suffix', [
-            'label'     => __( 'Suffixe', 'wpservio' ),
+            'label'     => __( 'Suffixe', 'servio' ),
             'type'      => \Elementor\Controls_Manager::TEXT,
             'default'   => ' jour(s)',
             'condition' => [ 'field' => 'delay' ],
@@ -331,7 +331,7 @@ class WpServio_Widget_Option extends WpServio_Widget_Base {
 
     protected function render(): void {
         $s        = $this->get_settings_for_display();
-        $opts     = WpServio_Options::get_options( $this->get_post_id() ) ?: [];
+        $opts     = Servio_Options::get_options( $this->get_post_id() ) ?: [];
         $idx      = (int) ( $s['option_index'] ?? 0 );
         $field    = $s['field'] ?? 'name';
         $currency = esc_html( $s['currency'] ?? '€' );
@@ -367,31 +367,31 @@ class WpServio_Widget_Option extends WpServio_Widget_Base {
  *  WIDGET PRIX AVANCÉS (Premium)
  * ================================================================ */
 
-class WpServio_Widget_Advanced_Price extends WpServio_Widget_Base {
+class Servio_Widget_Advanced_Price extends Servio_Widget_Base {
 
     public function get_name(): string  { return 'sf_advanced_price'; }
-    public function get_title(): string { return __( 'SF — Prix avancé', 'wpservio' ); }
+    public function get_title(): string { return __( 'SF — Prix avancé', 'servio' ); }
     public function get_icon(): string  { return 'eicon-price-table'; }
 
     protected function register_controls(): void {
 
         $this->start_controls_section( 'section_content', [
-            'label' => __( 'Contenu', 'wpservio' ),
+            'label' => __( 'Contenu', 'servio' ),
         ] );
 
         $this->add_control( 'field', [
-            'label'   => __( 'Champ', 'wpservio' ),
+            'label'   => __( 'Champ', 'servio' ),
             'type'    => \Elementor\Controls_Manager::SELECT,
             'default' => 'extra_page',
             'options' => [
-                'extra_page'  => __( 'Page supplémentaire', 'wpservio' ),
-                'maintenance' => __( 'Maintenance mensuelle', 'wpservio' ),
-                'express'     => __( 'Livraison express (par jour)', 'wpservio' ),
+                'extra_page'  => __( 'Page supplémentaire', 'servio' ),
+                'maintenance' => __( 'Maintenance mensuelle', 'servio' ),
+                'express'     => __( 'Livraison express (par jour)', 'servio' ),
             ],
         ] );
 
         $this->add_control( 'currency', [
-            'label'   => __( 'Devise', 'wpservio' ),
+            'label'   => __( 'Devise', 'servio' ),
             'type'    => \Elementor\Controls_Manager::TEXT,
             'default' => '€',
         ] );
@@ -409,12 +409,12 @@ class WpServio_Widget_Advanced_Price extends WpServio_Widget_Base {
         $currency = esc_html( $s['currency'] ?? '€' );
 
         $meta_keys = [
-            'extra_page'  => '_wpservio_extra_page_price',
-            'maintenance' => '_wpservio_maintenance_price',
-            'express'     => '_wpservio_express_price',
+            'extra_page'  => '_servio_extra_page_price',
+            'maintenance' => '_servio_maintenance_price',
+            'express'     => '_servio_express_price',
         ];
 
-        $key   = $meta_keys[ $s['field'] ?? 'extra_page' ] ?? '_wpservio_extra_page_price';
+        $key   = $meta_keys[ $s['field'] ?? 'extra_page' ] ?? '_servio_extra_page_price';
         $price = (float) get_post_meta( $post_id, $key, true );
 
         $this->render_text( esc_html( number_format( $price, 2, ',', ' ' ) . ' ' . $currency ) );

@@ -1,20 +1,20 @@
-# WpServio — Build script
+# Servio — Build script
 # Usage:
 #   .\build.ps1              → zip WP.org (version gratuite)
-#   .\build.ps1 -Premium     → zip Freemius premium (wpservio-1.0.0-premium.zip)
+#   .\build.ps1 -Premium     → zip Freemius premium (servio-1.0.0-premium.zip)
 
 param(
     [switch]$Premium
 )
 
-$pluginSlug    = "wpservio"
+$pluginSlug    = "servio"
 $pluginVersion = "1.0.0"
 $rootDir       = $PSScriptRoot
 $distDir       = Join-Path $rootDir "dist"
 
 # Le dossier racine dans le zip doit correspondre au dossier WordPress attendu :
-# - version gratuite  → wpservio/
-# - version premium   → wpservio-premium/  (Freemius l'installe dans ce dossier)
+# - version gratuite  → servio/
+# - version premium   → servio-premium/  (Freemius l'installe dans ce dossier)
 if ($Premium) {
     $zipSlug  = "$pluginSlug-premium"
     $zipPath  = Join-Path $distDir "$pluginSlug-$pluginVersion-premium.zip"
