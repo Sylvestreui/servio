@@ -74,6 +74,16 @@ foreach ($exc in $exclude) {
     }
 }
 
+# Pour le zip premium : activer is_premium + wp_org_gatekeeper dans scavio.php
+$mainFile = Join-Path $buildDir "scavio.php"
+if ($Premium -and (Test-Path $mainFile)) {
+    (Get-Content $mainFile -Raw) `
+        -replace "'is_premium'\s+=>\s+false,", "'is_premium'          => true," `
+        -replace "// 'wp_org_gatekeeper'", "'wp_org_gatekeeper'" |
+        Set-Content $mainFile -NoNewline
+    Write-Host "Premium mode applied to scavio.php" -ForegroundColor Yellow
+}
+
 # Créer le zip avec forward slashes (compatibilité Linux/serveur)
 Write-Host "Creating zip: $zipPath" -ForegroundColor Cyan
 Add-Type -AssemblyName System.IO.Compression

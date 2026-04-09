@@ -36,6 +36,7 @@ if ( ! function_exists( 'ser_fs' ) ) {
             $ser_fs = fs_dynamic_init( array(
                 'id'                  => '24444',
                 'slug'                => 'scavio',
+                'premium_slug'        => 'scavio-premium',
                 'type'                => 'plugin',
                 'public_key'          => 'pk_b46863119a89c13fd6d225cc981e1',
                 'is_premium'          => false,
@@ -44,6 +45,8 @@ if ( ! function_exists( 'ser_fs' ) ) {
                 'has_addons'          => false,
                 'has_paid_plans'      => true,
                 'is_org_compliant'    => true,
+                // PREMIUM ONLY — uncomment for premium zip (remove before uploading to wp.org):
+                // 'wp_org_gatekeeper' => 'OA7#BoRiBNqdf52FvzEf!!074aRLPs8fspif$7K1#4u4Csys1fQlCecVcUTOs2mcpeVHi#C2j9d09fOTvbC0HloPT7fFee5WdS3G',
                 'trial'               => array(
                     'days'               => 14,
                     'is_require_payment' => false,
