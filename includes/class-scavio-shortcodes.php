@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class Servio_Shortcodes {
+class Scavio_Shortcodes {
 
     public static function init(): void {
         // Packs
@@ -38,11 +38,11 @@ class Servio_Shortcodes {
     }
 
     private static function get_packs( array $atts ): array {
-        return Servio_Options::get_packs( self::get_post_id( $atts ) ) ?: [];
+        return Scavio_Options::get_packs( self::get_post_id( $atts ) ) ?: [];
     }
 
     private static function get_options( array $atts ): array {
-        return Servio_Options::get_options( self::get_post_id( $atts ) ) ?: [];
+        return Scavio_Options::get_options( self::get_post_id( $atts ) ) ?: [];
     }
 
     private static function format_price( float $price, string $currency ): string {
@@ -202,7 +202,7 @@ class Servio_Shortcodes {
     public static function extra_page_price( array $atts ): string {
         $atts    = shortcode_atts( [ 'currency' => '€', 'post_id' => '' ], $atts );
         $post_id = self::get_post_id( $atts );
-        $price   = (float) get_post_meta( $post_id, '_servio_extra_page_price', true );
+        $price   = (float) get_post_meta( $post_id, '_scavio_extra_page_price', true );
         return esc_html( self::format_price( $price, $atts['currency'] ) );
     }
 
@@ -212,7 +212,7 @@ class Servio_Shortcodes {
     public static function maintenance_price( array $atts ): string {
         $atts    = shortcode_atts( [ 'currency' => '€', 'post_id' => '' ], $atts );
         $post_id = self::get_post_id( $atts );
-        $price   = (float) get_post_meta( $post_id, '_servio_maintenance_price', true );
+        $price   = (float) get_post_meta( $post_id, '_scavio_maintenance_price', true );
         return esc_html( self::format_price( $price, $atts['currency'] ) );
     }
 
@@ -222,7 +222,7 @@ class Servio_Shortcodes {
     public static function express_price( array $atts ): string {
         $atts    = shortcode_atts( [ 'currency' => '€', 'post_id' => '' ], $atts );
         $post_id = self::get_post_id( $atts );
-        $price   = (float) get_post_meta( $post_id, '_servio_express_price', true );
+        $price   = (float) get_post_meta( $post_id, '_scavio_express_price', true );
         return esc_html( self::format_price( $price, $atts['currency'] ) );
     }
 }

@@ -4,36 +4,36 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class Servio_Elementor {
+class Scavio_Elementor {
 
     public static function init(): void {
         add_action( 'elementor/dynamic_tags/register', [ __CLASS__, 'register_dynamic_tags' ] );
     }
 
     public static function register_dynamic_tags( $dynamic_tags_manager ): void {
-        // Groupe Servio
+        // Groupe Scavio
         if ( method_exists( $dynamic_tags_manager, 'register_group' ) ) {
-            $dynamic_tags_manager->register_group( 'servio', [
-                'title' => 'Servio',
+            $dynamic_tags_manager->register_group( 'scavio', [
+                'title' => 'Scavio',
             ] );
         }
 
         // Tags individuels
-        $dynamic_tags_manager->register( new Servio_Tag_Pack_Name() );
-        $dynamic_tags_manager->register( new Servio_Tag_Pack_Price() );
-        $dynamic_tags_manager->register( new Servio_Tag_Pack_Starting_Price() );
-        $dynamic_tags_manager->register( new Servio_Tag_Pack_Delay() );
-        $dynamic_tags_manager->register( new Servio_Tag_Pack_Description() );
-        $dynamic_tags_manager->register( new Servio_Tag_Pack_Features() );
-        $dynamic_tags_manager->register( new Servio_Tag_Pack_Count() );
-        $dynamic_tags_manager->register( new Servio_Tag_Option_Name() );
-        $dynamic_tags_manager->register( new Servio_Tag_Option_Price() );
-        $dynamic_tags_manager->register( new Servio_Tag_Option_Delay() );
-        $dynamic_tags_manager->register( new Servio_Tag_Option_Description() );
-        $dynamic_tags_manager->register( new Servio_Tag_Option_Count() );
-        $dynamic_tags_manager->register( new Servio_Tag_Extra_Page_Price() );
-        $dynamic_tags_manager->register( new Servio_Tag_Maintenance_Price() );
-        $dynamic_tags_manager->register( new Servio_Tag_Express_Price() );
+        $dynamic_tags_manager->register( new Scavio_Tag_Pack_Name() );
+        $dynamic_tags_manager->register( new Scavio_Tag_Pack_Price() );
+        $dynamic_tags_manager->register( new Scavio_Tag_Pack_Starting_Price() );
+        $dynamic_tags_manager->register( new Scavio_Tag_Pack_Delay() );
+        $dynamic_tags_manager->register( new Scavio_Tag_Pack_Description() );
+        $dynamic_tags_manager->register( new Scavio_Tag_Pack_Features() );
+        $dynamic_tags_manager->register( new Scavio_Tag_Pack_Count() );
+        $dynamic_tags_manager->register( new Scavio_Tag_Option_Name() );
+        $dynamic_tags_manager->register( new Scavio_Tag_Option_Price() );
+        $dynamic_tags_manager->register( new Scavio_Tag_Option_Delay() );
+        $dynamic_tags_manager->register( new Scavio_Tag_Option_Description() );
+        $dynamic_tags_manager->register( new Scavio_Tag_Option_Count() );
+        $dynamic_tags_manager->register( new Scavio_Tag_Extra_Page_Price() );
+        $dynamic_tags_manager->register( new Scavio_Tag_Maintenance_Price() );
+        $dynamic_tags_manager->register( new Scavio_Tag_Express_Price() );
     }
 }
 
@@ -41,10 +41,10 @@ class Servio_Elementor {
  *  BASE TAG
  * ================================================================ */
 
-abstract class Servio_Tag_Base extends \Elementor\Core\DynamicTags\Tag {
+abstract class Scavio_Tag_Base extends \Elementor\Core\DynamicTags\Tag {
 
     public function get_group(): string {
-        return 'servio';
+        return 'scavio';
     }
 
     public function get_categories(): array {
@@ -56,16 +56,16 @@ abstract class Servio_Tag_Base extends \Elementor\Core\DynamicTags\Tag {
     }
 
     protected function get_packs(): array {
-        return Servio_Options::get_packs( $this->get_post_id() ) ?: [];
+        return Scavio_Options::get_packs( $this->get_post_id() ) ?: [];
     }
 
     protected function get_options_list(): array {
-        return Servio_Options::get_options( $this->get_post_id() ) ?: [];
+        return Scavio_Options::get_options( $this->get_post_id() ) ?: [];
     }
 
     protected function register_pack_index_control(): void {
         $this->add_control( 'pack_index', [
-            'label'   => __( 'N° du pack (0 = premier)', 'servio' ),
+            'label'   => __( 'N° du pack (0 = premier)', 'scavio' ),
             'type'    => \Elementor\Controls_Manager::NUMBER,
             'default' => 0,
             'min'     => 0,
@@ -74,7 +74,7 @@ abstract class Servio_Tag_Base extends \Elementor\Core\DynamicTags\Tag {
 
     protected function register_option_index_control(): void {
         $this->add_control( 'option_index', [
-            'label'   => __( 'N° de l\'option (0 = première)', 'servio' ),
+            'label'   => __( 'N° de l\'option (0 = première)', 'scavio' ),
             'type'    => \Elementor\Controls_Manager::NUMBER,
             'default' => 0,
             'min'     => 0,
@@ -83,7 +83,7 @@ abstract class Servio_Tag_Base extends \Elementor\Core\DynamicTags\Tag {
 
     protected function register_separator_control(): void {
         $this->add_control( 'separator', [
-            'label'   => __( 'Séparateur', 'servio' ),
+            'label'   => __( 'Séparateur', 'scavio' ),
             'type'    => \Elementor\Controls_Manager::TEXT,
             'default' => ', ',
         ] );
@@ -91,7 +91,7 @@ abstract class Servio_Tag_Base extends \Elementor\Core\DynamicTags\Tag {
 
     protected function register_currency_control(): void {
         $this->add_control( 'currency', [
-            'label'   => __( 'Devise', 'servio' ),
+            'label'   => __( 'Devise', 'scavio' ),
             'type'    => \Elementor\Controls_Manager::TEXT,
             'default' => '€',
         ] );
@@ -102,9 +102,9 @@ abstract class Servio_Tag_Base extends \Elementor\Core\DynamicTags\Tag {
  *  PACK TAGS
  * ================================================================ */
 
-class Servio_Tag_Pack_Name extends Servio_Tag_Base {
-    public function get_name(): string { return 'servio_pack_name'; }
-    public function get_title(): string { return __( 'Pack — Nom', 'servio' ); }
+class Scavio_Tag_Pack_Name extends Scavio_Tag_Base {
+    public function get_name(): string { return 'scavio_pack_name'; }
+    public function get_title(): string { return __( 'Pack — Nom', 'scavio' ); }
 
     protected function register_controls(): void {
         $this->register_pack_index_control();
@@ -117,9 +117,9 @@ class Servio_Tag_Pack_Name extends Servio_Tag_Base {
     }
 }
 
-class Servio_Tag_Pack_Price extends Servio_Tag_Base {
-    public function get_name(): string { return 'servio_pack_price'; }
-    public function get_title(): string { return __( 'Pack — Prix', 'servio' ); }
+class Scavio_Tag_Pack_Price extends Scavio_Tag_Base {
+    public function get_name(): string { return 'scavio_pack_price'; }
+    public function get_title(): string { return __( 'Pack — Prix', 'scavio' ); }
 
     protected function register_controls(): void {
         $this->register_pack_index_control();
@@ -135,9 +135,9 @@ class Servio_Tag_Pack_Price extends Servio_Tag_Base {
     }
 }
 
-class Servio_Tag_Pack_Starting_Price extends Servio_Tag_Base {
-    public function get_name(): string { return 'servio_pack_starting_price'; }
-    public function get_title(): string { return __( 'Pack — Prix de départ', 'servio' ); }
+class Scavio_Tag_Pack_Starting_Price extends Scavio_Tag_Base {
+    public function get_name(): string { return 'scavio_pack_starting_price'; }
+    public function get_title(): string { return __( 'Pack — Prix de départ', 'scavio' ); }
 
     protected function register_controls(): void {
         $this->register_currency_control();
@@ -155,14 +155,14 @@ class Servio_Tag_Pack_Starting_Price extends Servio_Tag_Base {
     }
 }
 
-class Servio_Tag_Pack_Delay extends Servio_Tag_Base {
-    public function get_name(): string { return 'servio_pack_delay'; }
-    public function get_title(): string { return __( 'Pack — Délai', 'servio' ); }
+class Scavio_Tag_Pack_Delay extends Scavio_Tag_Base {
+    public function get_name(): string { return 'scavio_pack_delay'; }
+    public function get_title(): string { return __( 'Pack — Délai', 'scavio' ); }
 
     protected function register_controls(): void {
         $this->register_pack_index_control();
         $this->add_control( 'suffix', [
-            'label'   => __( 'Suffixe', 'servio' ),
+            'label'   => __( 'Suffixe', 'scavio' ),
             'type'    => \Elementor\Controls_Manager::TEXT,
             'default' => ' jour(s)',
         ] );
@@ -177,9 +177,9 @@ class Servio_Tag_Pack_Delay extends Servio_Tag_Base {
     }
 }
 
-class Servio_Tag_Pack_Description extends Servio_Tag_Base {
-    public function get_name(): string { return 'servio_pack_description'; }
-    public function get_title(): string { return __( 'Pack — Description', 'servio' ); }
+class Scavio_Tag_Pack_Description extends Scavio_Tag_Base {
+    public function get_name(): string { return 'scavio_pack_description'; }
+    public function get_title(): string { return __( 'Pack — Description', 'scavio' ); }
 
     protected function register_controls(): void {
         $this->register_pack_index_control();
@@ -192,20 +192,20 @@ class Servio_Tag_Pack_Description extends Servio_Tag_Base {
     }
 }
 
-class Servio_Tag_Pack_Features extends Servio_Tag_Base {
-    public function get_name(): string { return 'servio_pack_features'; }
-    public function get_title(): string { return __( 'Pack — Features', 'servio' ); }
+class Scavio_Tag_Pack_Features extends Scavio_Tag_Base {
+    public function get_name(): string { return 'scavio_pack_features'; }
+    public function get_title(): string { return __( 'Pack — Features', 'scavio' ); }
 
     protected function register_controls(): void {
         $this->register_pack_index_control();
         $this->register_separator_control();
         $this->add_control( 'format', [
-            'label'   => __( 'Format', 'servio' ),
+            'label'   => __( 'Format', 'scavio' ),
             'type'    => \Elementor\Controls_Manager::SELECT,
             'default' => 'list',
             'options' => [
-                'list'   => __( 'Liste (ul)', 'servio' ),
-                'inline' => __( 'En ligne (séparateur)', 'servio' ),
+                'list'   => __( 'Liste (ul)', 'scavio' ),
+                'inline' => __( 'En ligne (séparateur)', 'scavio' ),
             ],
         ] );
     }
@@ -233,9 +233,9 @@ class Servio_Tag_Pack_Features extends Servio_Tag_Base {
     }
 }
 
-class Servio_Tag_Pack_Count extends Servio_Tag_Base {
-    public function get_name(): string { return 'servio_pack_count'; }
-    public function get_title(): string { return __( 'Pack — Nombre', 'servio' ); }
+class Scavio_Tag_Pack_Count extends Scavio_Tag_Base {
+    public function get_name(): string { return 'scavio_pack_count'; }
+    public function get_title(): string { return __( 'Pack — Nombre', 'scavio' ); }
 
     public function render(): void {
         echo esc_html( count( $this->get_packs() ) );
@@ -246,9 +246,9 @@ class Servio_Tag_Pack_Count extends Servio_Tag_Base {
  *  OPTION TAGS
  * ================================================================ */
 
-class Servio_Tag_Option_Name extends Servio_Tag_Base {
-    public function get_name(): string { return 'servio_option_name'; }
-    public function get_title(): string { return __( 'Option — Nom', 'servio' ); }
+class Scavio_Tag_Option_Name extends Scavio_Tag_Base {
+    public function get_name(): string { return 'scavio_option_name'; }
+    public function get_title(): string { return __( 'Option — Nom', 'scavio' ); }
 
     protected function register_controls(): void {
         $this->register_option_index_control();
@@ -261,9 +261,9 @@ class Servio_Tag_Option_Name extends Servio_Tag_Base {
     }
 }
 
-class Servio_Tag_Option_Price extends Servio_Tag_Base {
-    public function get_name(): string { return 'servio_option_price'; }
-    public function get_title(): string { return __( 'Option — Prix', 'servio' ); }
+class Scavio_Tag_Option_Price extends Scavio_Tag_Base {
+    public function get_name(): string { return 'scavio_option_price'; }
+    public function get_title(): string { return __( 'Option — Prix', 'scavio' ); }
 
     protected function register_controls(): void {
         $this->register_option_index_control();
@@ -279,14 +279,14 @@ class Servio_Tag_Option_Price extends Servio_Tag_Base {
     }
 }
 
-class Servio_Tag_Option_Delay extends Servio_Tag_Base {
-    public function get_name(): string { return 'servio_option_delay'; }
-    public function get_title(): string { return __( 'Option — Délai', 'servio' ); }
+class Scavio_Tag_Option_Delay extends Scavio_Tag_Base {
+    public function get_name(): string { return 'scavio_option_delay'; }
+    public function get_title(): string { return __( 'Option — Délai', 'scavio' ); }
 
     protected function register_controls(): void {
         $this->register_option_index_control();
         $this->add_control( 'suffix', [
-            'label'   => __( 'Suffixe', 'servio' ),
+            'label'   => __( 'Suffixe', 'scavio' ),
             'type'    => \Elementor\Controls_Manager::TEXT,
             'default' => ' jour(s)',
         ] );
@@ -301,9 +301,9 @@ class Servio_Tag_Option_Delay extends Servio_Tag_Base {
     }
 }
 
-class Servio_Tag_Option_Description extends Servio_Tag_Base {
-    public function get_name(): string { return 'servio_option_description'; }
-    public function get_title(): string { return __( 'Option — Description', 'servio' ); }
+class Scavio_Tag_Option_Description extends Scavio_Tag_Base {
+    public function get_name(): string { return 'scavio_option_description'; }
+    public function get_title(): string { return __( 'Option — Description', 'scavio' ); }
 
     protected function register_controls(): void {
         $this->register_option_index_control();
@@ -316,9 +316,9 @@ class Servio_Tag_Option_Description extends Servio_Tag_Base {
     }
 }
 
-class Servio_Tag_Option_Count extends Servio_Tag_Base {
-    public function get_name(): string { return 'servio_option_count'; }
-    public function get_title(): string { return __( 'Option — Nombre', 'servio' ); }
+class Scavio_Tag_Option_Count extends Scavio_Tag_Base {
+    public function get_name(): string { return 'scavio_option_count'; }
+    public function get_title(): string { return __( 'Option — Nombre', 'scavio' ); }
 
     public function render(): void {
         echo esc_html( count( $this->get_options_list() ) );
@@ -329,9 +329,9 @@ class Servio_Tag_Option_Count extends Servio_Tag_Base {
  *  PRICING TAGS
  * ================================================================ */
 
-class Servio_Tag_Extra_Page_Price extends Servio_Tag_Base {
-    public function get_name(): string { return 'servio_extra_page_price'; }
-    public function get_title(): string { return __( 'Prix — Page supplémentaire', 'servio' ); }
+class Scavio_Tag_Extra_Page_Price extends Scavio_Tag_Base {
+    public function get_name(): string { return 'scavio_extra_page_price'; }
+    public function get_title(): string { return __( 'Prix — Page supplémentaire', 'scavio' ); }
 
     protected function register_controls(): void {
         $this->register_currency_control();
@@ -340,14 +340,14 @@ class Servio_Tag_Extra_Page_Price extends Servio_Tag_Base {
     public function render(): void {
         $post_id  = $this->get_post_id();
         $currency = $this->get_settings( 'currency' );
-        $price    = (float) get_post_meta( $post_id, '_servio_extra_page_price', true );
+        $price    = (float) get_post_meta( $post_id, '_scavio_extra_page_price', true );
         echo esc_html( number_format( $price, 2, ',', ' ' ) . ' ' . $currency );
     }
 }
 
-class Servio_Tag_Maintenance_Price extends Servio_Tag_Base {
-    public function get_name(): string { return 'servio_maintenance_price'; }
-    public function get_title(): string { return __( 'Prix — Maintenance mensuelle', 'servio' ); }
+class Scavio_Tag_Maintenance_Price extends Scavio_Tag_Base {
+    public function get_name(): string { return 'scavio_maintenance_price'; }
+    public function get_title(): string { return __( 'Prix — Maintenance mensuelle', 'scavio' ); }
 
     protected function register_controls(): void {
         $this->register_currency_control();
@@ -356,14 +356,14 @@ class Servio_Tag_Maintenance_Price extends Servio_Tag_Base {
     public function render(): void {
         $post_id  = $this->get_post_id();
         $currency = $this->get_settings( 'currency' );
-        $price    = (float) get_post_meta( $post_id, '_servio_maintenance_price', true );
+        $price    = (float) get_post_meta( $post_id, '_scavio_maintenance_price', true );
         echo esc_html( number_format( $price, 2, ',', ' ' ) . ' ' . $currency );
     }
 }
 
-class Servio_Tag_Express_Price extends Servio_Tag_Base {
-    public function get_name(): string { return 'servio_express_price'; }
-    public function get_title(): string { return __( 'Prix — Livraison express', 'servio' ); }
+class Scavio_Tag_Express_Price extends Scavio_Tag_Base {
+    public function get_name(): string { return 'scavio_express_price'; }
+    public function get_title(): string { return __( 'Prix — Livraison express', 'scavio' ); }
 
     protected function register_controls(): void {
         $this->register_currency_control();
@@ -372,7 +372,7 @@ class Servio_Tag_Express_Price extends Servio_Tag_Base {
     public function render(): void {
         $post_id  = $this->get_post_id();
         $currency = $this->get_settings( 'currency' );
-        $price    = (float) get_post_meta( $post_id, '_servio_express_price', true );
+        $price    = (float) get_post_meta( $post_id, '_scavio_express_price', true );
         echo esc_html( number_format( $price, 2, ',', ' ' ) . ' ' . $currency );
     }
 }

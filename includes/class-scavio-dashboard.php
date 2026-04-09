@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class Servio_Dashboard {
+class Scavio_Dashboard {
 
     public static function init(): void {
         add_action( 'admin_menu', [ __CLASS__, 'add_menu' ], 9 );
@@ -12,13 +12,13 @@ class Servio_Dashboard {
     }
 
     public static function enqueue_admin_assets( string $hook ): void {
-        if ( strpos( $hook, 'servio' ) === false ) {
+        if ( strpos( $hook, 'scavio' ) === false ) {
             return;
         }
-        if ( ! wp_script_is( 'servio-admin-js', 'registered' ) ) {
-            wp_register_script( 'servio-admin-js', false, [ 'jquery' ], SERVIO_VERSION, true ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
+        if ( ! wp_script_is( 'scavio-admin-js', 'registered' ) ) {
+            wp_register_script( 'scavio-admin-js', false, [ 'jquery' ], SCAVIO_VERSION, true ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
         }
-        wp_enqueue_script( 'servio-admin-js' );
+        wp_enqueue_script( 'scavio-admin-js' );
 
         wp_add_inline_style( 'wp-admin', '
             .serviceflow-stats { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
@@ -68,7 +68,7 @@ class Servio_Dashboard {
             @media (max-width:600px) { .serviceflow-sc-card { flex-direction:column; } .serviceflow-sc-field-row { flex-direction:column; align-items:flex-start; gap:6px; } .serviceflow-sc-field-label { flex:none; } }
         ' );
 
-        wp_add_inline_script( 'servio-admin-js', '
+        wp_add_inline_script( 'scavio-admin-js', '
             function serviceflowCopySC(el){
                 var text = el.querySelector(".serviceflow-sc-code-text").textContent;
                 if(navigator.clipboard){
@@ -88,32 +88,32 @@ class Servio_Dashboard {
     }
 
     public static function add_menu(): void {
-        $icon_svg = file_get_contents( SERVIO_PLUGIN_DIR . 'assets/img/icon.svg' );
+        $icon_svg = file_get_contents( SCAVIO_PLUGIN_DIR . 'assets/img/icon.svg' );
         $icon_url = 'data:image/svg+xml;base64,' . base64_encode( $icon_svg );
 
         add_menu_page(
-            __( 'Servio', 'servio' ),
-            __( 'Servio', 'servio' ),
+            __( 'Scavio', 'scavio' ),
+            __( 'Scavio', 'scavio' ),
             'manage_options',
-            'servio',
+            'scavio',
             [ __CLASS__, 'render_dashboard' ],
             $icon_url,
             30
         );
 
         add_submenu_page(
-            'servio',
-            __( 'Tableau de bord', 'servio' ),
-            __( 'Tableau de bord', 'servio' ),
+            'scavio',
+            __( 'Tableau de bord', 'scavio' ),
+            __( 'Tableau de bord', 'scavio' ),
             'manage_options',
-            'servio',
+            'scavio',
             [ __CLASS__, 'render_dashboard' ]
         );
 
         add_submenu_page(
-            'servio',
-            __( 'Shortcodes', 'servio' ),
-            __( 'Shortcodes', 'servio' ),
+            'scavio',
+            __( 'Shortcodes', 'scavio' ),
+            __( 'Shortcodes', 'scavio' ),
             'manage_options',
             'serviceflow-shortcodes',
             [ __CLASS__, 'render_shortcodes' ]
@@ -127,8 +127,8 @@ class Servio_Dashboard {
         global $wpdb;
         // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table names are plugin-defined constants, no user input.
 
-        $order_table = Servio_Orders::table_name();
-        $msg_table   = Servio_DB::table_name();
+        $order_table = Scavio_Orders::table_name();
+        $msg_table   = Scavio_DB::table_name();
 
         $total_orders = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$order_table}" );
 
@@ -151,7 +151,7 @@ class Servio_Dashboard {
         );
 
         // Stats factures
-        $inv_table = Servio_Invoices::invoices_table_name();
+        $inv_table = Scavio_Invoices::invoices_table_name();
         $total_invoiced = (float) $wpdb->get_var(
             "SELECT COALESCE(SUM(total), 0) FROM {$inv_table} WHERE status IN ('validated','paid')"
         );
@@ -180,7 +180,7 @@ class Servio_Dashboard {
         global $wpdb;
         // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Static query, table names only, no user input.
 
-        $order_table = Servio_Orders::table_name();
+        $order_table = Scavio_Orders::table_name();
 
         return $wpdb->get_results(
             "SELECT o.*, u.display_name AS client_name, p.post_title AS service_name
@@ -200,7 +200,7 @@ class Servio_Dashboard {
         global $wpdb;
         // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Static query, table names only, no user input.
 
-        $msg_table = Servio_DB::table_name();
+        $msg_table = Scavio_DB::table_name();
 
         return $wpdb->get_results(
             "SELECT m.*, u.display_name, p.post_title AS service_name
@@ -224,12 +224,12 @@ class Servio_Dashboard {
         $messages = self::get_recent_messages();
 
         $status_labels = [
-            'pending'   => __( 'En attente', 'servio' ),
-            'paid'      => __( 'Payée', 'servio' ),
-            'started'   => __( 'En cours', 'servio' ),
-            'completed' => __( 'Terminée', 'servio' ),
-            'revision'  => __( 'Retouche', 'servio' ),
-            'accepted'  => __( 'Acceptée', 'servio' ),
+            'pending'   => __( 'En attente', 'scavio' ),
+            'paid'      => __( 'Payée', 'scavio' ),
+            'started'   => __( 'En cours', 'scavio' ),
+            'completed' => __( 'Terminée', 'scavio' ),
+            'revision'  => __( 'Retouche', 'scavio' ),
+            'accepted'  => __( 'Acceptée', 'scavio' ),
         ];
         $status_colors = [
             'pending'   => '#f59e0b',
@@ -240,13 +240,13 @@ class Servio_Dashboard {
             'accepted'  => '#6b7280',
         ];
 
-        $color = Servio_Admin::get_color();
+        $color = Scavio_Admin::get_color();
         ?>
         <div class="wrap serviceflow-dashboard">
             <h1 style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
                 <span class="dashicons dashicons-format-chat" style="font-size:28px;width:28px;height:28px;color:<?php echo esc_attr( $color ); ?>"></span>
-                <?php esc_html_e( 'Servio — Tableau de bord', 'servio' ); ?>
-                <?php if ( servio_is_premium() ) : ?>
+                <?php esc_html_e( 'Scavio — Tableau de bord', 'scavio' ); ?>
+                <?php if ( scavio_is_premium() ) : ?>
                     <span style="background:#8b5cf6;color:#fff;font-size:12px;padding:2px 8px;border-radius:4px">PRO</span>
                 <?php endif; ?>
             </h1>
@@ -259,7 +259,7 @@ class Servio_Dashboard {
                     </div>
                     <div>
                         <div class="serviceflow-stat-number"><?php echo esc_html( $stats['total_orders'] ); ?></div>
-                        <div class="serviceflow-stat-label"><?php esc_html_e( 'Commandes totales', 'servio' ); ?></div>
+                        <div class="serviceflow-stat-label"><?php esc_html_e( 'Commandes totales', 'scavio' ); ?></div>
                     </div>
                 </div>
                 <div class="serviceflow-stat-card">
@@ -268,7 +268,7 @@ class Servio_Dashboard {
                     </div>
                     <div>
                         <div class="serviceflow-stat-number"><?php echo esc_html( $stats['pending'] ); ?></div>
-                        <div class="serviceflow-stat-label"><?php esc_html_e( 'En attente', 'servio' ); ?></div>
+                        <div class="serviceflow-stat-label"><?php esc_html_e( 'En attente', 'scavio' ); ?></div>
                     </div>
                 </div>
                 <div class="serviceflow-stat-card">
@@ -277,7 +277,7 @@ class Servio_Dashboard {
                     </div>
                     <div>
                         <div class="serviceflow-stat-number"><?php echo esc_html( $stats['in_progress'] ); ?></div>
-                        <div class="serviceflow-stat-label"><?php esc_html_e( 'En cours', 'servio' ); ?></div>
+                        <div class="serviceflow-stat-label"><?php esc_html_e( 'En cours', 'scavio' ); ?></div>
                     </div>
                 </div>
                 <div class="serviceflow-stat-card">
@@ -286,7 +286,7 @@ class Servio_Dashboard {
                     </div>
                     <div>
                         <div class="serviceflow-stat-number"><?php echo esc_html( $stats['completed'] ); ?></div>
-                        <div class="serviceflow-stat-label"><?php esc_html_e( 'Terminées / Acceptées', 'servio' ); ?></div>
+                        <div class="serviceflow-stat-label"><?php esc_html_e( 'Terminées / Acceptées', 'scavio' ); ?></div>
                     </div>
                 </div>
                 <div class="serviceflow-stat-card">
@@ -295,7 +295,7 @@ class Servio_Dashboard {
                     </div>
                     <div>
                         <div class="serviceflow-stat-number"><?php echo esc_html( $stats['conversations'] ); ?></div>
-                        <div class="serviceflow-stat-label"><?php esc_html_e( 'Conversations', 'servio' ); ?></div>
+                        <div class="serviceflow-stat-label"><?php esc_html_e( 'Conversations', 'scavio' ); ?></div>
                     </div>
                 </div>
                 <div class="serviceflow-stat-card">
@@ -304,7 +304,7 @@ class Servio_Dashboard {
                     </div>
                     <div>
                         <div class="serviceflow-stat-number"><?php echo esc_html( number_format( $stats['total_invoiced'], 2, ',', ' ' ) ); ?> &euro;</div>
-                        <div class="serviceflow-stat-label"><?php esc_html_e( 'Total facturé', 'servio' ); ?></div>
+                        <div class="serviceflow-stat-label"><?php esc_html_e( 'Total facturé', 'scavio' ); ?></div>
                     </div>
                 </div>
                 <div class="serviceflow-stat-card">
@@ -313,7 +313,7 @@ class Servio_Dashboard {
                     </div>
                     <div>
                         <div class="serviceflow-stat-number"><?php echo esc_html( $stats['pending_invoices'] ); ?></div>
-                        <div class="serviceflow-stat-label"><?php esc_html_e( 'Factures à valider', 'servio' ); ?></div>
+                        <div class="serviceflow-stat-label"><?php esc_html_e( 'Factures à valider', 'scavio' ); ?></div>
                     </div>
                 </div>
             </div>
@@ -322,23 +322,23 @@ class Servio_Dashboard {
             <div class="serviceflow-section">
                 <h2 class="serviceflow-section-title">
                     <span class="dashicons dashicons-list-view" style="color:#6366f1"></span>
-                    <?php esc_html_e( 'Commandes récentes', 'servio' ); ?>
+                    <?php esc_html_e( 'Commandes récentes', 'scavio' ); ?>
                 </h2>
                 <table>
                     <thead>
                         <tr>
-                            <th><?php esc_html_e( 'N°', 'servio' ); ?></th>
-                            <th><?php esc_html_e( 'Client', 'servio' ); ?></th>
-                            <th><?php esc_html_e( 'Service', 'servio' ); ?></th>
-                            <th><?php esc_html_e( 'Statut', 'servio' ); ?></th>
-                            <th><?php esc_html_e( 'Prix', 'servio' ); ?></th>
-                            <th><?php esc_html_e( 'Délai', 'servio' ); ?></th>
-                            <th><?php esc_html_e( 'Date', 'servio' ); ?></th>
+                            <th><?php esc_html_e( 'N°', 'scavio' ); ?></th>
+                            <th><?php esc_html_e( 'Client', 'scavio' ); ?></th>
+                            <th><?php esc_html_e( 'Service', 'scavio' ); ?></th>
+                            <th><?php esc_html_e( 'Statut', 'scavio' ); ?></th>
+                            <th><?php esc_html_e( 'Prix', 'scavio' ); ?></th>
+                            <th><?php esc_html_e( 'Délai', 'scavio' ); ?></th>
+                            <th><?php esc_html_e( 'Date', 'scavio' ); ?></th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if ( empty( $orders ) ) : ?>
-                            <tr class="serviceflow-empty-row"><td colspan="7"><?php esc_html_e( 'Aucune commande.', 'servio' ); ?></td></tr>
+                            <tr class="serviceflow-empty-row"><td colspan="7"><?php esc_html_e( 'Aucune commande.', 'scavio' ); ?></td></tr>
                         <?php else : ?>
                             <?php foreach ( $orders as $o ) :
                                 $s_label = $status_labels[ $o->status ] ?? $o->status;
@@ -359,17 +359,17 @@ class Servio_Dashboard {
                                 <td>
                                     <?php echo esc_html( number_format( (float) $o->total_price, 2, ',', ' ' ) ); ?> &euro;
                                     <?php if ( ! empty( $o->payment_mode ) && $o->payment_mode !== 'single' ) : ?>
-                                        <span style="display:inline-block;margin-left:4px;padding:1px 5px;border-radius:4px;font-size:10px;font-weight:600;color:#fff;background:#f59e0b" title="<?php esc_attr_e( 'Paiement en plusieurs fois', 'servio' ); ?>">
+                                        <span style="display:inline-block;margin-left:4px;padding:1px 5px;border-radius:4px;font-size:10px;font-weight:600;color:#fff;background:#f59e0b" title="<?php esc_attr_e( 'Paiement en plusieurs fois', 'scavio' ); ?>">
                                             <?php echo match ( $o->payment_mode ) {
-                                                'deposit'      => esc_html__( 'Acompte', 'servio' ),
-                                                'installments' => esc_html__( 'Mensualités', 'servio' ),
-                                                'monthly'      => esc_html__( 'Abonnement', 'servio' ),
+                                                'deposit'      => esc_html__( 'Acompte', 'scavio' ),
+                                                'installments' => esc_html__( 'Mensualités', 'scavio' ),
+                                                'monthly'      => esc_html__( 'Abonnement', 'scavio' ),
                                                 default        => esc_html( $o->payment_mode ),
                                             }; ?>
                                         </span>
                                     <?php endif; ?>
                                 </td>
-                                <td><?php echo esc_html( $o->total_delay ); ?> <?php esc_html_e( 'j', 'servio' ); ?></td>
+                                <td><?php echo esc_html( $o->total_delay ); ?> <?php esc_html_e( 'j', 'scavio' ); ?></td>
                                 <td><?php echo esc_html( date_i18n( 'd/m/Y H:i', strtotime( $o->created_at ) ) ); ?></td>
                             </tr>
                             <?php endforeach; ?>
@@ -382,20 +382,20 @@ class Servio_Dashboard {
             <div class="serviceflow-section">
                 <h2 class="serviceflow-section-title">
                     <span class="dashicons dashicons-admin-comments" style="color:<?php echo esc_attr( $color ); ?>"></span>
-                    <?php esc_html_e( 'Activité récente', 'servio' ); ?>
+                    <?php esc_html_e( 'Activité récente', 'scavio' ); ?>
                 </h2>
                 <table>
                     <thead>
                         <tr>
-                            <th><?php esc_html_e( 'Utilisateur', 'servio' ); ?></th>
-                            <th><?php esc_html_e( 'Service', 'servio' ); ?></th>
-                            <th><?php esc_html_e( 'Message', 'servio' ); ?></th>
-                            <th><?php esc_html_e( 'Date', 'servio' ); ?></th>
+                            <th><?php esc_html_e( 'Utilisateur', 'scavio' ); ?></th>
+                            <th><?php esc_html_e( 'Service', 'scavio' ); ?></th>
+                            <th><?php esc_html_e( 'Message', 'scavio' ); ?></th>
+                            <th><?php esc_html_e( 'Date', 'scavio' ); ?></th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if ( empty( $messages ) ) : ?>
-                            <tr class="serviceflow-empty-row"><td colspan="4"><?php esc_html_e( 'Aucun message.', 'servio' ); ?></td></tr>
+                            <tr class="serviceflow-empty-row"><td colspan="4"><?php esc_html_e( 'Aucun message.', 'scavio' ); ?></td></tr>
                         <?php else : ?>
                             <?php foreach ( $messages as $m ) : ?>
                             <tr>
@@ -421,38 +421,38 @@ class Servio_Dashboard {
             return;
         }
 
-        $color = Servio_Admin::get_color();
+        $color = Scavio_Admin::get_color();
 
         $main_shortcodes = [
             [
-                'code'  => '[servio_options]',
-                'title' => __( 'Options & Commande de service', 'servio' ),
-                'desc'  => __( 'Affiche la carte de sélection des packs et options pour un service. Permet au client de choisir un pack, cocher des options et passer commande via le chat. À placer sur les pages du CPT configuré.', 'servio' ),
-                'where' => __( 'Page single du CPT (template Elementor du service)', 'servio' ),
+                'code'  => '[scavio_options]',
+                'title' => __( 'Options & Commande de service', 'scavio' ),
+                'desc'  => __( 'Affiche la carte de sélection des packs et options pour un service. Permet au client de choisir un pack, cocher des options et passer commande via le chat. À placer sur les pages du CPT configuré.', 'scavio' ),
+                'where' => __( 'Page single du CPT (template Elementor du service)', 'scavio' ),
                 'icon'  => 'dashicons-cart',
                 'color' => '#6366f1',
             ],
             [
-                'code'  => '[servio_account]',
-                'title' => __( 'Widget Compte (Avatar / Connexion)', 'servio' ),
-                'desc'  => __( 'Affiche un bouton « Se connecter / S\'inscrire » si l\'utilisateur n\'est pas connecté, ou son avatar avec un menu déroulant (Mon compte, Mes commandes, Se déconnecter) s\'il est connecté. Idéal pour le header.', 'servio' ),
-                'where' => __( 'Header du site (widget Elementor, barre de navigation)', 'servio' ),
+                'code'  => '[scavio_account]',
+                'title' => __( 'Widget Compte (Avatar / Connexion)', 'scavio' ),
+                'desc'  => __( 'Affiche un bouton « Se connecter / S\'inscrire » si l\'utilisateur n\'est pas connecté, ou son avatar avec un menu déroulant (Mon compte, Mes commandes, Se déconnecter) s\'il est connecté. Idéal pour le header.', 'scavio' ),
+                'where' => __( 'Header du site (widget Elementor, barre de navigation)', 'scavio' ),
                 'icon'  => 'dashicons-admin-users',
                 'color' => '#3b82f6',
             ],
             [
-                'code'  => '[servio_my_account]',
-                'title' => __( 'Page Mon Compte', 'servio' ),
-                'desc'  => __( 'Affiche la page complète du compte utilisateur avec deux onglets : « Mes commandes » (historique filtrable par statut) et « Mon profil » (informations personnelles). Redirige vers la connexion si non connecté.', 'servio' ),
-                'where' => __( 'Page dédiée « Mon compte »', 'servio' ),
+                'code'  => '[scavio_my_account]',
+                'title' => __( 'Page Mon Compte', 'scavio' ),
+                'desc'  => __( 'Affiche la page complète du compte utilisateur avec deux onglets : « Mes commandes » (historique filtrable par statut) et « Mon profil » (informations personnelles). Redirige vers la connexion si non connecté.', 'scavio' ),
+                'where' => __( 'Page dédiée « Mon compte »', 'scavio' ),
                 'icon'  => 'dashicons-id-alt',
                 'color' => '#10b981',
             ],
             [
-                'code'  => '[servio_notifications]',
-                'title' => __( 'Cloche de notifications', 'servio' ),
-                'desc'  => __( 'Affiche une icône de cloche avec le compteur de notifications non lues. Au clic, un menu déroulant affiche les dernières notifications (nouveaux messages, commandes, changements de statut). Masqué si l\'utilisateur n\'est pas connecté.', 'servio' ),
-                'where' => __( 'Header du site (barre de navigation, à côté du widget compte)', 'servio' ),
+                'code'  => '[scavio_notifications]',
+                'title' => __( 'Cloche de notifications', 'scavio' ),
+                'desc'  => __( 'Affiche une icône de cloche avec le compteur de notifications non lues. Au clic, un menu déroulant affiche les dernières notifications (nouveaux messages, commandes, changements de statut). Masqué si l\'utilisateur n\'est pas connecté.', 'scavio' ),
+                'where' => __( 'Header du site (barre de navigation, à côté du widget compte)', 'scavio' ),
                 'icon'  => 'dashicons-bell',
                 'color' => '#ef4444',
             ],
@@ -460,42 +460,42 @@ class Servio_Dashboard {
 
         $field_sections = [
             [
-                'title' => __( 'Packs', 'servio' ),
+                'title' => __( 'Packs', 'scavio' ),
                 'icon'  => 'dashicons-archive',
                 'color' => '#6366f1',
-                'desc'  => __( 'Affichent les données d\'un pack par son index (0 = premier). Attributs communs : index="0" post_id="".', 'servio' ),
+                'desc'  => __( 'Affichent les données d\'un pack par son index (0 = premier). Attributs communs : index="0" post_id="".', 'scavio' ),
                 'fields' => [
-                    [ 'code' => '[sf_pack_name index="0"]',          'label' => __( 'Nom du pack', 'servio' ) ],
-                    [ 'code' => '[sf_pack_price index="0" currency="€"]',  'label' => __( 'Prix du pack', 'servio' ) ],
-                    [ 'code' => '[sf_pack_starting_price currency="€"]',    'label' => __( 'Prix de départ (minimum des packs)', 'servio' ) ],
-                    [ 'code' => '[sf_pack_delay index="0" suffix=" jour(s)"]', 'label' => __( 'Délai de livraison', 'servio' ) ],
-                    [ 'code' => '[sf_pack_description index="0"]',   'label' => __( 'Description / infobulle', 'servio' ) ],
-                    [ 'code' => '[sf_pack_features index="0" format="list"]', 'label' => __( 'Caractéristiques (format="list" ou "inline")', 'servio' ) ],
-                    [ 'code' => '[sf_pack_count]',                    'label' => __( 'Nombre total de packs', 'servio' ) ],
+                    [ 'code' => '[sf_pack_name index="0"]',          'label' => __( 'Nom du pack', 'scavio' ) ],
+                    [ 'code' => '[sf_pack_price index="0" currency="€"]',  'label' => __( 'Prix du pack', 'scavio' ) ],
+                    [ 'code' => '[sf_pack_starting_price currency="€"]',    'label' => __( 'Prix de départ (minimum des packs)', 'scavio' ) ],
+                    [ 'code' => '[sf_pack_delay index="0" suffix=" jour(s)"]', 'label' => __( 'Délai de livraison', 'scavio' ) ],
+                    [ 'code' => '[sf_pack_description index="0"]',   'label' => __( 'Description / infobulle', 'scavio' ) ],
+                    [ 'code' => '[sf_pack_features index="0" format="list"]', 'label' => __( 'Caractéristiques (format="list" ou "inline")', 'scavio' ) ],
+                    [ 'code' => '[sf_pack_count]',                    'label' => __( 'Nombre total de packs', 'scavio' ) ],
                 ],
             ],
             [
-                'title' => __( 'Options supplémentaires', 'servio' ),
+                'title' => __( 'Options supplémentaires', 'scavio' ),
                 'icon'  => 'dashicons-plus-alt',
                 'color' => '#f59e0b',
-                'desc'  => __( 'Affichent les données d\'une option par son index (0 = première). Attributs communs : index="0" post_id="".', 'servio' ),
+                'desc'  => __( 'Affichent les données d\'une option par son index (0 = première). Attributs communs : index="0" post_id="".', 'scavio' ),
                 'fields' => [
-                    [ 'code' => '[sf_option_name index="0"]',         'label' => __( 'Nom de l\'option', 'servio' ) ],
-                    [ 'code' => '[sf_option_price index="0" currency="€"]', 'label' => __( 'Prix de l\'option', 'servio' ) ],
-                    [ 'code' => '[sf_option_delay index="0" suffix=" jour(s)"]', 'label' => __( 'Délai de l\'option', 'servio' ) ],
-                    [ 'code' => '[sf_option_description index="0"]',  'label' => __( 'Description de l\'option', 'servio' ) ],
-                    [ 'code' => '[sf_option_count]',                   'label' => __( 'Nombre total d\'options', 'servio' ) ],
+                    [ 'code' => '[sf_option_name index="0"]',         'label' => __( 'Nom de l\'option', 'scavio' ) ],
+                    [ 'code' => '[sf_option_price index="0" currency="€"]', 'label' => __( 'Prix de l\'option', 'scavio' ) ],
+                    [ 'code' => '[sf_option_delay index="0" suffix=" jour(s)"]', 'label' => __( 'Délai de l\'option', 'scavio' ) ],
+                    [ 'code' => '[sf_option_description index="0"]',  'label' => __( 'Description de l\'option', 'scavio' ) ],
+                    [ 'code' => '[sf_option_count]',                   'label' => __( 'Nombre total d\'options', 'scavio' ) ],
                 ],
             ],
             [
-                'title' => __( 'Prix avancés', 'servio' ),
+                'title' => __( 'Prix avancés', 'scavio' ),
                 'icon'  => 'dashicons-tag',
                 'color' => '#10b981',
-                'desc'  => __( 'Options tarifaires avancées (Premium). Attributs : currency="€" post_id="".', 'servio' ),
+                'desc'  => __( 'Options tarifaires avancées (Premium). Attributs : currency="€" post_id="".', 'scavio' ),
                 'fields' => [
-                    [ 'code' => '[sf_extra_page_price currency="€"]',  'label' => __( 'Prix page supplémentaire', 'servio' ) ],
-                    [ 'code' => '[sf_maintenance_price currency="€"]', 'label' => __( 'Prix maintenance mensuelle', 'servio' ) ],
-                    [ 'code' => '[sf_express_price currency="€"]',     'label' => __( 'Prix livraison express (par jour)', 'servio' ) ],
+                    [ 'code' => '[sf_extra_page_price currency="€"]',  'label' => __( 'Prix page supplémentaire', 'scavio' ) ],
+                    [ 'code' => '[sf_maintenance_price currency="€"]', 'label' => __( 'Prix maintenance mensuelle', 'scavio' ) ],
+                    [ 'code' => '[sf_express_price currency="€"]',     'label' => __( 'Prix livraison express (par jour)', 'scavio' ) ],
                 ],
             ],
         ];
@@ -503,14 +503,14 @@ class Servio_Dashboard {
         <div class="wrap serviceflow-dashboard">
             <h1 style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
                 <span class="dashicons dashicons-shortcode" style="font-size:28px;width:28px;height:28px;color:<?php echo esc_attr( $color ); ?>"></span>
-                <?php esc_html_e( 'Servio — Shortcodes', 'servio' ); ?>
+                <?php esc_html_e( 'Scavio — Shortcodes', 'scavio' ); ?>
             </h1>
             <p style="font-size:14px;color:#666;margin:0 0 28px 0">
-                <?php esc_html_e( 'Copiez un shortcode et collez-le dans n\'importe quelle page, article ou widget Elementor.', 'servio' ); ?>
+                <?php esc_html_e( 'Copiez un shortcode et collez-le dans n\'importe quelle page, article ou widget Elementor.', 'scavio' ); ?>
             </p>
 
             <!-- Shortcodes principaux -->
-            <p class="serviceflow-sc-section-heading"><?php esc_html_e( 'Shortcodes principaux', 'servio' ); ?></p>
+            <p class="serviceflow-sc-section-heading"><?php esc_html_e( 'Shortcodes principaux', 'scavio' ); ?></p>
             <div class="serviceflow-sc-list">
                 <?php foreach ( $main_shortcodes as $sc ) : ?>
                 <div class="serviceflow-sc-card">
@@ -519,10 +519,10 @@ class Servio_Dashboard {
                     </div>
                     <div class="serviceflow-sc-card-body">
                         <div class="serviceflow-sc-card-title"><?php echo esc_html( $sc['title'] ); ?></div>
-                        <div class="serviceflow-sc-card-code" onclick="serviceflowCopySC(this)" title="<?php esc_attr_e( 'Cliquer pour copier', 'servio' ); ?>">
+                        <div class="serviceflow-sc-card-code" onclick="serviceflowCopySC(this)" title="<?php esc_attr_e( 'Cliquer pour copier', 'scavio' ); ?>">
                             <span class="dashicons dashicons-clipboard"></span>
                             <span class="serviceflow-sc-code-text"><?php echo esc_html( $sc['code'] ); ?></span>
-                            <span class="serviceflow-sc-copied"><?php esc_html_e( 'Copié !', 'servio' ); ?></span>
+                            <span class="serviceflow-sc-copied"><?php esc_html_e( 'Copié !', 'scavio' ); ?></span>
                         </div>
                         <p class="serviceflow-sc-card-desc"><?php echo esc_html( $sc['desc'] ); ?></p>
                         <div class="serviceflow-sc-card-where">
@@ -535,8 +535,8 @@ class Servio_Dashboard {
             </div>
 
             <!-- Champs dynamiques -->
-            <p class="serviceflow-sc-section-heading"><?php esc_html_e( 'Champs dynamiques (Dynamic Tags)', 'servio' ); ?></p>
-            <p style="font-size:13px;color:#666;margin:-4px 0 14px 0"><?php esc_html_e( 'À utiliser dans les templates Elementor des pages de service. Tous acceptent un attribut post_id="123" optionnel.', 'servio' ); ?></p>
+            <p class="serviceflow-sc-section-heading"><?php esc_html_e( 'Champs dynamiques (Dynamic Tags)', 'scavio' ); ?></p>
+            <p style="font-size:13px;color:#666;margin:-4px 0 14px 0"><?php esc_html_e( 'À utiliser dans les templates Elementor des pages de service. Tous acceptent un attribut post_id="123" optionnel.', 'scavio' ); ?></p>
             <div class="serviceflow-sc-list">
                 <?php foreach ( $field_sections as $section ) : ?>
                 <div class="serviceflow-sc-section">
@@ -553,10 +553,10 @@ class Servio_Dashboard {
                         <?php foreach ( $section['fields'] as $field ) : ?>
                         <div class="serviceflow-sc-field-row">
                             <span class="serviceflow-sc-field-label"><?php echo esc_html( $field['label'] ); ?></span>
-                            <div class="serviceflow-sc-field-code" onclick="serviceflowCopySC(this)" title="<?php esc_attr_e( 'Cliquer pour copier', 'servio' ); ?>">
+                            <div class="serviceflow-sc-field-code" onclick="serviceflowCopySC(this)" title="<?php esc_attr_e( 'Cliquer pour copier', 'scavio' ); ?>">
                                 <span class="dashicons dashicons-clipboard"></span>
                                 <span class="serviceflow-sc-code-text"><?php echo esc_html( $field['code'] ); ?></span>
-                                <span class="serviceflow-sc-copied"><?php esc_html_e( 'Copié !', 'servio' ); ?></span>
+                                <span class="serviceflow-sc-copied"><?php esc_html_e( 'Copié !', 'scavio' ); ?></span>
                             </div>
                         </div>
                         <?php endforeach; ?>

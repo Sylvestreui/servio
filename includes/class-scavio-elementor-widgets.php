@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class Servio_Elementor_Widgets {
+class Scavio_Elementor_Widgets {
 
     public static function init(): void {
         add_action( 'elementor/elements/categories_registered', [ __CLASS__, 'add_category' ] );
@@ -12,16 +12,16 @@ class Servio_Elementor_Widgets {
     }
 
     public static function add_category( $elements_manager ): void {
-        $elements_manager->add_category( 'servio', [
-            'title' => 'Servio',
+        $elements_manager->add_category( 'scavio', [
+            'title' => 'Scavio',
             'icon'  => 'eicon-plug',
         ] );
     }
 
     public static function register_widgets( $widgets_manager ): void {
-        $widgets_manager->register( new Servio_Widget_Pack() );
-        $widgets_manager->register( new Servio_Widget_Option() );
-        $widgets_manager->register( new Servio_Widget_Advanced_Price() );
+        $widgets_manager->register( new Scavio_Widget_Pack() );
+        $widgets_manager->register( new Scavio_Widget_Option() );
+        $widgets_manager->register( new Scavio_Widget_Advanced_Price() );
     }
 }
 
@@ -29,10 +29,10 @@ class Servio_Elementor_Widgets {
  *  BASE WIDGET
  * ================================================================ */
 
-abstract class Servio_Widget_Base extends \Elementor\Widget_Base {
+abstract class Scavio_Widget_Base extends \Elementor\Widget_Base {
 
     public function get_categories(): array {
-        return [ 'servio' ];
+        return [ 'scavio' ];
     }
 
     protected function get_post_id(): int {
@@ -41,7 +41,7 @@ abstract class Servio_Widget_Base extends \Elementor\Widget_Base {
 
     protected function register_html_tag_control(): void {
         $this->add_control( 'html_tag', [
-            'label'   => __( 'Balise HTML', 'servio' ),
+            'label'   => __( 'Balise HTML', 'scavio' ),
             'type'    => \Elementor\Controls_Manager::SELECT,
             'default' => 'span',
             'options' => [
@@ -60,12 +60,12 @@ abstract class Servio_Widget_Base extends \Elementor\Widget_Base {
 
     protected function register_style_section(): void {
         $this->start_controls_section( 'section_style', [
-            'label' => __( 'Style', 'servio' ),
+            'label' => __( 'Style', 'scavio' ),
             'tab'   => \Elementor\Controls_Manager::TAB_STYLE,
         ] );
 
         $this->add_control( 'text_color', [
-            'label'     => __( 'Couleur', 'servio' ),
+            'label'     => __( 'Couleur', 'scavio' ),
             'type'      => \Elementor\Controls_Manager::COLOR,
             'selectors' => [ '{{WRAPPER}} .sf-widget-text' => 'color: {{VALUE}};' ],
         ] );
@@ -76,12 +76,12 @@ abstract class Servio_Widget_Base extends \Elementor\Widget_Base {
         );
 
         $this->add_responsive_control( 'text_align', [
-            'label'     => __( 'Alignement', 'servio' ),
+            'label'     => __( 'Alignement', 'scavio' ),
             'type'      => \Elementor\Controls_Manager::CHOOSE,
             'options'   => [
-                'left'   => [ 'title' => __( 'Gauche', 'servio' ),  'icon' => 'eicon-text-align-left' ],
-                'center' => [ 'title' => __( 'Centre', 'servio' ),  'icon' => 'eicon-text-align-center' ],
-                'right'  => [ 'title' => __( 'Droite', 'servio' ),  'icon' => 'eicon-text-align-right' ],
+                'left'   => [ 'title' => __( 'Gauche', 'scavio' ),  'icon' => 'eicon-text-align-left' ],
+                'center' => [ 'title' => __( 'Centre', 'scavio' ),  'icon' => 'eicon-text-align-center' ],
+                'right'  => [ 'title' => __( 'Droite', 'scavio' ),  'icon' => 'eicon-text-align-right' ],
             ],
             'selectors' => [ '{{WRAPPER}} .sf-widget-text' => 'text-align: {{VALUE}};' ],
         ] );
@@ -102,36 +102,36 @@ abstract class Servio_Widget_Base extends \Elementor\Widget_Base {
  *  WIDGET PACK
  * ================================================================ */
 
-class Servio_Widget_Pack extends Servio_Widget_Base {
+class Scavio_Widget_Pack extends Scavio_Widget_Base {
 
     public function get_name(): string  { return 'sf_pack'; }
-    public function get_title(): string { return __( 'SF — Pack', 'servio' ); }
+    public function get_title(): string { return __( 'SF — Pack', 'scavio' ); }
     public function get_icon(): string  { return 'eicon-archive'; }
 
     protected function register_controls(): void {
 
         /* ── Contenu ── */
         $this->start_controls_section( 'section_content', [
-            'label' => __( 'Contenu', 'servio' ),
+            'label' => __( 'Contenu', 'scavio' ),
         ] );
 
         $this->add_control( 'field', [
-            'label'   => __( 'Champ', 'servio' ),
+            'label'   => __( 'Champ', 'scavio' ),
             'type'    => \Elementor\Controls_Manager::SELECT,
             'default' => 'name',
             'options' => [
-                'name'          => __( 'Nom', 'servio' ),
-                'price'         => __( 'Prix', 'servio' ),
-                'starting_price'=> __( 'Prix de départ (min)', 'servio' ),
-                'delay'         => __( 'Délai de livraison', 'servio' ),
-                'description'   => __( 'Description', 'servio' ),
-                'features'      => __( 'Caractéristiques', 'servio' ),
-                'count'         => __( 'Nombre de packs', 'servio' ),
+                'name'          => __( 'Nom', 'scavio' ),
+                'price'         => __( 'Prix', 'scavio' ),
+                'starting_price'=> __( 'Prix de départ (min)', 'scavio' ),
+                'delay'         => __( 'Délai de livraison', 'scavio' ),
+                'description'   => __( 'Description', 'scavio' ),
+                'features'      => __( 'Caractéristiques', 'scavio' ),
+                'count'         => __( 'Nombre de packs', 'scavio' ),
             ],
         ] );
 
         $this->add_control( 'pack_index', [
-            'label'     => __( 'N° du pack (0 = premier)', 'servio' ),
+            'label'     => __( 'N° du pack (0 = premier)', 'scavio' ),
             'type'      => \Elementor\Controls_Manager::NUMBER,
             'default'   => 0,
             'min'       => 0,
@@ -139,32 +139,32 @@ class Servio_Widget_Pack extends Servio_Widget_Base {
         ] );
 
         $this->add_control( 'currency', [
-            'label'     => __( 'Devise', 'servio' ),
+            'label'     => __( 'Devise', 'scavio' ),
             'type'      => \Elementor\Controls_Manager::TEXT,
             'default'   => '€',
             'condition' => [ 'field' => [ 'price', 'starting_price' ] ],
         ] );
 
         $this->add_control( 'delay_suffix', [
-            'label'     => __( 'Suffixe', 'servio' ),
+            'label'     => __( 'Suffixe', 'scavio' ),
             'type'      => \Elementor\Controls_Manager::TEXT,
             'default'   => ' jour(s)',
             'condition' => [ 'field' => 'delay' ],
         ] );
 
         $this->add_control( 'features_format', [
-            'label'     => __( 'Format', 'servio' ),
+            'label'     => __( 'Format', 'scavio' ),
             'type'      => \Elementor\Controls_Manager::SELECT,
             'default'   => 'list',
             'options'   => [
-                'list'   => __( 'Liste (ul/li)', 'servio' ),
-                'inline' => __( 'En ligne', 'servio' ),
+                'list'   => __( 'Liste (ul/li)', 'scavio' ),
+                'inline' => __( 'En ligne', 'scavio' ),
             ],
             'condition' => [ 'field' => 'features' ],
         ] );
 
         $this->add_control( 'features_separator', [
-            'label'     => __( 'Séparateur', 'servio' ),
+            'label'     => __( 'Séparateur', 'scavio' ),
             'type'      => \Elementor\Controls_Manager::TEXT,
             'default'   => ', ',
             'condition' => [ 'field' => 'features', 'features_format' => 'inline' ],
@@ -179,13 +179,13 @@ class Servio_Widget_Pack extends Servio_Widget_Base {
 
         /* ── Style liste (features uniquement) ── */
         $this->start_controls_section( 'section_style_list', [
-            'label'     => __( 'Style liste', 'servio' ),
+            'label'     => __( 'Style liste', 'scavio' ),
             'tab'       => \Elementor\Controls_Manager::TAB_STYLE,
             'condition' => [ 'field' => 'features' ],
         ] );
 
         $this->add_control( 'list_color', [
-            'label'     => __( 'Couleur texte', 'servio' ),
+            'label'     => __( 'Couleur texte', 'scavio' ),
             'type'      => \Elementor\Controls_Manager::COLOR,
             'selectors' => [ '{{WRAPPER}} .sf-features-list li' => 'color: {{VALUE}};' ],
         ] );
@@ -196,7 +196,7 @@ class Servio_Widget_Pack extends Servio_Widget_Base {
         );
 
         $this->add_responsive_control( 'list_gap', [
-            'label'      => __( 'Espacement items', 'servio' ),
+            'label'      => __( 'Espacement items', 'scavio' ),
             'type'       => \Elementor\Controls_Manager::SLIDER,
             'size_units' => [ 'px' ],
             'range'      => [ 'px' => [ 'min' => 0, 'max' => 40 ] ],
@@ -205,7 +205,7 @@ class Servio_Widget_Pack extends Servio_Widget_Base {
         ] );
 
         $this->add_control( 'list_padding', [
-            'label'      => __( 'Retrait liste', 'servio' ),
+            'label'      => __( 'Retrait liste', 'scavio' ),
             'type'       => \Elementor\Controls_Manager::SLIDER,
             'size_units' => [ 'px' ],
             'range'      => [ 'px' => [ 'min' => 0, 'max' => 40 ] ],
@@ -218,7 +218,7 @@ class Servio_Widget_Pack extends Servio_Widget_Base {
 
     protected function render(): void {
         $s       = $this->get_settings_for_display();
-        $packs   = Servio_Options::get_packs( $this->get_post_id() ) ?: [];
+        $packs   = Scavio_Options::get_packs( $this->get_post_id() ) ?: [];
         $idx     = (int) ( $s['pack_index'] ?? 0 );
         $field   = $s['field'] ?? 'name';
         $currency = esc_html( $s['currency'] ?? '€' );
@@ -275,33 +275,33 @@ class Servio_Widget_Pack extends Servio_Widget_Base {
  *  WIDGET OPTION
  * ================================================================ */
 
-class Servio_Widget_Option extends Servio_Widget_Base {
+class Scavio_Widget_Option extends Scavio_Widget_Base {
 
     public function get_name(): string  { return 'sf_option'; }
-    public function get_title(): string { return __( 'SF — Option', 'servio' ); }
+    public function get_title(): string { return __( 'SF — Option', 'scavio' ); }
     public function get_icon(): string  { return 'eicon-plus-circle'; }
 
     protected function register_controls(): void {
 
         $this->start_controls_section( 'section_content', [
-            'label' => __( 'Contenu', 'servio' ),
+            'label' => __( 'Contenu', 'scavio' ),
         ] );
 
         $this->add_control( 'field', [
-            'label'   => __( 'Champ', 'servio' ),
+            'label'   => __( 'Champ', 'scavio' ),
             'type'    => \Elementor\Controls_Manager::SELECT,
             'default' => 'name',
             'options' => [
-                'name'        => __( 'Nom', 'servio' ),
-                'price'       => __( 'Prix', 'servio' ),
-                'delay'       => __( 'Délai', 'servio' ),
-                'description' => __( 'Description', 'servio' ),
-                'count'       => __( 'Nombre d\'options', 'servio' ),
+                'name'        => __( 'Nom', 'scavio' ),
+                'price'       => __( 'Prix', 'scavio' ),
+                'delay'       => __( 'Délai', 'scavio' ),
+                'description' => __( 'Description', 'scavio' ),
+                'count'       => __( 'Nombre d\'options', 'scavio' ),
             ],
         ] );
 
         $this->add_control( 'option_index', [
-            'label'     => __( 'N° de l\'option (0 = première)', 'servio' ),
+            'label'     => __( 'N° de l\'option (0 = première)', 'scavio' ),
             'type'      => \Elementor\Controls_Manager::NUMBER,
             'default'   => 0,
             'min'       => 0,
@@ -309,14 +309,14 @@ class Servio_Widget_Option extends Servio_Widget_Base {
         ] );
 
         $this->add_control( 'currency', [
-            'label'     => __( 'Devise', 'servio' ),
+            'label'     => __( 'Devise', 'scavio' ),
             'type'      => \Elementor\Controls_Manager::TEXT,
             'default'   => '€',
             'condition' => [ 'field' => 'price' ],
         ] );
 
         $this->add_control( 'delay_suffix', [
-            'label'     => __( 'Suffixe', 'servio' ),
+            'label'     => __( 'Suffixe', 'scavio' ),
             'type'      => \Elementor\Controls_Manager::TEXT,
             'default'   => ' jour(s)',
             'condition' => [ 'field' => 'delay' ],
@@ -331,7 +331,7 @@ class Servio_Widget_Option extends Servio_Widget_Base {
 
     protected function render(): void {
         $s        = $this->get_settings_for_display();
-        $opts     = Servio_Options::get_options( $this->get_post_id() ) ?: [];
+        $opts     = Scavio_Options::get_options( $this->get_post_id() ) ?: [];
         $idx      = (int) ( $s['option_index'] ?? 0 );
         $field    = $s['field'] ?? 'name';
         $currency = esc_html( $s['currency'] ?? '€' );
@@ -367,31 +367,31 @@ class Servio_Widget_Option extends Servio_Widget_Base {
  *  WIDGET PRIX AVANCÉS (Premium)
  * ================================================================ */
 
-class Servio_Widget_Advanced_Price extends Servio_Widget_Base {
+class Scavio_Widget_Advanced_Price extends Scavio_Widget_Base {
 
     public function get_name(): string  { return 'sf_advanced_price'; }
-    public function get_title(): string { return __( 'SF — Prix avancé', 'servio' ); }
+    public function get_title(): string { return __( 'SF — Prix avancé', 'scavio' ); }
     public function get_icon(): string  { return 'eicon-price-table'; }
 
     protected function register_controls(): void {
 
         $this->start_controls_section( 'section_content', [
-            'label' => __( 'Contenu', 'servio' ),
+            'label' => __( 'Contenu', 'scavio' ),
         ] );
 
         $this->add_control( 'field', [
-            'label'   => __( 'Champ', 'servio' ),
+            'label'   => __( 'Champ', 'scavio' ),
             'type'    => \Elementor\Controls_Manager::SELECT,
             'default' => 'extra_page',
             'options' => [
-                'extra_page'  => __( 'Page supplémentaire', 'servio' ),
-                'maintenance' => __( 'Maintenance mensuelle', 'servio' ),
-                'express'     => __( 'Livraison express (par jour)', 'servio' ),
+                'extra_page'  => __( 'Page supplémentaire', 'scavio' ),
+                'maintenance' => __( 'Maintenance mensuelle', 'scavio' ),
+                'express'     => __( 'Livraison express (par jour)', 'scavio' ),
             ],
         ] );
 
         $this->add_control( 'currency', [
-            'label'   => __( 'Devise', 'servio' ),
+            'label'   => __( 'Devise', 'scavio' ),
             'type'    => \Elementor\Controls_Manager::TEXT,
             'default' => '€',
         ] );
@@ -409,12 +409,12 @@ class Servio_Widget_Advanced_Price extends Servio_Widget_Base {
         $currency = esc_html( $s['currency'] ?? '€' );
 
         $meta_keys = [
-            'extra_page'  => '_servio_extra_page_price',
-            'maintenance' => '_servio_maintenance_price',
-            'express'     => '_servio_express_price',
+            'extra_page'  => '_scavio_extra_page_price',
+            'maintenance' => '_scavio_maintenance_price',
+            'express'     => '_scavio_express_price',
         ];
 
-        $key   = $meta_keys[ $s['field'] ?? 'extra_page' ] ?? '_servio_extra_page_price';
+        $key   = $meta_keys[ $s['field'] ?? 'extra_page' ] ?? '_scavio_extra_page_price';
         $price = (float) get_post_meta( $post_id, $key, true );
 
         $this->render_text( esc_html( number_format( $price, 2, ',', ' ' ) . ' ' . $currency ) );
