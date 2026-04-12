@@ -30,6 +30,7 @@ $exclude = @(
     ".gitignore",
     ".distignore",
     ".claude",
+    ".mcp.json",
     "build.ps1",
     "list-zip.ps1",
     "dist",
