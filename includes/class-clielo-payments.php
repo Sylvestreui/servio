@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class Scavio_Payments {
+class Clielo_Payments {
 
     /* ================================================================
      *  Utilitaires statut paiement
@@ -49,7 +49,7 @@ class Scavio_Payments {
     public static function get_paid_schedule_ids_for_post( int $post_id ): array {
         global $wpdb;
         $sched = self::table_name();
-        $ord   = Scavio_Orders::table_name();
+        $ord   = Clielo_Orders::table_name();
         // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $ids   = $wpdb->get_col( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             "SELECT s.id FROM {$sched} s
@@ -68,7 +68,7 @@ class Scavio_Payments {
     public static function get_expired_schedule_ids_for_post( int $post_id ): array {
         global $wpdb;
         $sched    = self::table_name();
-        $ord      = Scavio_Orders::table_name();
+        $ord      = Clielo_Orders::table_name();
         $deadline = gmdate( 'Y-m-d H:i:s', strtotime( '-24 hours' ) );
         // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $ids      = $wpdb->get_col( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -103,8 +103,8 @@ class Scavio_Payments {
         }
 
         // 2. Envoyer les rappels N jours avant l'échéance (si activé)
-        if ( class_exists( 'Scavio_Notifications' ) ) {
-            $settings     = Scavio_Notifications::get_settings();
+        if ( class_exists( 'Clielo_Notifications' ) ) {
+            $settings     = Clielo_Notifications::get_settings();
             $days_before  = (int) ( $settings['reminder_days_before'] ?? 3 );
             if ( $days_before > 0 && ( $settings['email_payment_reminder'] ?? '0' ) === '1' ) {
                 $reminder_date = gmdate( 'Y-m-d', strtotime( "+{$days_before} days" ) );
@@ -115,9 +115,9 @@ class Scavio_Payments {
                 ) );
                 // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 foreach ( $reminder_rows as $row ) {
-                    $order = Scavio_Orders::get_order( (int) $row->order_id );
+                    $order = Clielo_Orders::get_order( (int) $row->order_id );
                     if ( $order ) {
-                        Scavio_Notifications::on_payment_reminder( $row, $order );
+                        Clielo_Notifications::on_payment_reminder( $row, $order );
                     }
                 }
             }
@@ -125,16 +125,16 @@ class Scavio_Payments {
     }
 
     public static function init(): void {
-        if ( ! scavio_is_premium() ) {
+        if ( ! clielo_is_premium() ) {
             return;
         }
-        add_action( 'wp_ajax_scavio_send_payment_link',        [ __CLASS__, 'ajax_send_payment_link' ] );
-        add_action( 'wp_ajax_scavio_mark_payment_paid',        [ __CLASS__, 'ajax_mark_payment_paid' ] );
-        add_action( 'wp_ajax_scavio_rebuild_schedule',         [ __CLASS__, 'ajax_rebuild_schedule' ] );
-        add_action( 'wp_ajax_nopriv_scavio_schedule_check',    [ __CLASS__, 'ajax_schedule_check' ] );
-        add_action( 'wp_ajax_scavio_schedule_check',           [ __CLASS__, 'ajax_schedule_check' ] );
-        add_action( 'scavio_order_status_changed', [ __CLASS__, 'on_order_status_changed' ], 20, 4 );
-        add_action( 'scavio_daily_payments', [ __CLASS__, 'cron_send_due_links' ] );
+        add_action( 'wp_ajax_clielo_send_payment_link',        [ __CLASS__, 'ajax_send_payment_link' ] );
+        add_action( 'wp_ajax_clielo_mark_payment_paid',        [ __CLASS__, 'ajax_mark_payment_paid' ] );
+        add_action( 'wp_ajax_clielo_rebuild_schedule',         [ __CLASS__, 'ajax_rebuild_schedule' ] );
+        add_action( 'wp_ajax_nopriv_clielo_schedule_check',    [ __CLASS__, 'ajax_schedule_check' ] );
+        add_action( 'wp_ajax_clielo_schedule_check',           [ __CLASS__, 'ajax_schedule_check' ] );
+        add_action( 'clielo_order_status_changed', [ __CLASS__, 'on_order_status_changed' ], 20, 4 );
+        add_action( 'clielo_daily_payments', [ __CLASS__, 'cron_send_due_links' ] );
     }
 
     /* ================================================================
@@ -143,7 +143,7 @@ class Scavio_Payments {
 
     public static function table_name(): string {
         global $wpdb;
-        return $wpdb->prefix . 'scavio_payment_schedule';
+        return $wpdb->prefix . 'clielo_payment_schedule';
     }
 
     public static function create_table(): void {
@@ -236,7 +236,7 @@ class Scavio_Payments {
      */
     public static function create_schedule_for_order( int $order_id ): void {
         global $wpdb;
-        $order = Scavio_Orders::get_order( $order_id );
+        $order = Clielo_Orders::get_order( $order_id );
         if ( ! $order || $order->payment_mode === 'single' ) {
             return;
         }
@@ -325,7 +325,7 @@ class Scavio_Payments {
     public static function migrate_due_dates(): void {
         global $wpdb;
         $table = self::table_name();
-        $ord   = Scavio_Orders::table_name();
+        $ord   = Clielo_Orders::table_name();
 
         // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -386,15 +386,15 @@ class Scavio_Payments {
             return false;
         }
 
-        $order = Scavio_Orders::get_order( (int) $row->order_id );
+        $order = Clielo_Orders::get_order( (int) $row->order_id );
         if ( ! $order ) {
             return false;
         }
 
         // Créer une session Stripe Checkout pour ce montant
         try {
-            $stripe   = Scavio_Stripe::stripe();
-            $settings = Scavio_Stripe::get_settings();
+            $stripe   = Clielo_Stripe::stripe();
+            $settings = Clielo_Stripe::get_settings();
             $currency = $settings['currency'];
             $label    = self::get_type_label( $row->type, (int) $row->installment_no );
 
@@ -402,8 +402,8 @@ class Scavio_Payments {
             $base_offer       = json_decode( $order->base_offer ?? '', true ) ?: [];
             $selected_options = json_decode( $order->selected_options ?? '', true ) ?: [];
             $adv_data         = json_decode( $order->advanced_options_data ?? '', true ) ?: [];
-            $tax_rate         = floatval( Scavio_Invoices::get_settings()['tax_rate'] ?? 0 );
-            $line_items = Scavio_Stripe::build_line_items(
+            $tax_rate         = floatval( Clielo_Invoices::get_settings()['tax_rate'] ?? 0 );
+            $line_items = Clielo_Stripe::build_line_items(
                 $base_offer,
                 $selected_options,
                 $currency,
@@ -451,14 +451,14 @@ class Scavio_Payments {
             $msg  = sprintf( "[SF_SCHED:%d]\n", $schedule_id );
             $msg .= sprintf( "--- %s ---\n", $label );
             /* translators: %s: formatted payment amount */
-            $msg .= sprintf( __( '💳 Montant : %s €', 'scavio' ), $amount_fmt ) . "\n";
+            $msg .= sprintf( __( '💳 Montant : %s €', 'clielo' ), $amount_fmt ) . "\n";
             $msg .= $checkout_url;
 
-            Scavio_DB::insert_message( (int) $order->post_id, 0, $msg, (int) $order->client_id );
+            Clielo_DB::insert_message( (int) $order->post_id, 0, $msg, (int) $order->client_id );
 
             // Email au client avec le lien de paiement
-            if ( class_exists( 'Scavio_Notifications' ) ) {
-                Scavio_Notifications::on_payment_link_sent( $row, $order, $checkout_url );
+            if ( class_exists( 'Clielo_Notifications' ) ) {
+                Clielo_Notifications::on_payment_link_sent( $row, $order, $checkout_url );
             }
 
             return true;
@@ -474,10 +474,10 @@ class Scavio_Payments {
 
     public static function on_order_status_changed( int $order_id, string $new_status, string $old_status, int $acting_user_id ): void {
         // Le solde est envoyé quand le client accepte la livraison (avec ou sans retouche)
-        if ( $new_status !== Scavio_Orders::STATUS_ACCEPTED ) {
+        if ( $new_status !== Clielo_Orders::STATUS_ACCEPTED ) {
             return;
         }
-        $order = Scavio_Orders::get_order( $order_id );
+        $order = Clielo_Orders::get_order( $order_id );
         if ( ! $order || $order->payment_mode !== 'deposit' ) {
             return;
         }
@@ -503,21 +503,21 @@ class Scavio_Payments {
      * ================================================================ */
 
     public static function ajax_send_payment_link(): void {
-        check_ajax_referer( 'scavio_nonce', 'nonce' );
+        check_ajax_referer( 'clielo_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'scavio' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'clielo' ) ], 403 );
         }
 
         $schedule_id = absint( $_POST['schedule_id'] ?? 0 );
         if ( ! $schedule_id ) {
-            wp_send_json_error( [ 'message' => __( 'Données manquantes.', 'scavio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Données manquantes.', 'clielo' ) ], 400 );
         }
 
         $ok = self::send_payment_link( $schedule_id, get_current_user_id() );
         if ( $ok ) {
-            wp_send_json_success( [ 'message' => __( 'Lien envoyé dans le chat.', 'scavio' ) ] );
+            wp_send_json_success( [ 'message' => __( 'Lien envoyé dans le chat.', 'clielo' ) ] );
         } else {
-            wp_send_json_error( [ 'message' => __( 'Erreur lors de l\'envoi.', 'scavio' ) ], 500 );
+            wp_send_json_error( [ 'message' => __( 'Erreur lors de l\'envoi.', 'clielo' ) ], 500 );
         }
     }
 
@@ -526,7 +526,7 @@ class Scavio_Payments {
      * ================================================================ */
 
     public static function ajax_schedule_check(): void {
-        check_ajax_referer( 'scavio_nonce', 'nonce' );
+        check_ajax_referer( 'clielo_nonce', 'nonce' );
 
         $schedule_id = absint( $_GET['schedule_id'] ?? 0 );
         if ( ! $schedule_id ) {
@@ -546,9 +546,9 @@ class Scavio_Payments {
         // Sinon : vérifier via Stripe API si la session est payée
         if ( ! empty( $row->stripe_session_id ) ) {
             try {
-                $session = Scavio_Stripe::stripe()->checkout->sessions->retrieve( $row->stripe_session_id );
+                $session = Clielo_Stripe::stripe()->checkout->sessions->retrieve( $row->stripe_session_id );
                 if ( $session->payment_status === 'paid' ) {
-                    Scavio_Stripe::process_completed_session( $session );
+                    Clielo_Stripe::process_completed_session( $session );
                     wp_send_json_success( [ 'paid' => true ] );
                 }
             } catch ( \Exception $e ) {
@@ -564,9 +564,9 @@ class Scavio_Payments {
      * ================================================================ */
 
     public static function ajax_mark_payment_paid(): void {
-        check_ajax_referer( 'scavio_nonce', 'nonce' );
+        check_ajax_referer( 'clielo_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'scavio' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'clielo' ) ], 403 );
         }
 
         $schedule_id = absint( $_POST['schedule_id'] ?? 0 );
@@ -576,7 +576,7 @@ class Scavio_Payments {
 
         $row = self::get_row( $schedule_id );
         if ( ! $row || $row->status === 'paid' ) {
-            wp_send_json_error( [ 'message' => __( 'Ligne introuvable ou déjà payée.', 'scavio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Ligne introuvable ou déjà payée.', 'clielo' ) ], 400 );
         }
 
         global $wpdb;
@@ -586,13 +586,13 @@ class Scavio_Payments {
         ], [ 'id' => $schedule_id ] );
 
         // Créer la facture partielle correspondante
-        if ( class_exists( 'Scavio_Invoices' ) ) {
+        if ( class_exists( 'Clielo_Invoices' ) ) {
             $type = match ( $row->type ) {
                 'deposit_balance' => 'solde',
                 'installment'     => 'mensualite',
                 default           => 'solde',
             };
-            Scavio_Invoices::create_partial_invoice(
+            Clielo_Invoices::create_partial_invoice(
                 (int) $row->order_id,
                 floatval( $row->amount_ttc ),
                 $type,
@@ -609,7 +609,7 @@ class Scavio_Payments {
      * ================================================================ */
 
     public static function ajax_rebuild_schedule(): void {
-        check_ajax_referer( 'scavio_nonce', 'nonce' );
+        check_ajax_referer( 'clielo_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_send_json_error( [], 403 );
         }
@@ -622,14 +622,14 @@ class Scavio_Payments {
         // Ne recréer que si vraiment vide
         $existing = self::get_schedule_for_order( $order_id );
         if ( ! empty( $existing ) ) {
-            wp_send_json_error( [ 'message' => __( 'L\'échéancier existe déjà.', 'scavio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'L\'échéancier existe déjà.', 'clielo' ) ], 400 );
         }
 
         self::create_schedule_for_order( $order_id );
 
         // Si le client a déjà accepté la livraison et mode deposit → envoyer le solde immédiatement
-        $order = Scavio_Orders::get_order( $order_id );
-        if ( $order && $order->payment_mode === 'deposit' && $order->status === Scavio_Orders::STATUS_ACCEPTED ) {
+        $order = Clielo_Orders::get_order( $order_id );
+        if ( $order && $order->payment_mode === 'deposit' && $order->status === Clielo_Orders::STATUS_ACCEPTED ) {
             $schedule = self::get_schedule_for_order( $order_id );
             foreach ( $schedule as $row ) {
                 if ( $row->type === 'deposit_balance' && $row->status === 'pending' ) {
@@ -658,11 +658,11 @@ class Scavio_Payments {
             ?>
             <div style="margin-top:12px !important;border-top:1px solid #e5e7eb !important;padding-top:12px !important">
                 <div style="font-size:11px !important;color:#888 !important;margin-bottom:8px !important">
-                    <?php esc_html_e( 'Échéancier introuvable pour cette commande.', 'scavio' ); ?>
+                    <?php esc_html_e( 'Échéancier introuvable pour cette commande.', 'clielo' ); ?>
                 </div>
                 <button class="sf-rebuild-schedule" data-order-id="<?php echo (int) $order_id; ?>"
                     style="padding:4px 10px !important;border:none !important;border-radius:6px !important;font-size:11px !important;font-weight:600 !important;color:#fff !important;background:<?php echo esc_attr( $color ); ?> !important;cursor:pointer !important">
-                    <?php esc_html_e( 'Recréer l\'échéancier', 'scavio' ); ?>
+                    <?php esc_html_e( 'Recréer l\'échéancier', 'clielo' ); ?>
                 </button>
             </div>
             <?php
@@ -670,9 +670,9 @@ class Scavio_Payments {
         }
 
         $status_labels = [
-            'pending' => __( 'En attente', 'scavio' ),
-            'sent'    => __( 'Envoyé', 'scavio' ),
-            'paid'    => __( 'Payé', 'scavio' ),
+            'pending' => __( 'En attente', 'clielo' ),
+            'sent'    => __( 'Envoyé', 'clielo' ),
+            'paid'    => __( 'Payé', 'clielo' ),
         ];
         $status_colors = [
             'pending' => '#f59e0b',
@@ -684,7 +684,7 @@ class Scavio_Payments {
         ?>
         <div style="margin-top:12px !important;border-top:1px solid #e5e7eb !important;padding-top:12px !important">
             <div style="font-size:12px !important;font-weight:700 !important;color:#555 !important;margin-bottom:8px !important;text-transform:uppercase !important;letter-spacing:.5px !important">
-                <?php esc_html_e( 'Échéancier', 'scavio' ); ?>
+                <?php esc_html_e( 'Échéancier', 'clielo' ); ?>
             </div>
             <?php foreach ( $schedule as $row ) :
                 $s_label = $status_labels[ $row->status ] ?? $row->status;
@@ -707,20 +707,20 @@ class Scavio_Payments {
                                     data-schedule-id="<?php echo (int) $row->id; ?>"
                                     style="padding:3px 8px !important;border:none !important;border-radius:5px !important;font-size:10px !important;font-weight:600 !important;color:#fff !important;background:<?php echo esc_attr( $color ); ?> !important;cursor:pointer !important">
                                     <?php echo $row->status === 'sent'
-                                        ? esc_html__( 'Renvoyer', 'scavio' )
-                                        : esc_html__( 'Envoyer lien', 'scavio' ); ?>
+                                        ? esc_html__( 'Renvoyer', 'clielo' )
+                                        : esc_html__( 'Envoyer lien', 'clielo' ); ?>
                                 </button>
                                 <button
                                     class="sf-mark-payment-paid"
                                     data-schedule-id="<?php echo (int) $row->id; ?>"
                                     style="padding:3px 8px !important;border:none !important;border-radius:5px !important;font-size:10px !important;font-weight:600 !important;color:#fff !important;background:#10b981 !important;cursor:pointer !important">
-                                    <?php esc_html_e( '✓ Payé', 'scavio' ); ?>
+                                    <?php esc_html_e( '✓ Payé', 'clielo' ); ?>
                                 </button>
                             <?php endif; ?>
                         <?php elseif ( ! $is_admin && $row->status === 'sent' && ! empty( $row->checkout_url ) ) : ?>
                             <a href="<?php echo esc_url( $row->checkout_url ); ?>"
                                style="padding:3px 8px !important;border-radius:5px !important;font-size:10px !important;font-weight:600 !important;color:#fff !important;background:<?php echo esc_attr( $color ); ?> !important;text-decoration:none !important;display:inline-block !important">
-                                <?php esc_html_e( 'Payer', 'scavio' ); ?>
+                                <?php esc_html_e( 'Payer', 'clielo' ); ?>
                             </a>
                         <?php endif; ?>
                     </div>
@@ -737,10 +737,10 @@ class Scavio_Payments {
 
     public static function get_type_label( string $type, int $installment_no = 0 ): string {
         return match ( $type ) {
-            'upfront'         => __( 'Acompte versé', 'scavio' ),
-            'deposit_balance' => __( 'Solde à régler', 'scavio' ),
+            'upfront'         => __( 'Acompte versé', 'clielo' ),
+            'deposit_balance' => __( 'Solde à régler', 'clielo' ),
             /* translators: %d: installment number */
-            'installment'     => sprintf( __( 'Mensualité %d', 'scavio' ), $installment_no ),
+            'installment'     => sprintf( __( 'Mensualité %d', 'clielo' ), $installment_no ),
             default           => ucfirst( $type ),
         };
     }

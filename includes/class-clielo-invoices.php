@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class Scavio_Invoices {
+class Clielo_Invoices {
 
     const STATUS_DRAFT     = 'draft';
     const STATUS_PENDING   = 'pending';
@@ -13,7 +13,7 @@ class Scavio_Invoices {
     const STATUS_CANCELLED = 'cancelled';
 
     public static function init(): void {
-        if ( ! scavio_is_premium() ) {
+        if ( ! clielo_is_premium() ) {
             return;
         }
 
@@ -21,21 +21,21 @@ class Scavio_Invoices {
         add_action( 'admin_enqueue_scripts', [ __CLASS__, 'enqueue_admin_scripts' ] );
 
         // Auto-génération de facture quand commande acceptée
-        add_action( 'scavio_order_status_changed', [ __CLASS__, 'on_order_accepted' ], 10, 4 );
+        add_action( 'clielo_order_status_changed', [ __CLASS__, 'on_order_accepted' ], 10, 4 );
 
         // AJAX admin
-        add_action( 'wp_ajax_scavio_invoice_validate',  [ __CLASS__, 'ajax_validate' ] );
-        add_action( 'wp_ajax_scavio_invoice_mark_paid', [ __CLASS__, 'ajax_mark_paid' ] );
-        add_action( 'wp_ajax_scavio_invoice_cancel',    [ __CLASS__, 'ajax_cancel' ] );
-        add_action( 'wp_ajax_scavio_invoice_save',      [ __CLASS__, 'ajax_save_invoice' ] );
-        add_action( 'wp_ajax_scavio_invoice_update',    [ __CLASS__, 'ajax_update_invoice' ] );
-        add_action( 'wp_ajax_scavio_invoice_set_status', [ __CLASS__, 'ajax_set_status' ] );
-        add_action( 'wp_ajax_scavio_save_ext_client',   [ __CLASS__, 'ajax_save_client' ] );
-        add_action( 'wp_ajax_scavio_delete_ext_client', [ __CLASS__, 'ajax_delete_client' ] );
-        add_action( 'wp_ajax_scavio_save_invoice_settings', [ __CLASS__, 'ajax_save_settings' ] );
+        add_action( 'wp_ajax_clielo_invoice_validate',  [ __CLASS__, 'ajax_validate' ] );
+        add_action( 'wp_ajax_clielo_invoice_mark_paid', [ __CLASS__, 'ajax_mark_paid' ] );
+        add_action( 'wp_ajax_clielo_invoice_cancel',    [ __CLASS__, 'ajax_cancel' ] );
+        add_action( 'wp_ajax_clielo_invoice_save',      [ __CLASS__, 'ajax_save_invoice' ] );
+        add_action( 'wp_ajax_clielo_invoice_update',    [ __CLASS__, 'ajax_update_invoice' ] );
+        add_action( 'wp_ajax_clielo_invoice_set_status', [ __CLASS__, 'ajax_set_status' ] );
+        add_action( 'wp_ajax_clielo_save_ext_client',   [ __CLASS__, 'ajax_save_client' ] );
+        add_action( 'wp_ajax_clielo_delete_ext_client', [ __CLASS__, 'ajax_delete_client' ] );
+        add_action( 'wp_ajax_clielo_save_invoice_settings', [ __CLASS__, 'ajax_save_settings' ] );
 
         // AJAX frontend (vue client)
-        add_action( 'wp_ajax_scavio_view_invoice', [ __CLASS__, 'ajax_client_view_invoice' ] );
+        add_action( 'wp_ajax_clielo_view_invoice', [ __CLASS__, 'ajax_client_view_invoice' ] );
     }
 
     /* ================================================================
@@ -44,12 +44,12 @@ class Scavio_Invoices {
 
     public static function invoices_table_name(): string {
         global $wpdb;
-        return $wpdb->prefix . 'scavio_invoices';
+        return $wpdb->prefix . 'clielo_invoices';
     }
 
     public static function clients_table_name(): string {
         global $wpdb;
-        return $wpdb->prefix . 'scavio_clients';
+        return $wpdb->prefix . 'clielo_clients';
     }
 
     public static function create_invoices_table(): void {
@@ -137,10 +137,10 @@ class Scavio_Invoices {
             'invoice_prefix'  => 'FACT-',
             'tax_rate'        => 20,
             'tax_notice'      => '',
-            'payment_terms'   => __( 'Paiement à réception de facture.', 'scavio' ),
+            'payment_terms'   => __( 'Paiement à réception de facture.', 'clielo' ),
             'footer_text'     => '',
         ];
-        $saved = get_option( 'scavio_invoice_settings', [] );
+        $saved = get_option( 'clielo_invoice_settings', [] );
         if ( ! is_array( $saved ) ) {
             $saved = [];
         }
@@ -153,11 +153,11 @@ class Scavio_Invoices {
 
     private static function get_status_labels(): array {
         return [
-            self::STATUS_DRAFT     => __( 'Brouillon', 'scavio' ),
-            self::STATUS_PENDING   => __( 'En attente', 'scavio' ),
-            self::STATUS_VALIDATED => __( 'Validée', 'scavio' ),
-            self::STATUS_PAID      => __( 'Payée', 'scavio' ),
-            self::STATUS_CANCELLED => __( 'Annulée', 'scavio' ),
+            self::STATUS_DRAFT     => __( 'Brouillon', 'clielo' ),
+            self::STATUS_PENDING   => __( 'En attente', 'clielo' ),
+            self::STATUS_VALIDATED => __( 'Validée', 'clielo' ),
+            self::STATUS_PAID      => __( 'Payée', 'clielo' ),
+            self::STATUS_CANCELLED => __( 'Annulée', 'clielo' ),
         ];
     }
 
@@ -301,33 +301,33 @@ class Scavio_Invoices {
 
     public static function add_menu(): void {
         add_submenu_page(
-            'scavio',
-            __( 'Factures', 'scavio' ),
-            __( 'Factures', 'scavio' ),
+            'clielo',
+            __( 'Factures', 'clielo' ),
+            __( 'Factures', 'clielo' ),
             'manage_options',
             'serviceflow-invoices',
             [ __CLASS__, 'render_invoices_list' ]
         );
         add_submenu_page(
-            'scavio',
-            __( 'Nouvelle facture', 'scavio' ),
-            __( 'Nouvelle facture', 'scavio' ),
+            'clielo',
+            __( 'Nouvelle facture', 'clielo' ),
+            __( 'Nouvelle facture', 'clielo' ),
             'manage_options',
             'serviceflow-invoice-new',
             [ __CLASS__, 'render_invoice_new' ]
         );
         add_submenu_page(
-            'scavio',
-            __( 'Clients externes', 'scavio' ),
-            __( 'Clients externes', 'scavio' ),
+            'clielo',
+            __( 'Clients externes', 'clielo' ),
+            __( 'Clients externes', 'clielo' ),
             'manage_options',
             'serviceflow-clients',
             [ __CLASS__, 'render_clients_page' ]
         );
         add_submenu_page(
-            'scavio',
-            __( 'Réglages facturation', 'scavio' ),
-            __( 'Réglages facturation', 'scavio' ),
+            'clielo',
+            __( 'Réglages facturation', 'clielo' ),
+            __( 'Réglages facturation', 'clielo' ),
             'manage_options',
             'serviceflow-invoice-settings',
             [ __CLASS__, 'render_settings_page' ]
@@ -335,7 +335,7 @@ class Scavio_Invoices {
         // Page cachée pour voir une facture
         add_submenu_page(
             null,
-            __( 'Voir facture', 'scavio' ),
+            __( 'Voir facture', 'clielo' ),
             '',
             'manage_options',
             'serviceflow-invoice-view',
@@ -344,7 +344,7 @@ class Scavio_Invoices {
         // Page cachée pour modifier une facture brouillon
         add_submenu_page(
             null,
-            __( 'Modifier facture', 'scavio' ),
+            __( 'Modifier facture', 'clielo' ),
             '',
             'manage_options',
             'serviceflow-invoice-edit',
@@ -403,12 +403,12 @@ class Scavio_Invoices {
             wp_enqueue_media();
         }
 
-        if ( ! wp_script_is( 'scavio-invoices-js', 'registered' ) ) {
-            wp_register_script( 'scavio-invoices-js', false, [ 'jquery' ], SCAVIO_VERSION, true ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
+        if ( ! wp_script_is( 'clielo-invoices-js', 'registered' ) ) {
+            wp_register_script( 'clielo-invoices-js', false, [ 'jquery' ], CLIELO_VERSION, true ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
         }
-        wp_enqueue_script( 'scavio-invoices-js' );
+        wp_enqueue_script( 'clielo-invoices-js' );
 
-        $color = esc_attr( Scavio_Admin::get_color() );
+        $color = esc_attr( Clielo_Admin::get_color() );
 
         wp_add_inline_style(
             'wp-admin',
@@ -488,7 +488,7 @@ class Scavio_Invoices {
      * ================================================================ */
 
     public static function on_order_accepted( int $order_id, string $new_status, string $old_status, int $acting_user_id ): void {
-        if ( $new_status !== Scavio_Orders::STATUS_ACCEPTED && $new_status !== Scavio_Orders::STATUS_COMPLETED ) {
+        if ( $new_status !== Clielo_Orders::STATUS_ACCEPTED && $new_status !== Clielo_Orders::STATUS_COMPLETED ) {
             return;
         }
 
@@ -506,7 +506,7 @@ class Scavio_Invoices {
             return;
         }
 
-        $order = Scavio_Orders::get_order( $order_id );
+        $order = Clielo_Orders::get_order( $order_id );
         if ( ! $order ) {
             return;
         }
@@ -562,7 +562,7 @@ class Scavio_Invoices {
                     continue;
                 }
                 $items[] = [
-                    'description' => $lbl . ( $mode === 'monthly' ? ' (' . __( 'mensuel', 'scavio' ) . ')' : '' ),
+                    'description' => $lbl . ( $mode === 'monthly' ? ' (' . __( 'mensuel', 'clielo' ) . ')' : '' ),
                     'quantity'    => $qty,
                     'unit_price'  => $price,
                     'total'       => round( $qty * $price, 2 ),
@@ -578,7 +578,7 @@ class Scavio_Invoices {
 
             if ( $extra_pages > 0 && $extra_page_price > 0 ) {
                 $items[] = [
-                    'description' => Scavio_Admin::get_extra_pages_label( (int) $order->post_id ),
+                    'description' => Clielo_Admin::get_extra_pages_label( (int) $order->post_id ),
                     'quantity'    => $extra_pages,
                     'unit_price'  => $extra_page_price,
                     'total'       => round( $extra_pages * $extra_page_price, 2 ),
@@ -586,7 +586,7 @@ class Scavio_Invoices {
             }
             if ( $maintenance > 0 ) {
                 $items[] = [
-                    'description' => Scavio_Admin::get_maintenance_label( (int) $order->post_id ),
+                    'description' => Clielo_Admin::get_maintenance_label( (int) $order->post_id ),
                     'quantity'    => 1,
                     'unit_price'  => $maintenance,
                     'total'       => $maintenance,
@@ -594,7 +594,7 @@ class Scavio_Invoices {
             }
             if ( $express_days > 0 && $express_price > 0 ) {
                 $items[] = [
-                    'description' => Scavio_Admin::get_express_label( (int) $order->post_id ),
+                    'description' => Clielo_Admin::get_express_label( (int) $order->post_id ),
                     'quantity'    => $express_days,
                     'unit_price'  => $express_price,
                     'total'       => round( $express_days * $express_price, 2 ),
@@ -608,7 +608,7 @@ class Scavio_Invoices {
 
         // Stripe encaissé OU commande auto-terminée → facture directement « paid »
         $is_stripe_paid = ! empty( $order->stripe_payment_intent );
-        $invoice_status = ( $is_stripe_paid || $new_status === Scavio_Orders::STATUS_COMPLETED )
+        $invoice_status = ( $is_stripe_paid || $new_status === Clielo_Orders::STATUS_COMPLETED )
             ? self::STATUS_PAID
             : self::STATUS_PENDING;
 
@@ -627,7 +627,7 @@ class Scavio_Invoices {
             'notes'          => $settings['payment_terms'],
             'created_at'     => current_time( 'mysql' ),
             'updated_at'     => current_time( 'mysql' ),
-            'paid_at'        => ( $is_stripe_paid || $new_status === Scavio_Orders::STATUS_COMPLETED ) ? current_time( 'mysql' ) : null,
+            'paid_at'        => ( $is_stripe_paid || $new_status === Clielo_Orders::STATUS_COMPLETED ) ? current_time( 'mysql' ) : null,
         ] );
 
         if ( ! $inserted ) {
@@ -645,7 +645,7 @@ class Scavio_Invoices {
      * @param int    $order_id       ID commande
      * @param float  $amount_ttc     Montant TTC de cette facture
      * @param string $invoice_type   'acompte' | 'solde' | 'mensualite'
-     * @param int    $schedule_id    ID ligne scavio_payment_schedule (0 si inconnu)
+     * @param int    $schedule_id    ID ligne clielo_payment_schedule (0 si inconnu)
      * @param int    $installment_no Numéro de mensualité
      * @return int|false  ID facture ou false
      */
@@ -666,7 +666,7 @@ class Scavio_Invoices {
             }
         }
 
-        $order = Scavio_Orders::get_order( $order_id );
+        $order = Clielo_Orders::get_order( $order_id );
         if ( ! $order ) {
             return false;
         }
@@ -680,10 +680,10 @@ class Scavio_Invoices {
 
         $type_label = match ( $invoice_type ) {
             /* translators: deposit percentage label on invoice */
-            'acompte'    => __( 'Acompte 50%', 'scavio' ),
-            'solde'      => __( 'Solde', 'scavio' ),
+            'acompte'    => __( 'Acompte 50%', 'clielo' ),
+            'solde'      => __( 'Solde', 'clielo' ),
             /* translators: %d: installment number */
-            'mensualite' => sprintf( __( 'Mensualité %d', 'scavio' ), $installment_no ),
+            'mensualite' => sprintf( __( 'Mensualité %d', 'clielo' ), $installment_no ),
             default      => '',
         };
 
@@ -755,7 +755,7 @@ class Scavio_Invoices {
                 $total_ht = round( $unit_ht * $extra_pages, 2 );
                 $items_ht_sum += $total_ht;
                 $items[] = [
-                    'description' => Scavio_Admin::get_extra_pages_label( (int) $order->post_id ),
+                    'description' => Clielo_Admin::get_extra_pages_label( (int) $order->post_id ),
                     'quantity'    => $extra_pages,
                     'unit_price'  => $unit_ht,
                     'total'       => $total_ht,
@@ -766,7 +766,7 @@ class Scavio_Invoices {
                 $unit_ht = round( $maintenance * $factor, 2 );
                 $items_ht_sum += $unit_ht;
                 $items[] = [
-                    'description' => Scavio_Admin::get_maintenance_label( (int) $order->post_id ),
+                    'description' => Clielo_Admin::get_maintenance_label( (int) $order->post_id ),
                     'quantity'    => 1,
                     'unit_price'  => $unit_ht,
                     'total'       => $unit_ht,
@@ -778,7 +778,7 @@ class Scavio_Invoices {
                 $total_ht = round( $unit_ht * $express_days, 2 );
                 $items_ht_sum += $total_ht;
                 $items[] = [
-                    'description' => Scavio_Admin::get_express_label( (int) $order->post_id ),
+                    'description' => Clielo_Admin::get_express_label( (int) $order->post_id ),
                     'quantity'    => $express_days,
                     'unit_price'  => $unit_ht,
                     'total'       => $total_ht,
@@ -818,15 +818,15 @@ class Scavio_Invoices {
      * ================================================================ */
 
     public static function ajax_validate(): void {
-        check_ajax_referer( 'scavio_nonce', 'nonce' );
+        check_ajax_referer( 'clielo_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'scavio' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'clielo' ) ], 403 );
         }
 
         global $wpdb;
         $invoice_id = absint( $_POST['invoice_id'] ?? 0 );
         if ( ! $invoice_id ) {
-            wp_send_json_error( [ 'message' => __( 'ID manquant.', 'scavio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'ID manquant.', 'clielo' ) ], 400 );
         }
 
         $table = self::invoices_table_name();
@@ -841,15 +841,15 @@ class Scavio_Invoices {
     }
 
     public static function ajax_mark_paid(): void {
-        check_ajax_referer( 'scavio_nonce', 'nonce' );
+        check_ajax_referer( 'clielo_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'scavio' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'clielo' ) ], 403 );
         }
 
         global $wpdb;
         $invoice_id = absint( $_POST['invoice_id'] ?? 0 );
         if ( ! $invoice_id ) {
-            wp_send_json_error( [ 'message' => __( 'ID manquant.', 'scavio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'ID manquant.', 'clielo' ) ], 400 );
         }
 
         $table = self::invoices_table_name();
@@ -864,15 +864,15 @@ class Scavio_Invoices {
     }
 
     public static function ajax_cancel(): void {
-        check_ajax_referer( 'scavio_nonce', 'nonce' );
+        check_ajax_referer( 'clielo_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'scavio' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'clielo' ) ], 403 );
         }
 
         global $wpdb;
         $invoice_id = absint( $_POST['invoice_id'] ?? 0 );
         if ( ! $invoice_id ) {
-            wp_send_json_error( [ 'message' => __( 'ID manquant.', 'scavio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'ID manquant.', 'clielo' ) ], 400 );
         }
 
         $table = self::invoices_table_name();
@@ -890,9 +890,9 @@ class Scavio_Invoices {
      * ================================================================ */
 
     public static function ajax_save_invoice(): void {
-        check_ajax_referer( 'scavio_nonce', 'nonce' );
+        check_ajax_referer( 'clielo_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'scavio' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'clielo' ) ], 403 );
         }
 
         global $wpdb;
@@ -926,14 +926,14 @@ class Scavio_Invoices {
         }
 
         if ( empty( $items ) ) {
-            wp_send_json_error( [ 'message' => __( 'Ajoutez au moins un article.', 'scavio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Ajoutez au moins un article.', 'clielo' ) ], 400 );
         }
 
         if ( $client_type === 'wp' && ! $client_id ) {
-            wp_send_json_error( [ 'message' => __( 'Sélectionnez un client.', 'scavio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Sélectionnez un client.', 'clielo' ) ], 400 );
         }
         if ( $client_type === 'ext' && ! $ext_client_id ) {
-            wp_send_json_error( [ 'message' => __( 'Sélectionnez un client externe.', 'scavio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Sélectionnez un client externe.', 'clielo' ) ], 400 );
         }
 
         $subtotal   = array_sum( array_column( $items, 'total' ) );
@@ -969,7 +969,7 @@ class Scavio_Invoices {
         $inserted = $wpdb->insert( self::invoices_table_name(), $data );
 
         if ( ! $inserted ) {
-            wp_send_json_error( [ 'message' => __( 'Erreur lors de la création.', 'scavio' ) ], 500 );
+            wp_send_json_error( [ 'message' => __( 'Erreur lors de la création.', 'clielo' ) ], 500 );
         }
 
         wp_send_json_success( [ 'invoice_id' => (int) $wpdb->insert_id ] );
@@ -980,21 +980,21 @@ class Scavio_Invoices {
      * ================================================================ */
 
     public static function ajax_update_invoice(): void {
-        check_ajax_referer( 'scavio_nonce', 'nonce' );
+        check_ajax_referer( 'clielo_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'scavio' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'clielo' ) ], 403 );
         }
 
         global $wpdb;
 
         $invoice_id = absint( $_POST['invoice_id'] ?? 0 );
         if ( ! $invoice_id ) {
-            wp_send_json_error( [ 'message' => __( 'Facture introuvable.', 'scavio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Facture introuvable.', 'clielo' ) ], 400 );
         }
 
         $invoice = self::get_invoice( $invoice_id );
         if ( ! $invoice || $invoice->status !== self::STATUS_DRAFT ) {
-            wp_send_json_error( [ 'message' => __( 'Seuls les brouillons peuvent être modifiés.', 'scavio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Seuls les brouillons peuvent être modifiés.', 'clielo' ) ], 400 );
         }
 
         $client_type   = sanitize_text_field( wp_unslash( $_POST['client_type'] ?? 'wp' ) );
@@ -1024,14 +1024,14 @@ class Scavio_Invoices {
         }
 
         if ( empty( $items ) ) {
-            wp_send_json_error( [ 'message' => __( 'Ajoutez au moins un article.', 'scavio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Ajoutez au moins un article.', 'clielo' ) ], 400 );
         }
 
         if ( $client_type === 'wp' && ! $client_id ) {
-            wp_send_json_error( [ 'message' => __( 'Sélectionnez un client.', 'scavio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Sélectionnez un client.', 'clielo' ) ], 400 );
         }
         if ( $client_type === 'ext' && ! $ext_client_id ) {
-            wp_send_json_error( [ 'message' => __( 'Sélectionnez un client externe.', 'scavio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Sélectionnez un client externe.', 'clielo' ) ], 400 );
         }
 
         $subtotal   = array_sum( array_column( $items, 'total' ) );
@@ -1064,7 +1064,7 @@ class Scavio_Invoices {
         $updated = $wpdb->update( self::invoices_table_name(), $data, [ 'id' => $invoice_id ] );
 
         if ( $updated === false ) {
-            wp_send_json_error( [ 'message' => __( 'Erreur lors de la mise à jour.', 'scavio' ) ], 500 );
+            wp_send_json_error( [ 'message' => __( 'Erreur lors de la mise à jour.', 'clielo' ) ], 500 );
         }
 
         wp_send_json_success( [ 'invoice_id' => $invoice_id ] );
@@ -1075,9 +1075,9 @@ class Scavio_Invoices {
      * ================================================================ */
 
     public static function ajax_set_status(): void {
-        check_ajax_referer( 'scavio_nonce', 'nonce' );
+        check_ajax_referer( 'clielo_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'scavio' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'clielo' ) ], 403 );
         }
 
         global $wpdb;
@@ -1086,12 +1086,12 @@ class Scavio_Invoices {
         $new_status = sanitize_text_field( wp_unslash( $_POST['new_status'] ?? '' ) );
 
         if ( ! $invoice_id ) {
-            wp_send_json_error( [ 'message' => __( 'Facture introuvable.', 'scavio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Facture introuvable.', 'clielo' ) ], 400 );
         }
 
         $invoice = self::get_invoice( $invoice_id );
         if ( ! $invoice ) {
-            wp_send_json_error( [ 'message' => __( 'Facture introuvable.', 'scavio' ) ], 404 );
+            wp_send_json_error( [ 'message' => __( 'Facture introuvable.', 'clielo' ) ], 404 );
         }
 
         // Transitions autorisées
@@ -1105,7 +1105,7 @@ class Scavio_Invoices {
 
         $transitions = $allowed[ $invoice->status ] ?? [];
         if ( ! in_array( $new_status, $transitions, true ) ) {
-            wp_send_json_error( [ 'message' => __( 'Transition de statut non autorisée.', 'scavio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Transition de statut non autorisée.', 'clielo' ) ], 400 );
         }
 
         $data = [
@@ -1131,9 +1131,9 @@ class Scavio_Invoices {
      * ================================================================ */
 
     public static function ajax_save_client(): void {
-        check_ajax_referer( 'scavio_nonce', 'nonce' );
+        check_ajax_referer( 'clielo_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'scavio' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'clielo' ) ], 403 );
         }
 
         global $wpdb;
@@ -1142,7 +1142,7 @@ class Scavio_Invoices {
         $name = sanitize_text_field( wp_unslash( $_POST['name'] ?? '' ) );
 
         if ( empty( $name ) ) {
-            wp_send_json_error( [ 'message' => __( 'Le nom est obligatoire.', 'scavio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Le nom est obligatoire.', 'clielo' ) ], 400 );
         }
 
         $data = [
@@ -1174,15 +1174,15 @@ class Scavio_Invoices {
     }
 
     public static function ajax_delete_client(): void {
-        check_ajax_referer( 'scavio_nonce', 'nonce' );
+        check_ajax_referer( 'clielo_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'scavio' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'clielo' ) ], 403 );
         }
 
         global $wpdb;
         $id = absint( $_POST['client_id'] ?? 0 );
         if ( ! $id ) {
-            wp_send_json_error( [ 'message' => __( 'ID manquant.', 'scavio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'ID manquant.', 'clielo' ) ], 400 );
         }
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -1195,9 +1195,9 @@ class Scavio_Invoices {
      * ================================================================ */
 
     public static function ajax_save_settings(): void {
-        check_ajax_referer( 'scavio_nonce', 'nonce' );
+        check_ajax_referer( 'clielo_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'scavio' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'clielo' ) ], 403 );
         }
 
         $settings = [
@@ -1219,7 +1219,7 @@ class Scavio_Invoices {
             'footer_text'     => sanitize_textarea_field( wp_unslash( $_POST['footer_text'] ?? '' ) ),
         ];
 
-        update_option( 'scavio_invoice_settings', $settings );
+        update_option( 'clielo_invoice_settings', $settings );
         wp_send_json_success();
     }
 
@@ -1229,37 +1229,37 @@ class Scavio_Invoices {
 
     public static function ajax_client_view_invoice(): void {
         if ( ! is_user_logged_in() ) {
-            wp_die( esc_html__( 'Vous devez être connecté.', 'scavio' ) );
+            wp_die( esc_html__( 'Vous devez être connecté.', 'clielo' ) );
         }
 
         $invoice_id = absint( $_GET['invoice_id'] ?? 0 ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only view; ownership verified below.
         if ( ! $invoice_id ) {
-            wp_die( esc_html__( 'Facture introuvable.', 'scavio' ) );
+            wp_die( esc_html__( 'Facture introuvable.', 'clielo' ) );
         }
 
         $invoice = self::get_invoice( $invoice_id );
         if ( ! $invoice ) {
-            wp_die( esc_html__( 'Facture introuvable.', 'scavio' ) );
+            wp_die( esc_html__( 'Facture introuvable.', 'clielo' ) );
         }
 
         // Vérifier que la facture appartient à l'utilisateur
         if ( (int) $invoice->client_id !== get_current_user_id() ) {
-            wp_die( esc_html__( 'Accès non autorisé.', 'scavio' ) );
+            wp_die( esc_html__( 'Accès non autorisé.', 'clielo' ) );
         }
 
         // Seules validated / paid visibles
         if ( ! in_array( $invoice->status, [ self::STATUS_VALIDATED, self::STATUS_PAID ], true ) ) {
-            wp_die( esc_html__( 'Cette facture n\'est pas encore disponible.', 'scavio' ) );
+            wp_die( esc_html__( 'Cette facture n\'est pas encore disponible.', 'clielo' ) );
         }
 
-        $color = esc_attr( Scavio_Admin::get_color() );
+        $color = esc_attr( Clielo_Admin::get_color() );
         header( 'Content-Type: text/html; charset=utf-8' );
         ?><!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title><?php esc_html_e( 'Facture', 'scavio' ); ?></title>
+<title><?php esc_html_e( 'Facture', 'clielo' ); ?></title>
 <style><?php echo self::get_invoice_view_css( $color ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSS built from hardcoded strings and already-escaped color value. ?></style>
 </head>
 <body>
@@ -1283,48 +1283,48 @@ class Scavio_Invoices {
         }
 
         $s     = self::get_settings();
-        $color = esc_attr( Scavio_Admin::get_color() );
-        $nonce = wp_create_nonce( 'scavio_nonce' );
+        $color = esc_attr( Clielo_Admin::get_color() );
+        $nonce = wp_create_nonce( 'clielo_nonce' );
         ?>
         <div class="wrap serviceflow-dashboard">
             <h1 style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
                 <span class="dashicons dashicons-media-text" style="font-size:28px;width:28px;height:28px;color:<?php echo esc_attr( $color ); ?>"></span>
-                <?php esc_html_e( 'Scavio — Réglages facturation', 'scavio' ); ?>
+                <?php esc_html_e( 'Clielo — Réglages facturation', 'clielo' ); ?>
             </h1>
 
             <div id="serviceflow-inv-settings-form">
                 <!-- Entreprise -->
                 <div class="serviceflow-inv-section">
-                    <h2><span class="dashicons dashicons-building"></span> <?php esc_html_e( 'Informations de l\'entreprise', 'scavio' ); ?></h2>
+                    <h2><span class="dashicons dashicons-building"></span> <?php esc_html_e( 'Informations de l\'entreprise', 'clielo' ); ?></h2>
                     <div class="serviceflow-inv-field">
-                        <label><?php esc_html_e( 'Nom de l\'entreprise', 'scavio' ); ?></label>
+                        <label><?php esc_html_e( 'Nom de l\'entreprise', 'clielo' ); ?></label>
                         <input type="text" id="serviceflow-inv-company-name" value="<?php echo esc_attr( $s['company_name'] ); ?>" />
                     </div>
                     <div class="serviceflow-inv-field">
-                        <label><?php esc_html_e( 'Adresse', 'scavio' ); ?></label>
+                        <label><?php esc_html_e( 'Adresse', 'clielo' ); ?></label>
                         <textarea id="serviceflow-inv-company-address"><?php echo esc_textarea( $s['company_address'] ); ?></textarea>
                     </div>
                     <div class="serviceflow-inv-row">
                         <div class="serviceflow-inv-field">
-                            <label><?php esc_html_e( 'Code postal', 'scavio' ); ?></label>
+                            <label><?php esc_html_e( 'Code postal', 'clielo' ); ?></label>
                             <input type="text" id="serviceflow-inv-company-postal" value="<?php echo esc_attr( $s['company_postal'] ); ?>" />
                         </div>
                         <div class="serviceflow-inv-field">
-                            <label><?php esc_html_e( 'Ville', 'scavio' ); ?></label>
+                            <label><?php esc_html_e( 'Ville', 'clielo' ); ?></label>
                             <input type="text" id="serviceflow-inv-company-city" value="<?php echo esc_attr( $s['company_city'] ); ?>" />
                         </div>
                         <div class="serviceflow-inv-field">
-                            <label><?php esc_html_e( 'Pays', 'scavio' ); ?></label>
+                            <label><?php esc_html_e( 'Pays', 'clielo' ); ?></label>
                             <input type="text" id="serviceflow-inv-company-country" value="<?php echo esc_attr( $s['company_country'] ); ?>" />
                         </div>
                     </div>
                     <div class="serviceflow-inv-row">
                         <div class="serviceflow-inv-field">
-                            <label><?php esc_html_e( 'Téléphone', 'scavio' ); ?></label>
+                            <label><?php esc_html_e( 'Téléphone', 'clielo' ); ?></label>
                             <input type="text" id="serviceflow-inv-company-phone" value="<?php echo esc_attr( $s['company_phone'] ); ?>" />
                         </div>
                         <div class="serviceflow-inv-field">
-                            <label><?php esc_html_e( 'Email', 'scavio' ); ?></label>
+                            <label><?php esc_html_e( 'Email', 'clielo' ); ?></label>
                             <input type="email" id="serviceflow-inv-company-email" value="<?php echo esc_attr( $s['company_email'] ); ?>" />
                         </div>
                     </div>
@@ -1332,11 +1332,11 @@ class Scavio_Invoices {
 
                 <!-- Logo -->
                 <div class="serviceflow-inv-section">
-                    <h2><span class="dashicons dashicons-format-image"></span> <?php esc_html_e( 'Logo', 'scavio' ); ?></h2>
+                    <h2><span class="dashicons dashicons-format-image"></span> <?php esc_html_e( 'Logo', 'clielo' ); ?></h2>
                     <div class="serviceflow-inv-field">
                         <input type="hidden" id="serviceflow-inv-company-logo" value="<?php echo esc_url( $s['company_logo'] ); ?>" />
-                        <button type="button" id="serviceflow-inv-upload-logo" class="button"><?php esc_html_e( 'Choisir un logo', 'scavio' ); ?></button>
-                        <button type="button" id="serviceflow-inv-remove-logo" class="button" style="<?php echo empty( $s['company_logo'] ) ? 'display:none' : ''; ?>"><?php esc_html_e( 'Supprimer', 'scavio' ); ?></button>
+                        <button type="button" id="serviceflow-inv-upload-logo" class="button"><?php esc_html_e( 'Choisir un logo', 'clielo' ); ?></button>
+                        <button type="button" id="serviceflow-inv-remove-logo" class="button" style="<?php echo empty( $s['company_logo'] ) ? 'display:none' : ''; ?>"><?php esc_html_e( 'Supprimer', 'clielo' ); ?></button>
                         <div class="serviceflow-inv-logo-preview">
                             <?php if ( ! empty( $s['company_logo'] ) ) : ?>
                                 <img src="<?php echo esc_url( $s['company_logo'] ); ?>" />
@@ -1347,25 +1347,25 @@ class Scavio_Invoices {
 
                 <!-- Identification -->
                 <div class="serviceflow-inv-section">
-                    <h2><span class="dashicons dashicons-id-alt"></span> <?php esc_html_e( 'Identification', 'scavio' ); ?></h2>
+                    <h2><span class="dashicons dashicons-id-alt"></span> <?php esc_html_e( 'Identification', 'clielo' ); ?></h2>
                     <div class="serviceflow-inv-row">
                         <div class="serviceflow-inv-field">
-                            <label><?php esc_html_e( 'Numéro de TVA', 'scavio' ); ?></label>
+                            <label><?php esc_html_e( 'Numéro de TVA', 'clielo' ); ?></label>
                             <input type="text" id="serviceflow-inv-vat" value="<?php echo esc_attr( $s['vat_number'] ); ?>" />
                         </div>
                         <div class="serviceflow-inv-field">
-                            <label><?php esc_html_e( 'Libellé identifiant', 'scavio' ); ?></label>
+                            <label><?php esc_html_e( 'Libellé identifiant', 'clielo' ); ?></label>
                             <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
                                 <select id="serviceflow-inv-siret-label-select" style="max-width:180px">
                                     <option value="SIRET" <?php selected( $s['siret_label'], 'SIRET' ); ?>>SIRET</option>
                                     <option value="IFU" <?php selected( $s['siret_label'], 'IFU' ); ?>>IFU</option>
                                     <option value="SIRET/IFU" <?php selected( $s['siret_label'], 'SIRET/IFU' ); ?>>SIRET/IFU</option>
-                                    <option value="custom" <?php echo ! in_array( $s['siret_label'], [ 'SIRET', 'IFU', 'SIRET/IFU' ], true ) ? 'selected' : ''; ?>><?php esc_html_e( 'Personnalisé', 'scavio' ); ?></option>
+                                    <option value="custom" <?php echo ! in_array( $s['siret_label'], [ 'SIRET', 'IFU', 'SIRET/IFU' ], true ) ? 'selected' : ''; ?>><?php esc_html_e( 'Personnalisé', 'clielo' ); ?></option>
                                 </select>
-                                <input type="text" id="serviceflow-inv-siret-label-custom" value="<?php echo esc_attr( $s['siret_label'] ); ?>" placeholder="<?php esc_attr_e( 'Ex: RCS, SIREN...', 'scavio' ); ?>" style="max-width:200px;<?php echo in_array( $s['siret_label'], [ 'SIRET', 'IFU', 'SIRET/IFU' ], true ) ? 'display:none' : ''; ?>" />
+                                <input type="text" id="serviceflow-inv-siret-label-custom" value="<?php echo esc_attr( $s['siret_label'] ); ?>" placeholder="<?php esc_attr_e( 'Ex: RCS, SIREN...', 'clielo' ); ?>" style="max-width:200px;<?php echo in_array( $s['siret_label'], [ 'SIRET', 'IFU', 'SIRET/IFU' ], true ) ? 'display:none' : ''; ?>" />
                             </div>
                             <input type="hidden" id="serviceflow-inv-siret-label" value="<?php echo esc_attr( $s['siret_label'] ); ?>" />
-                            <label><?php esc_html_e( 'Numéro', 'scavio' ); ?></label>
+                            <label><?php esc_html_e( 'Numéro', 'clielo' ); ?></label>
                             <input type="text" id="serviceflow-inv-siret" value="<?php echo esc_attr( $s['siret_ifu'] ); ?>" />
                         </div>
                     </div>
@@ -1373,38 +1373,38 @@ class Scavio_Invoices {
 
                 <!-- Facturation -->
                 <div class="serviceflow-inv-section">
-                    <h2><span class="dashicons dashicons-money-alt"></span> <?php esc_html_e( 'Facturation', 'scavio' ); ?></h2>
+                    <h2><span class="dashicons dashicons-money-alt"></span> <?php esc_html_e( 'Facturation', 'clielo' ); ?></h2>
                     <div class="serviceflow-inv-row">
                         <div class="serviceflow-inv-field">
-                            <label><?php esc_html_e( 'Préfixe des factures', 'scavio' ); ?></label>
+                            <label><?php esc_html_e( 'Préfixe des factures', 'clielo' ); ?></label>
                             <input type="text" id="serviceflow-inv-prefix" value="<?php echo esc_attr( $s['invoice_prefix'] ); ?>" placeholder="FACT-" />
                         </div>
                         <div class="serviceflow-inv-field">
-                            <label><?php esc_html_e( 'Taux de TVA (%)', 'scavio' ); ?></label>
+                            <label><?php esc_html_e( 'Taux de TVA (%)', 'clielo' ); ?></label>
                             <input type="number" id="serviceflow-inv-taxrate" value="<?php echo esc_attr( $s['tax_rate'] ); ?>" min="0" max="100" step="0.01" />
                         </div>
                     </div>
                     <div class="serviceflow-inv-field">
-                        <label><?php esc_html_e( 'Mention TVA (affiché si taux = 0%)', 'scavio' ); ?></label>
-                        <input type="text" id="serviceflow-inv-taxnotice" value="<?php echo esc_attr( $s['tax_notice'] ); ?>" placeholder="<?php esc_attr_e( 'TVA non applicable, article 293 B du CGI', 'scavio' ); ?>" style="width:100%" />
+                        <label><?php esc_html_e( 'Mention TVA (affiché si taux = 0%)', 'clielo' ); ?></label>
+                        <input type="text" id="serviceflow-inv-taxnotice" value="<?php echo esc_attr( $s['tax_notice'] ); ?>" placeholder="<?php esc_attr_e( 'TVA non applicable, article 293 B du CGI', 'clielo' ); ?>" style="width:100%" />
                     </div>
                 </div>
 
                 <!-- Textes -->
                 <div class="serviceflow-inv-section">
-                    <h2><span class="dashicons dashicons-editor-alignleft"></span> <?php esc_html_e( 'Textes', 'scavio' ); ?></h2>
+                    <h2><span class="dashicons dashicons-editor-alignleft"></span> <?php esc_html_e( 'Textes', 'clielo' ); ?></h2>
                     <div class="serviceflow-inv-field">
-                        <label><?php esc_html_e( 'Conditions de paiement', 'scavio' ); ?></label>
+                        <label><?php esc_html_e( 'Conditions de paiement', 'clielo' ); ?></label>
                         <textarea id="serviceflow-inv-terms"><?php echo esc_textarea( $s['payment_terms'] ); ?></textarea>
                     </div>
                     <div class="serviceflow-inv-field">
-                        <label><?php esc_html_e( 'Pied de page facture', 'scavio' ); ?></label>
+                        <label><?php esc_html_e( 'Pied de page facture', 'clielo' ); ?></label>
                         <textarea id="serviceflow-inv-footer"><?php echo esc_textarea( $s['footer_text'] ); ?></textarea>
                     </div>
                 </div>
 
                 <button type="button" id="serviceflow-inv-save-settings" class="button button-primary" style="background:<?php echo esc_attr( $color ); ?>;border-color:<?php echo esc_attr( $color ); ?>;padding:8px 24px;font-size:14px">
-                    <?php esc_html_e( 'Enregistrer', 'scavio' ); ?>
+                    <?php esc_html_e( 'Enregistrer', 'clielo' ); ?>
                 </button>
             </div>
 
@@ -1423,7 +1423,7 @@ class Scavio_Invoices {
 
                 if(uploadBtn){
                     uploadBtn.addEventListener('click', function(){
-                        var frame = wp.media({ title: '<?php echo esc_js( __( 'Choisir un logo', 'scavio' ) ); ?>', multiple: false });
+                        var frame = wp.media({ title: '<?php echo esc_js( __( 'Choisir un logo', 'clielo' ) ); ?>', multiple: false });
                         frame.on('select', function(){
                             var attachment = frame.state().get('selection').first().toJSON();
                             logoInput.value = attachment.url;
@@ -1461,10 +1461,10 @@ class Scavio_Invoices {
                 document.getElementById('serviceflow-inv-save-settings').addEventListener('click', function(){
                     var btn = this;
                     btn.disabled = true;
-                    btn.textContent = '<?php echo esc_js( __( 'Enregistrement...', 'scavio' ) ); ?>';
+                    btn.textContent = '<?php echo esc_js( __( 'Enregistrement...', 'clielo' ) ); ?>';
 
                     var fd = new FormData();
-                    fd.append('action', 'scavio_save_invoice_settings');
+                    fd.append('action', 'clielo_save_invoice_settings');
                     fd.append('nonce', nonce);
                     fd.append('company_name', document.getElementById('serviceflow-inv-company-name').value);
                     fd.append('company_address', document.getElementById('serviceflow-inv-company-address').value);
@@ -1487,10 +1487,10 @@ class Scavio_Invoices {
                     .then(function(r){ return r.json(); })
                     .then(function(res){
                         btn.disabled = false;
-                        btn.textContent = '<?php echo esc_js( __( 'Enregistrer', 'scavio' ) ); ?>';
+                        btn.textContent = '<?php echo esc_js( __( 'Enregistrer', 'clielo' ) ); ?>';
                         if(res.success){
-                            btn.textContent = '<?php echo esc_js( __( 'Enregistré !', 'scavio' ) ); ?>';
-                            setTimeout(function(){ btn.textContent = '<?php echo esc_js( __( 'Enregistrer', 'scavio' ) ); ?>'; }, 2000);
+                            btn.textContent = '<?php echo esc_js( __( 'Enregistré !', 'clielo' ) ); ?>';
+                            setTimeout(function(){ btn.textContent = '<?php echo esc_js( __( 'Enregistrer', 'clielo' ) ); ?>'; }, 2000);
                         } else {
                             alert(res.data && res.data.message ? res.data.message : 'Erreur');
                         }
@@ -1498,7 +1498,7 @@ class Scavio_Invoices {
                 });
             })();
             <?php
-            wp_add_inline_script( 'scavio-invoices-js', ob_get_clean() );
+            wp_add_inline_script( 'clielo-invoices-js', ob_get_clean() );
             ?>
         </div>
         <?php
@@ -1514,13 +1514,13 @@ class Scavio_Invoices {
         }
 
         $clients = self::get_all_ext_clients();
-        $color   = esc_attr( Scavio_Admin::get_color() );
-        $nonce   = wp_create_nonce( 'scavio_nonce' );
+        $color   = esc_attr( Clielo_Admin::get_color() );
+        $nonce   = wp_create_nonce( 'clielo_nonce' );
         ?>
         <div class="wrap serviceflow-dashboard">
             <h1 style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
                 <span class="dashicons dashicons-groups" style="font-size:28px;width:28px;height:28px;color:<?php echo esc_attr( $color ); ?>"></span>
-                <?php esc_html_e( 'Scavio — Clients externes', 'scavio' ); ?>
+                <?php esc_html_e( 'Clielo — Clients externes', 'clielo' ); ?>
             </h1>
 
             <div class="serviceflow-clients-wrap">
@@ -1528,16 +1528,16 @@ class Scavio_Invoices {
                     <table class="serviceflow-clients-table" id="serviceflow-cl-table">
                         <thead>
                             <tr>
-                                <th><?php esc_html_e( 'Nom', 'scavio' ); ?></th>
-                                <th><?php esc_html_e( 'Email', 'scavio' ); ?></th>
-                                <th><?php esc_html_e( 'Société', 'scavio' ); ?></th>
-                                <th><?php esc_html_e( 'Ville', 'scavio' ); ?></th>
-                                <th><?php esc_html_e( 'Actions', 'scavio' ); ?></th>
+                                <th><?php esc_html_e( 'Nom', 'clielo' ); ?></th>
+                                <th><?php esc_html_e( 'Email', 'clielo' ); ?></th>
+                                <th><?php esc_html_e( 'Société', 'clielo' ); ?></th>
+                                <th><?php esc_html_e( 'Ville', 'clielo' ); ?></th>
+                                <th><?php esc_html_e( 'Actions', 'clielo' ); ?></th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if ( empty( $clients ) ) : ?>
-                                <tr><td colspan="5" style="text-align:center;color:#888;padding:24px"><?php esc_html_e( 'Aucun client externe.', 'scavio' ); ?></td></tr>
+                                <tr><td colspan="5" style="text-align:center;color:#888;padding:24px"><?php esc_html_e( 'Aucun client externe.', 'clielo' ); ?></td></tr>
                             <?php else : ?>
                                 <?php foreach ( $clients as $cl ) : ?>
                                     <tr data-id="<?php echo (int) $cl->id; ?>"
@@ -1557,8 +1557,8 @@ class Scavio_Invoices {
                                         <td><?php echo esc_html( $cl->company ); ?></td>
                                         <td><?php echo esc_html( $cl->city ); ?></td>
                                         <td class="serviceflow-cl-actions">
-                                            <a class="edit" data-id="<?php echo (int) $cl->id; ?>"><?php esc_html_e( 'Modifier', 'scavio' ); ?></a>
-                                            <a class="delete" data-id="<?php echo (int) $cl->id; ?>"><?php esc_html_e( 'Supprimer', 'scavio' ); ?></a>
+                                            <a class="edit" data-id="<?php echo (int) $cl->id; ?>"><?php esc_html_e( 'Modifier', 'clielo' ); ?></a>
+                                            <a class="delete" data-id="<?php echo (int) $cl->id; ?>"><?php esc_html_e( 'Supprimer', 'clielo' ); ?></a>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -1569,62 +1569,62 @@ class Scavio_Invoices {
 
                 <div class="serviceflow-clients-form">
                     <div class="serviceflow-cl-form-card">
-                        <h3 id="serviceflow-cl-form-title"><?php esc_html_e( 'Ajouter un client', 'scavio' ); ?></h3>
+                        <h3 id="serviceflow-cl-form-title"><?php esc_html_e( 'Ajouter un client', 'clielo' ); ?></h3>
                         <input type="hidden" id="serviceflow-cl-id" value="0" />
                         <div class="serviceflow-cl-field">
-                            <label><?php esc_html_e( 'Nom *', 'scavio' ); ?></label>
+                            <label><?php esc_html_e( 'Nom *', 'clielo' ); ?></label>
                             <input type="text" id="serviceflow-cl-name" />
                         </div>
                         <div class="serviceflow-cl-field">
-                            <label><?php esc_html_e( 'Email', 'scavio' ); ?></label>
+                            <label><?php esc_html_e( 'Email', 'clielo' ); ?></label>
                             <input type="email" id="serviceflow-cl-email" />
                         </div>
                         <div class="serviceflow-cl-field">
-                            <label><?php esc_html_e( 'Société', 'scavio' ); ?></label>
+                            <label><?php esc_html_e( 'Société', 'clielo' ); ?></label>
                             <input type="text" id="serviceflow-cl-company" />
                         </div>
                         <div class="serviceflow-cl-field">
-                            <label><?php esc_html_e( 'Adresse', 'scavio' ); ?></label>
+                            <label><?php esc_html_e( 'Adresse', 'clielo' ); ?></label>
                             <textarea id="serviceflow-cl-address"></textarea>
                         </div>
                         <div class="serviceflow-cl-row">
                             <div class="serviceflow-cl-field">
-                                <label><?php esc_html_e( 'Code postal', 'scavio' ); ?></label>
+                                <label><?php esc_html_e( 'Code postal', 'clielo' ); ?></label>
                                 <input type="text" id="serviceflow-cl-postal" />
                             </div>
                             <div class="serviceflow-cl-field">
-                                <label><?php esc_html_e( 'Ville', 'scavio' ); ?></label>
+                                <label><?php esc_html_e( 'Ville', 'clielo' ); ?></label>
                                 <input type="text" id="serviceflow-cl-city" />
                             </div>
                         </div>
                         <div class="serviceflow-cl-row">
                             <div class="serviceflow-cl-field">
-                                <label><?php esc_html_e( 'Pays', 'scavio' ); ?></label>
+                                <label><?php esc_html_e( 'Pays', 'clielo' ); ?></label>
                                 <input type="text" id="serviceflow-cl-country" value="France" />
                             </div>
                             <div class="serviceflow-cl-field">
-                                <label><?php esc_html_e( 'Téléphone', 'scavio' ); ?></label>
+                                <label><?php esc_html_e( 'Téléphone', 'clielo' ); ?></label>
                                 <input type="text" id="serviceflow-cl-phone" />
                             </div>
                         </div>
                         <div class="serviceflow-cl-row">
                             <div class="serviceflow-cl-field">
-                                <label><?php esc_html_e( 'N° TVA', 'scavio' ); ?></label>
+                                <label><?php esc_html_e( 'N° TVA', 'clielo' ); ?></label>
                                 <input type="text" id="serviceflow-cl-vat" />
                             </div>
                             <div class="serviceflow-cl-field">
-                                <label><?php esc_html_e( 'SIRET / IFU', 'scavio' ); ?></label>
+                                <label><?php esc_html_e( 'SIRET / IFU', 'clielo' ); ?></label>
                                 <input type="text" id="serviceflow-cl-siret" />
                             </div>
                         </div>
                         <div class="serviceflow-cl-field">
-                            <label><?php esc_html_e( 'Notes', 'scavio' ); ?></label>
+                            <label><?php esc_html_e( 'Notes', 'clielo' ); ?></label>
                             <textarea id="serviceflow-cl-notes"></textarea>
                         </div>
                         <button type="button" id="serviceflow-cl-save" class="button button-primary" style="background:<?php echo esc_attr( $color ); ?>;border-color:<?php echo esc_attr( $color ); ?>;margin-right:8px">
-                            <?php esc_html_e( 'Enregistrer', 'scavio' ); ?>
+                            <?php esc_html_e( 'Enregistrer', 'clielo' ); ?>
                         </button>
-                        <button type="button" id="serviceflow-cl-reset" class="button"><?php esc_html_e( 'Annuler', 'scavio' ); ?></button>
+                        <button type="button" id="serviceflow-cl-reset" class="button"><?php esc_html_e( 'Annuler', 'clielo' ); ?></button>
                     </div>
                 </div>
             </div>
@@ -1638,7 +1638,7 @@ class Scavio_Invoices {
 
                 function resetForm(){
                     document.getElementById('serviceflow-cl-id').value = '0';
-                    document.getElementById('serviceflow-cl-form-title').textContent = '<?php echo esc_js( __( 'Ajouter un client', 'scavio' ) ); ?>';
+                    document.getElementById('serviceflow-cl-form-title').textContent = '<?php echo esc_js( __( 'Ajouter un client', 'clielo' ) ); ?>';
                     ['name','email','company','address','postal','city','phone','vat','siret','notes'].forEach(function(f){
                         document.getElementById('serviceflow-cl-'+f).value = '';
                     });
@@ -1663,7 +1663,7 @@ class Scavio_Invoices {
                         document.getElementById('serviceflow-cl-vat').value = tr.dataset.vat;
                         document.getElementById('serviceflow-cl-siret').value = tr.dataset.siret;
                         document.getElementById('serviceflow-cl-notes').value = tr.dataset.notes;
-                        document.getElementById('serviceflow-cl-form-title').textContent = '<?php echo esc_js( __( 'Modifier le client', 'scavio' ) ); ?>';
+                        document.getElementById('serviceflow-cl-form-title').textContent = '<?php echo esc_js( __( 'Modifier le client', 'clielo' ) ); ?>';
                         document.querySelector('.serviceflow-clients-form').scrollIntoView({behavior:'smooth'});
                     });
                 });
@@ -1671,10 +1671,10 @@ class Scavio_Invoices {
                 // Delete
                 document.querySelectorAll('.serviceflow-cl-actions .delete').forEach(function(a){
                     a.addEventListener('click', function(){
-                        if(!confirm('<?php echo esc_js( __( 'Supprimer ce client ?', 'scavio' ) ); ?>')) return;
+                        if(!confirm('<?php echo esc_js( __( 'Supprimer ce client ?', 'clielo' ) ); ?>')) return;
                         var id = this.dataset.id;
                         var fd = new FormData();
-                        fd.append('action','scavio_delete_ext_client');
+                        fd.append('action','clielo_delete_ext_client');
                         fd.append('nonce',nonce);
                         fd.append('client_id',id);
                         fetch(ajaxUrl,{method:'POST',body:fd,credentials:'same-origin'})
@@ -1688,7 +1688,7 @@ class Scavio_Invoices {
                     var btn = this;
                     btn.disabled = true;
                     var fd = new FormData();
-                    fd.append('action','scavio_save_ext_client');
+                    fd.append('action','clielo_save_ext_client');
                     fd.append('nonce',nonce);
                     fd.append('client_id', document.getElementById('serviceflow-cl-id').value);
                     fd.append('name', document.getElementById('serviceflow-cl-name').value);
@@ -1708,7 +1708,7 @@ class Scavio_Invoices {
                 });
             })();
             <?php
-            wp_add_inline_script( 'scavio-invoices-js', ob_get_clean() );
+            wp_add_inline_script( 'clielo-invoices-js', ob_get_clean() );
             ?>
         </div>
         <?php
@@ -1728,21 +1728,21 @@ class Scavio_Invoices {
         $counts   = self::get_status_counts();
         $labels   = self::get_status_labels();
         $colors   = self::get_status_colors();
-        $color    = esc_attr( Scavio_Admin::get_color() );
-        $nonce    = wp_create_nonce( 'scavio_nonce' );
+        $color    = esc_attr( Clielo_Admin::get_color() );
+        $nonce    = wp_create_nonce( 'clielo_nonce' );
         $page_url = admin_url( 'admin.php?page=serviceflow-invoices' );
         ?>
         <div class="wrap serviceflow-dashboard">
             <h1 style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
                 <span class="dashicons dashicons-media-text" style="font-size:28px;width:28px;height:28px;color:<?php echo esc_attr( $color ); ?>"></span>
-                <?php esc_html_e( 'Scavio — Factures', 'scavio' ); ?>
-                <a href="<?php echo esc_url( admin_url( 'admin.php?page=serviceflow-invoice-new' ) ); ?>" class="page-title-action"><?php esc_html_e( 'Nouvelle facture', 'scavio' ); ?></a>
+                <?php esc_html_e( 'Clielo — Factures', 'clielo' ); ?>
+                <a href="<?php echo esc_url( admin_url( 'admin.php?page=serviceflow-invoice-new' ) ); ?>" class="page-title-action"><?php esc_html_e( 'Nouvelle facture', 'clielo' ); ?></a>
             </h1>
 
             <!-- Filtres -->
             <div class="serviceflow-inv-filters">
                 <a href="<?php echo esc_url( $page_url ); ?>" class="serviceflow-inv-filter <?php echo empty( $filter ) ? 'active' : ''; ?>">
-                    <?php esc_html_e( 'Toutes', 'scavio' ); ?> <span class="count">(<?php echo absint( $counts['all'] ); ?>)</span>
+                    <?php esc_html_e( 'Toutes', 'clielo' ); ?> <span class="count">(<?php echo absint( $counts['all'] ); ?>)</span>
                 </a>
                 <?php foreach ( $labels as $key => $label ) : ?>
                     <a href="<?php echo esc_url( add_query_arg( 'status', $key, $page_url ) ); ?>" class="serviceflow-inv-filter <?php echo $filter === $key ? 'active' : ''; ?>">
@@ -1755,18 +1755,18 @@ class Scavio_Invoices {
             <table class="serviceflow-inv-table">
                 <thead>
                     <tr>
-                        <th><?php esc_html_e( 'N° Facture', 'scavio' ); ?></th>
-                        <th><?php esc_html_e( 'Client', 'scavio' ); ?></th>
-                        <th><?php esc_html_e( 'Commande', 'scavio' ); ?></th>
-                        <th><?php esc_html_e( 'Statut', 'scavio' ); ?></th>
-                        <th><?php esc_html_e( 'Total TTC', 'scavio' ); ?></th>
-                        <th><?php esc_html_e( 'Date', 'scavio' ); ?></th>
-                        <th><?php esc_html_e( 'Actions', 'scavio' ); ?></th>
+                        <th><?php esc_html_e( 'N° Facture', 'clielo' ); ?></th>
+                        <th><?php esc_html_e( 'Client', 'clielo' ); ?></th>
+                        <th><?php esc_html_e( 'Commande', 'clielo' ); ?></th>
+                        <th><?php esc_html_e( 'Statut', 'clielo' ); ?></th>
+                        <th><?php esc_html_e( 'Total TTC', 'clielo' ); ?></th>
+                        <th><?php esc_html_e( 'Date', 'clielo' ); ?></th>
+                        <th><?php esc_html_e( 'Actions', 'clielo' ); ?></th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if ( empty( $invoices ) ) : ?>
-                        <tr><td colspan="7" style="text-align:center;color:#888;padding:24px"><?php esc_html_e( 'Aucune facture.', 'scavio' ); ?></td></tr>
+                        <tr><td colspan="7" style="text-align:center;color:#888;padding:24px"><?php esc_html_e( 'Aucune facture.', 'clielo' ); ?></td></tr>
                     <?php else : ?>
                         <?php
                         $transitions_map = [
@@ -1807,18 +1807,18 @@ class Scavio_Invoices {
                             <td><strong><?php echo esc_html( number_format( (float) $inv->total, 2, ',', ' ' ) ); ?> &euro;</strong></td>
                             <td><?php echo esc_html( date_i18n( 'd/m/Y', strtotime( $inv->created_at ) ) ); ?></td>
                             <td>
-                                <a href="<?php echo esc_url( $view_url ); ?>" class="serviceflow-inv-act" style="color:<?php echo esc_attr( $color ); ?>"><?php esc_html_e( 'Voir', 'scavio' ); ?></a>
+                                <a href="<?php echo esc_url( $view_url ); ?>" class="serviceflow-inv-act" style="color:<?php echo esc_attr( $color ); ?>"><?php esc_html_e( 'Voir', 'clielo' ); ?></a>
                                 <?php if ( $inv->status === self::STATUS_DRAFT ) : ?>
-                                    <a href="<?php echo esc_url( admin_url( 'admin.php?page=serviceflow-invoice-edit&invoice_id=' . $inv->id ) ); ?>" class="serviceflow-inv-act" style="color:#f59e0b"><?php esc_html_e( 'Modifier', 'scavio' ); ?></a>
+                                    <a href="<?php echo esc_url( admin_url( 'admin.php?page=serviceflow-invoice-edit&invoice_id=' . $inv->id ) ); ?>" class="serviceflow-inv-act" style="color:#f59e0b"><?php esc_html_e( 'Modifier', 'clielo' ); ?></a>
                                 <?php endif; ?>
                                 <?php if ( in_array( $inv->status, [ self::STATUS_DRAFT, self::STATUS_PENDING ], true ) ) : ?>
-                                    <a class="serviceflow-inv-act serviceflow-inv-action" data-action="scavio_invoice_validate" data-id="<?php echo (int) $inv->id; ?>" style="color:#10b981"><?php esc_html_e( 'Valider', 'scavio' ); ?></a>
+                                    <a class="serviceflow-inv-act serviceflow-inv-action" data-action="clielo_invoice_validate" data-id="<?php echo (int) $inv->id; ?>" style="color:#10b981"><?php esc_html_e( 'Valider', 'clielo' ); ?></a>
                                 <?php endif; ?>
                                 <?php if ( $inv->status === self::STATUS_VALIDATED ) : ?>
-                                    <a class="serviceflow-inv-act serviceflow-inv-action" data-action="scavio_invoice_mark_paid" data-id="<?php echo (int) $inv->id; ?>" style="color:#10b981"><?php esc_html_e( 'Payer', 'scavio' ); ?></a>
+                                    <a class="serviceflow-inv-act serviceflow-inv-action" data-action="clielo_invoice_mark_paid" data-id="<?php echo (int) $inv->id; ?>" style="color:#10b981"><?php esc_html_e( 'Payer', 'clielo' ); ?></a>
                                 <?php endif; ?>
                                 <?php if ( ! in_array( $inv->status, [ self::STATUS_PAID, self::STATUS_CANCELLED ], true ) ) : ?>
-                                    <a class="serviceflow-inv-act serviceflow-inv-action" data-action="scavio_invoice_cancel" data-id="<?php echo (int) $inv->id; ?>" style="color:#ef4444"><?php esc_html_e( 'Annuler', 'scavio' ); ?></a>
+                                    <a class="serviceflow-inv-act serviceflow-inv-action" data-action="clielo_invoice_cancel" data-id="<?php echo (int) $inv->id; ?>" style="color:#ef4444"><?php esc_html_e( 'Annuler', 'clielo' ); ?></a>
                                 <?php endif; ?>
                             </td>
                         </tr>
@@ -1840,7 +1840,7 @@ class Scavio_Invoices {
                         e.preventDefault();
                         var action = this.dataset.action;
                         var id     = this.dataset.id;
-                        var label  = action === 'scavio_invoice_cancel' ? '<?php echo esc_js( __( 'Annuler cette facture ?', 'scavio' ) ); ?>' : '<?php echo esc_js( __( 'Confirmer cette action ?', 'scavio' ) ); ?>';
+                        var label  = action === 'clielo_invoice_cancel' ? '<?php echo esc_js( __( 'Annuler cette facture ?', 'clielo' ) ); ?>' : '<?php echo esc_js( __( 'Confirmer cette action ?', 'clielo' ) ); ?>';
                         if(!confirm(label)) return;
 
                         var fd = new FormData();
@@ -1881,10 +1881,10 @@ class Scavio_Invoices {
                         e.stopPropagation();
                         var id = this.dataset.id;
                         var newStatus = this.dataset.status;
-                        if(!confirm('<?php echo esc_js( __( 'Changer le statut de cette facture ?', 'scavio' ) ); ?>')) return;
+                        if(!confirm('<?php echo esc_js( __( 'Changer le statut de cette facture ?', 'clielo' ) ); ?>')) return;
 
                         var fd = new FormData();
-                        fd.append('action', 'scavio_invoice_set_status');
+                        fd.append('action', 'clielo_invoice_set_status');
                         fd.append('nonce', nonce);
                         fd.append('invoice_id', id);
                         fd.append('new_status', newStatus);
@@ -1895,7 +1895,7 @@ class Scavio_Invoices {
                 });
             })();
             <?php
-            wp_add_inline_script( 'scavio-invoices-js', ob_get_clean() );
+            wp_add_inline_script( 'clielo-invoices-js', ob_get_clean() );
             ?>
         </div>
         <?php
@@ -1911,8 +1911,8 @@ class Scavio_Invoices {
         }
 
         $settings    = self::get_settings();
-        $color       = esc_attr( Scavio_Admin::get_color() );
-        $nonce       = wp_create_nonce( 'scavio_nonce' );
+        $color       = esc_attr( Clielo_Admin::get_color() );
+        $nonce       = wp_create_nonce( 'clielo_nonce' );
         $ext_clients = self::get_all_ext_clients();
 
         // Utilisateurs WP non-admin
@@ -1921,54 +1921,54 @@ class Scavio_Invoices {
         <div class="wrap serviceflow-dashboard">
             <h1 style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
                 <span class="dashicons dashicons-plus-alt" style="font-size:28px;width:28px;height:28px;color:<?php echo esc_attr( $color ); ?>"></span>
-                <?php esc_html_e( 'Scavio — Nouvelle facture', 'scavio' ); ?>
+                <?php esc_html_e( 'Clielo — Nouvelle facture', 'clielo' ); ?>
             </h1>
 
             <div id="serviceflow-newinv-form">
                 <!-- Client -->
                 <div class="serviceflow-newinv-section">
-                    <h2><span class="dashicons dashicons-admin-users"></span> <?php esc_html_e( 'Client', 'scavio' ); ?></h2>
+                    <h2><span class="dashicons dashicons-admin-users"></span> <?php esc_html_e( 'Client', 'clielo' ); ?></h2>
                     <div class="serviceflow-newinv-radio">
-                        <label><input type="radio" name="scavio_client_type" value="wp" checked /> <?php esc_html_e( 'Utilisateur WordPress', 'scavio' ); ?></label>
-                        <label><input type="radio" name="scavio_client_type" value="ext" /> <?php esc_html_e( 'Client externe', 'scavio' ); ?></label>
+                        <label><input type="radio" name="clielo_client_type" value="wp" checked /> <?php esc_html_e( 'Utilisateur WordPress', 'clielo' ); ?></label>
+                        <label><input type="radio" name="clielo_client_type" value="ext" /> <?php esc_html_e( 'Client externe', 'clielo' ); ?></label>
                     </div>
                     <div class="serviceflow-newinv-field" id="serviceflow-newinv-wp-client">
-                        <label><?php esc_html_e( 'Sélectionner un utilisateur', 'scavio' ); ?></label>
+                        <label><?php esc_html_e( 'Sélectionner un utilisateur', 'clielo' ); ?></label>
                         <select id="serviceflow-newinv-client-id">
-                            <option value=""><?php esc_html_e( '— Choisir —', 'scavio' ); ?></option>
+                            <option value=""><?php esc_html_e( '— Choisir —', 'clielo' ); ?></option>
                             <?php foreach ( $wp_users as $u ) : ?>
                                 <option value="<?php echo (int) $u->ID; ?>"><?php echo esc_html( $u->display_name . ' (' . $u->user_email . ')' ); ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="serviceflow-newinv-field" id="serviceflow-newinv-ext-client" style="display:none">
-                        <label><?php esc_html_e( 'Sélectionner un client externe', 'scavio' ); ?></label>
+                        <label><?php esc_html_e( 'Sélectionner un client externe', 'clielo' ); ?></label>
                         <select id="serviceflow-newinv-ext-id">
-                            <option value=""><?php esc_html_e( '— Choisir —', 'scavio' ); ?></option>
+                            <option value=""><?php esc_html_e( '— Choisir —', 'clielo' ); ?></option>
                             <?php foreach ( $ext_clients as $ec ) : ?>
                                 <option value="<?php echo (int) $ec->id; ?>"><?php echo esc_html( $ec->name . ( $ec->company ? ' — ' . $ec->company : '' ) ); ?></option>
                             <?php endforeach; ?>
                         </select>
-                        <a href="<?php echo esc_url( admin_url( 'admin.php?page=serviceflow-clients' ) ); ?>" style="font-size:12px"><?php esc_html_e( 'Gérer les clients externes', 'scavio' ); ?></a>
+                        <a href="<?php echo esc_url( admin_url( 'admin.php?page=serviceflow-clients' ) ); ?>" style="font-size:12px"><?php esc_html_e( 'Gérer les clients externes', 'clielo' ); ?></a>
                     </div>
                 </div>
 
                 <!-- Articles -->
                 <div class="serviceflow-newinv-section">
-                    <h2><span class="dashicons dashicons-list-view"></span> <?php esc_html_e( 'Articles', 'scavio' ); ?></h2>
+                    <h2><span class="dashicons dashicons-list-view"></span> <?php esc_html_e( 'Articles', 'clielo' ); ?></h2>
                     <table class="serviceflow-items-table" id="serviceflow-items-table">
                         <thead>
                             <tr>
-                                <th style="width:50%"><?php esc_html_e( 'Description', 'scavio' ); ?></th>
-                                <th style="width:10%"><?php esc_html_e( 'Qté', 'scavio' ); ?></th>
-                                <th style="width:20%"><?php esc_html_e( 'Prix unitaire HT', 'scavio' ); ?></th>
-                                <th style="width:15%"><?php esc_html_e( 'Total HT', 'scavio' ); ?></th>
+                                <th style="width:50%"><?php esc_html_e( 'Description', 'clielo' ); ?></th>
+                                <th style="width:10%"><?php esc_html_e( 'Qté', 'clielo' ); ?></th>
+                                <th style="width:20%"><?php esc_html_e( 'Prix unitaire HT', 'clielo' ); ?></th>
+                                <th style="width:15%"><?php esc_html_e( 'Total HT', 'clielo' ); ?></th>
                                 <th style="width:5%"></th>
                             </tr>
                         </thead>
                         <tbody id="serviceflow-items-body">
                             <tr class="serviceflow-item-row">
-                                <td><input type="text" class="serviceflow-item-desc" placeholder="<?php esc_attr_e( 'Description du service', 'scavio' ); ?>" /></td>
+                                <td><input type="text" class="serviceflow-item-desc" placeholder="<?php esc_attr_e( 'Description du service', 'clielo' ); ?>" /></td>
                                 <td><input type="number" class="serviceflow-item-qty" value="1" min="1" step="1" /></td>
                                 <td><input type="number" class="serviceflow-item-price" value="0" min="0" step="0.01" /></td>
                                 <td class="serviceflow-item-total" style="text-align:right;font-weight:600">0,00 &euro;</td>
@@ -1976,31 +1976,31 @@ class Scavio_Invoices {
                             </tr>
                         </tbody>
                     </table>
-                    <button type="button" id="serviceflow-add-item" class="button">+ <?php esc_html_e( 'Ajouter un article', 'scavio' ); ?></button>
+                    <button type="button" id="serviceflow-add-item" class="button">+ <?php esc_html_e( 'Ajouter un article', 'clielo' ); ?></button>
 
                     <div class="serviceflow-newinv-totals" style="margin-top:16px">
-                        <div><?php esc_html_e( 'Sous-total HT', 'scavio' ); ?> : <span id="serviceflow-newinv-subtotal">0,00</span> &euro;</div>
-                        <div><?php esc_html_e( 'TVA', 'scavio' ); ?> (<span id="serviceflow-newinv-taxrate-display"><?php echo esc_html( $settings['tax_rate'] ); ?></span>%) : <span id="serviceflow-newinv-tax">0,00</span> &euro;</div>
-                        <div><strong><?php esc_html_e( 'Total TTC', 'scavio' ); ?> : <span id="serviceflow-newinv-total">0,00</span> &euro;</strong></div>
+                        <div><?php esc_html_e( 'Sous-total HT', 'clielo' ); ?> : <span id="serviceflow-newinv-subtotal">0,00</span> &euro;</div>
+                        <div><?php esc_html_e( 'TVA', 'clielo' ); ?> (<span id="serviceflow-newinv-taxrate-display"><?php echo esc_html( $settings['tax_rate'] ); ?></span>%) : <span id="serviceflow-newinv-tax">0,00</span> &euro;</div>
+                        <div><strong><?php esc_html_e( 'Total TTC', 'clielo' ); ?> : <span id="serviceflow-newinv-total">0,00</span> &euro;</strong></div>
                     </div>
                 </div>
 
                 <!-- TVA et notes -->
                 <div class="serviceflow-newinv-section">
-                    <h2><span class="dashicons dashicons-editor-alignleft"></span> <?php esc_html_e( 'Détails', 'scavio' ); ?></h2>
+                    <h2><span class="dashicons dashicons-editor-alignleft"></span> <?php esc_html_e( 'Détails', 'clielo' ); ?></h2>
                     <div class="serviceflow-newinv-field" style="max-width:200px">
-                        <label><?php esc_html_e( 'Taux TVA (%)', 'scavio' ); ?></label>
+                        <label><?php esc_html_e( 'Taux TVA (%)', 'clielo' ); ?></label>
                         <input type="number" id="serviceflow-newinv-taxrate" value="<?php echo esc_attr( $settings['tax_rate'] ); ?>" min="0" max="100" step="0.01" />
                     </div>
                     <div class="serviceflow-newinv-field">
-                        <label><?php esc_html_e( 'Notes / Conditions', 'scavio' ); ?></label>
+                        <label><?php esc_html_e( 'Notes / Conditions', 'clielo' ); ?></label>
                         <textarea id="serviceflow-newinv-notes"><?php echo esc_textarea( $settings['payment_terms'] ); ?></textarea>
                     </div>
                 </div>
 
                 <!-- Actions -->
-                <button type="button" class="button serviceflow-newinv-save" data-status="draft" style="margin-right:8px"><?php esc_html_e( 'Enregistrer en brouillon', 'scavio' ); ?></button>
-                <button type="button" class="button button-primary serviceflow-newinv-save" data-status="validated" style="background:<?php echo esc_attr( $color ); ?>;border-color:<?php echo esc_attr( $color ); ?>"><?php esc_html_e( 'Enregistrer et valider', 'scavio' ); ?></button>
+                <button type="button" class="button serviceflow-newinv-save" data-status="draft" style="margin-right:8px"><?php esc_html_e( 'Enregistrer en brouillon', 'clielo' ); ?></button>
+                <button type="button" class="button button-primary serviceflow-newinv-save" data-status="validated" style="background:<?php echo esc_attr( $color ); ?>;border-color:<?php echo esc_attr( $color ); ?>"><?php esc_html_e( 'Enregistrer et valider', 'clielo' ); ?></button>
             </div>
 
             <?php
@@ -2011,7 +2011,7 @@ class Scavio_Invoices {
                 var nonce   = '<?php echo esc_js( $nonce ); ?>';
 
                 // Toggle client type
-                document.querySelectorAll('input[name="scavio_client_type"]').forEach(function(r){
+                document.querySelectorAll('input[name="clielo_client_type"]').forEach(function(r){
                     r.addEventListener('change', function(){
                         document.getElementById('serviceflow-newinv-wp-client').style.display = this.value==='wp' ? '' : 'none';
                         document.getElementById('serviceflow-newinv-ext-client').style.display = this.value==='ext' ? '' : 'none';
@@ -2045,7 +2045,7 @@ class Scavio_Invoices {
                 document.getElementById('serviceflow-add-item').addEventListener('click', function(){
                     var row = document.createElement('tr');
                     row.className = 'serviceflow-item-row';
-                    row.innerHTML = '<td><input type="text" class="serviceflow-item-desc" placeholder="<?php echo esc_js( __( 'Description du service', 'scavio' ) ); ?>" /></td>' +
+                    row.innerHTML = '<td><input type="text" class="serviceflow-item-desc" placeholder="<?php echo esc_js( __( 'Description du service', 'clielo' ) ); ?>" /></td>' +
                         '<td><input type="number" class="serviceflow-item-qty" value="1" min="1" step="1" /></td>' +
                         '<td><input type="number" class="serviceflow-item-price" value="0" min="0" step="0.01" /></td>' +
                         '<td class="serviceflow-item-total" style="text-align:right;font-weight:600">0,00 \u20ac</td>' +
@@ -2067,9 +2067,9 @@ class Scavio_Invoices {
                         var status = this.dataset.status;
                         this.disabled = true;
 
-                        var clientType = document.querySelector('input[name="scavio_client_type"]:checked').value;
+                        var clientType = document.querySelector('input[name="clielo_client_type"]:checked').value;
                         var fd = new FormData();
-                        fd.append('action', 'scavio_invoice_save');
+                        fd.append('action', 'clielo_invoice_save');
                         fd.append('nonce', nonce);
                         fd.append('client_type', clientType);
                         fd.append('client_id', document.getElementById('serviceflow-newinv-client-id').value);
@@ -2099,7 +2099,7 @@ class Scavio_Invoices {
                 });
             })();
             <?php
-            wp_add_inline_script( 'scavio-invoices-js', ob_get_clean() );
+            wp_add_inline_script( 'clielo-invoices-js', ob_get_clean() );
             ?>
         </div>
         <?php
@@ -2118,13 +2118,13 @@ class Scavio_Invoices {
         $invoice    = $invoice_id ? self::get_invoice( $invoice_id ) : null;
 
         if ( ! $invoice || $invoice->status !== self::STATUS_DRAFT ) {
-            echo '<div class="wrap"><p>' . esc_html__( 'Seuls les brouillons peuvent être modifiés.', 'scavio' ) . '</p></div>';
+            echo '<div class="wrap"><p>' . esc_html__( 'Seuls les brouillons peuvent être modifiés.', 'clielo' ) . '</p></div>';
             return;
         }
 
         $settings    = self::get_settings();
-        $color       = esc_attr( Scavio_Admin::get_color() );
-        $nonce       = wp_create_nonce( 'scavio_nonce' );
+        $color       = esc_attr( Clielo_Admin::get_color() );
+        $nonce       = wp_create_nonce( 'clielo_nonce' );
         $ext_clients = self::get_all_ext_clients();
         $wp_users    = get_users( [ 'role__not_in' => [ 'administrator' ], 'orderby' => 'display_name', 'number' => 200 ] );
         $items       = json_decode( $invoice->items, true ) ?: [];
@@ -2135,30 +2135,30 @@ class Scavio_Invoices {
                 <span class="dashicons dashicons-edit" style="font-size:28px;width:28px;height:28px;color:<?php echo esc_attr( $color ); ?>"></span>
                 <?php
                 /* translators: %s: invoice number */
-                printf( esc_html__( 'Modifier — %s', 'scavio' ), esc_html( $invoice->invoice_number ) ); ?>
+                printf( esc_html__( 'Modifier — %s', 'clielo' ), esc_html( $invoice->invoice_number ) ); ?>
             </h1>
 
             <div id="serviceflow-newinv-form">
                 <!-- Client -->
                 <div class="serviceflow-newinv-section">
-                    <h2><span class="dashicons dashicons-admin-users"></span> <?php esc_html_e( 'Client', 'scavio' ); ?></h2>
+                    <h2><span class="dashicons dashicons-admin-users"></span> <?php esc_html_e( 'Client', 'clielo' ); ?></h2>
                     <div class="serviceflow-newinv-radio">
-                        <label><input type="radio" name="scavio_client_type" value="wp" <?php checked( $is_wp ); ?> /> <?php esc_html_e( 'Utilisateur WordPress', 'scavio' ); ?></label>
-                        <label><input type="radio" name="scavio_client_type" value="ext" <?php checked( ! $is_wp ); ?> /> <?php esc_html_e( 'Client externe', 'scavio' ); ?></label>
+                        <label><input type="radio" name="clielo_client_type" value="wp" <?php checked( $is_wp ); ?> /> <?php esc_html_e( 'Utilisateur WordPress', 'clielo' ); ?></label>
+                        <label><input type="radio" name="clielo_client_type" value="ext" <?php checked( ! $is_wp ); ?> /> <?php esc_html_e( 'Client externe', 'clielo' ); ?></label>
                     </div>
                     <div class="serviceflow-newinv-field" id="serviceflow-newinv-wp-client" style="<?php echo $is_wp ? '' : 'display:none'; ?>">
-                        <label><?php esc_html_e( 'Sélectionner un utilisateur', 'scavio' ); ?></label>
+                        <label><?php esc_html_e( 'Sélectionner un utilisateur', 'clielo' ); ?></label>
                         <select id="serviceflow-newinv-client-id">
-                            <option value=""><?php esc_html_e( '— Choisir —', 'scavio' ); ?></option>
+                            <option value=""><?php esc_html_e( '— Choisir —', 'clielo' ); ?></option>
                             <?php foreach ( $wp_users as $u ) : ?>
                                 <option value="<?php echo (int) $u->ID; ?>" <?php selected( (int) $invoice->client_id, $u->ID ); ?>><?php echo esc_html( $u->display_name . ' (' . $u->user_email . ')' ); ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="serviceflow-newinv-field" id="serviceflow-newinv-ext-client" style="<?php echo $is_wp ? 'display:none' : ''; ?>">
-                        <label><?php esc_html_e( 'Sélectionner un client externe', 'scavio' ); ?></label>
+                        <label><?php esc_html_e( 'Sélectionner un client externe', 'clielo' ); ?></label>
                         <select id="serviceflow-newinv-ext-id">
-                            <option value=""><?php esc_html_e( '— Choisir —', 'scavio' ); ?></option>
+                            <option value=""><?php esc_html_e( '— Choisir —', 'clielo' ); ?></option>
                             <?php foreach ( $ext_clients as $ec ) : ?>
                                 <option value="<?php echo (int) $ec->id; ?>" <?php selected( (int) $invoice->ext_client_id, $ec->id ); ?>><?php echo esc_html( $ec->name . ( $ec->company ? ' — ' . $ec->company : '' ) ); ?></option>
                             <?php endforeach; ?>
@@ -2168,14 +2168,14 @@ class Scavio_Invoices {
 
                 <!-- Articles -->
                 <div class="serviceflow-newinv-section">
-                    <h2><span class="dashicons dashicons-list-view"></span> <?php esc_html_e( 'Articles', 'scavio' ); ?></h2>
+                    <h2><span class="dashicons dashicons-list-view"></span> <?php esc_html_e( 'Articles', 'clielo' ); ?></h2>
                     <table class="serviceflow-items-table" id="serviceflow-items-table">
                         <thead>
                             <tr>
-                                <th style="width:50%"><?php esc_html_e( 'Description', 'scavio' ); ?></th>
-                                <th style="width:10%"><?php esc_html_e( 'Qté', 'scavio' ); ?></th>
-                                <th style="width:20%"><?php esc_html_e( 'Prix unitaire HT', 'scavio' ); ?></th>
-                                <th style="width:15%"><?php esc_html_e( 'Total HT', 'scavio' ); ?></th>
+                                <th style="width:50%"><?php esc_html_e( 'Description', 'clielo' ); ?></th>
+                                <th style="width:10%"><?php esc_html_e( 'Qté', 'clielo' ); ?></th>
+                                <th style="width:20%"><?php esc_html_e( 'Prix unitaire HT', 'clielo' ); ?></th>
+                                <th style="width:15%"><?php esc_html_e( 'Total HT', 'clielo' ); ?></th>
                                 <th style="width:5%"></th>
                             </tr>
                         </thead>
@@ -2191,32 +2191,32 @@ class Scavio_Invoices {
                             <?php endforeach; ?>
                         </tbody>
                     </table>
-                    <button type="button" id="serviceflow-add-item" class="button">+ <?php esc_html_e( 'Ajouter un article', 'scavio' ); ?></button>
+                    <button type="button" id="serviceflow-add-item" class="button">+ <?php esc_html_e( 'Ajouter un article', 'clielo' ); ?></button>
 
                     <div class="serviceflow-newinv-totals" style="margin-top:16px">
-                        <div><?php esc_html_e( 'Sous-total HT', 'scavio' ); ?> : <span id="serviceflow-newinv-subtotal"><?php echo esc_html( number_format( (float) $invoice->subtotal, 2, ',', '' ) ); ?></span> &euro;</div>
-                        <div><?php esc_html_e( 'TVA', 'scavio' ); ?> (<span id="serviceflow-newinv-taxrate-display"><?php echo esc_html( $invoice->tax_rate ); ?></span>%) : <span id="serviceflow-newinv-tax"><?php echo esc_html( number_format( (float) $invoice->tax_amount, 2, ',', '' ) ); ?></span> &euro;</div>
-                        <div><strong><?php esc_html_e( 'Total TTC', 'scavio' ); ?> : <span id="serviceflow-newinv-total"><?php echo esc_html( number_format( (float) $invoice->total, 2, ',', '' ) ); ?></span> &euro;</strong></div>
+                        <div><?php esc_html_e( 'Sous-total HT', 'clielo' ); ?> : <span id="serviceflow-newinv-subtotal"><?php echo esc_html( number_format( (float) $invoice->subtotal, 2, ',', '' ) ); ?></span> &euro;</div>
+                        <div><?php esc_html_e( 'TVA', 'clielo' ); ?> (<span id="serviceflow-newinv-taxrate-display"><?php echo esc_html( $invoice->tax_rate ); ?></span>%) : <span id="serviceflow-newinv-tax"><?php echo esc_html( number_format( (float) $invoice->tax_amount, 2, ',', '' ) ); ?></span> &euro;</div>
+                        <div><strong><?php esc_html_e( 'Total TTC', 'clielo' ); ?> : <span id="serviceflow-newinv-total"><?php echo esc_html( number_format( (float) $invoice->total, 2, ',', '' ) ); ?></span> &euro;</strong></div>
                     </div>
                 </div>
 
                 <!-- TVA et notes -->
                 <div class="serviceflow-newinv-section">
-                    <h2><span class="dashicons dashicons-editor-alignleft"></span> <?php esc_html_e( 'Détails', 'scavio' ); ?></h2>
+                    <h2><span class="dashicons dashicons-editor-alignleft"></span> <?php esc_html_e( 'Détails', 'clielo' ); ?></h2>
                     <div class="serviceflow-newinv-field" style="max-width:200px">
-                        <label><?php esc_html_e( 'Taux TVA (%)', 'scavio' ); ?></label>
+                        <label><?php esc_html_e( 'Taux TVA (%)', 'clielo' ); ?></label>
                         <input type="number" id="serviceflow-newinv-taxrate" value="<?php echo esc_attr( $invoice->tax_rate ); ?>" min="0" max="100" step="0.01" />
                     </div>
                     <div class="serviceflow-newinv-field">
-                        <label><?php esc_html_e( 'Notes / Conditions', 'scavio' ); ?></label>
+                        <label><?php esc_html_e( 'Notes / Conditions', 'clielo' ); ?></label>
                         <textarea id="serviceflow-newinv-notes"><?php echo esc_textarea( $invoice->notes ); ?></textarea>
                     </div>
                 </div>
 
                 <!-- Actions -->
-                <button type="button" class="button serviceflow-newinv-save" data-status="draft" style="margin-right:8px"><?php esc_html_e( 'Enregistrer en brouillon', 'scavio' ); ?></button>
-                <button type="button" class="button button-primary serviceflow-newinv-save" data-status="validated" style="background:<?php echo esc_attr( $color ); ?>;border-color:<?php echo esc_attr( $color ); ?>"><?php esc_html_e( 'Enregistrer et valider', 'scavio' ); ?></button>
-                <a href="<?php echo esc_url( admin_url( 'admin.php?page=serviceflow-invoices' ) ); ?>" style="padding:8px 20px;font-size:13px;text-decoration:none;color:#555">&larr; <?php esc_html_e( 'Retour', 'scavio' ); ?></a>
+                <button type="button" class="button serviceflow-newinv-save" data-status="draft" style="margin-right:8px"><?php esc_html_e( 'Enregistrer en brouillon', 'clielo' ); ?></button>
+                <button type="button" class="button button-primary serviceflow-newinv-save" data-status="validated" style="background:<?php echo esc_attr( $color ); ?>;border-color:<?php echo esc_attr( $color ); ?>"><?php esc_html_e( 'Enregistrer et valider', 'clielo' ); ?></button>
+                <a href="<?php echo esc_url( admin_url( 'admin.php?page=serviceflow-invoices' ) ); ?>" style="padding:8px 20px;font-size:13px;text-decoration:none;color:#555">&larr; <?php esc_html_e( 'Retour', 'clielo' ); ?></a>
             </div>
 
             <?php
@@ -2227,7 +2227,7 @@ class Scavio_Invoices {
                 var nonce   = '<?php echo esc_js( $nonce ); ?>';
                 var invoiceId = <?php echo (int) $invoice->id; ?>;
 
-                document.querySelectorAll('input[name="scavio_client_type"]').forEach(function(r){
+                document.querySelectorAll('input[name="clielo_client_type"]').forEach(function(r){
                     r.addEventListener('change', function(){
                         document.getElementById('serviceflow-newinv-wp-client').style.display = this.value==='wp' ? '' : 'none';
                         document.getElementById('serviceflow-newinv-ext-client').style.display = this.value==='ext' ? '' : 'none';
@@ -2259,7 +2259,7 @@ class Scavio_Invoices {
                 document.getElementById('serviceflow-add-item').addEventListener('click', function(){
                     var row = document.createElement('tr');
                     row.className = 'serviceflow-item-row';
-                    row.innerHTML = '<td><input type="text" class="serviceflow-item-desc" placeholder="<?php echo esc_js( __( 'Description du service', 'scavio' ) ); ?>" /></td>' +
+                    row.innerHTML = '<td><input type="text" class="serviceflow-item-desc" placeholder="<?php echo esc_js( __( 'Description du service', 'clielo' ) ); ?>" /></td>' +
                         '<td><input type="number" class="serviceflow-item-qty" value="1" min="1" step="1" /></td>' +
                         '<td><input type="number" class="serviceflow-item-price" value="0" min="0" step="0.01" /></td>' +
                         '<td class="serviceflow-item-total" style="text-align:right;font-weight:600">0,00 \u20ac</td>' +
@@ -2279,9 +2279,9 @@ class Scavio_Invoices {
                         var status = this.dataset.status;
                         this.disabled = true;
 
-                        var clientType = document.querySelector('input[name="scavio_client_type"]:checked').value;
+                        var clientType = document.querySelector('input[name="clielo_client_type"]:checked').value;
                         var fd = new FormData();
-                        fd.append('action', 'scavio_invoice_update');
+                        fd.append('action', 'clielo_invoice_update');
                         fd.append('nonce', nonce);
                         fd.append('invoice_id', invoiceId);
                         fd.append('client_type', clientType);
@@ -2312,7 +2312,7 @@ class Scavio_Invoices {
                 });
             })();
             <?php
-            wp_add_inline_script( 'scavio-invoices-js', ob_get_clean() );
+            wp_add_inline_script( 'clielo-invoices-js', ob_get_clean() );
             ?>
         </div>
         <?php
@@ -2329,13 +2329,13 @@ class Scavio_Invoices {
 
         $invoice_id = absint( $_GET['invoice_id'] ?? 0 ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Admin-only render, capability checked above.
         if ( ! $invoice_id ) {
-            echo '<div class="wrap"><p>' . esc_html__( 'Facture introuvable.', 'scavio' ) . '</p></div>';
+            echo '<div class="wrap"><p>' . esc_html__( 'Facture introuvable.', 'clielo' ) . '</p></div>';
             return;
         }
 
         $invoice = self::get_invoice( $invoice_id );
         if ( ! $invoice ) {
-            echo '<div class="wrap"><p>' . esc_html__( 'Facture introuvable.', 'scavio' ) . '</p></div>';
+            echo '<div class="wrap"><p>' . esc_html__( 'Facture introuvable.', 'clielo' ) . '</p></div>';
             return;
         }
 
@@ -2348,7 +2348,7 @@ class Scavio_Invoices {
 
     private static function render_invoice_html( object $invoice, bool $is_admin ): void {
         $s           = self::get_settings();
-        $color       = esc_attr( Scavio_Admin::get_color() );
+        $color       = esc_attr( Clielo_Admin::get_color() );
         $labels      = self::get_status_labels();
         $colors      = self::get_status_colors();
         $items       = json_decode( $invoice->items, true ) ?: [];
@@ -2356,7 +2356,7 @@ class Scavio_Invoices {
             $invoice->client_id ? (int) $invoice->client_id : null,
             $invoice->ext_client_id ? (int) $invoice->ext_client_id : null
         );
-        $nonce       = wp_create_nonce( 'scavio_nonce' );
+        $nonce       = wp_create_nonce( 'clielo_nonce' );
         $badge_color = $colors[ $invoice->status ] ?? '#9ca3af';
         $status_text = $labels[ $invoice->status ] ?? $invoice->status;
         ?>
@@ -2378,25 +2378,25 @@ class Scavio_Invoices {
                     <h3><?php
                         $invoice_type_val = $invoice->invoice_type ?? 'single';
                         if ( $invoice_type_val === 'acompte' ) {
-                            esc_html_e( "Facture d'acompte", 'scavio' );
+                            esc_html_e( "Facture d'acompte", 'clielo' );
                         } elseif ( $invoice_type_val === 'solde' ) {
-                            esc_html_e( 'Facture de solde', 'scavio' );
+                            esc_html_e( 'Facture de solde', 'clielo' );
                         } elseif ( $invoice_type_val === 'mensualite' ) {
-                            $sched_row = $invoice->schedule_id && class_exists( 'Scavio_Payments' )
-                                ? Scavio_Payments::get_row( (int) $invoice->schedule_id )
+                            $sched_row = $invoice->schedule_id && class_exists( 'Clielo_Payments' )
+                                ? Clielo_Payments::get_row( (int) $invoice->schedule_id )
                                 : null;
                             $n = $sched_row ? (int) $sched_row->installment_no : 0;
                             /* translators: %d: installment number */
-                            echo esc_html( sprintf( __( 'Facture — Mensualité %d', 'scavio' ), $n ) );
+                            echo esc_html( sprintf( __( 'Facture — Mensualité %d', 'clielo' ), $n ) );
                         } else {
-                            esc_html_e( 'Facture', 'scavio' );
+                            esc_html_e( 'Facture', 'clielo' );
                         }
                     ?></h3>
                     <p>
                         <strong><?php echo esc_html( $invoice->invoice_number ); ?></strong><br />
-                        <?php esc_html_e( 'Date', 'scavio' ); ?> : <?php echo esc_html( date_i18n( 'd/m/Y', strtotime( $invoice->created_at ) ) ); ?>
-                        <?php if ( $invoice->order_id ) : ?><br /><?php esc_html_e( 'Commande', 'scavio' ); ?> : #CMD-<?php echo esc_html( $invoice->order_id ); ?><?php endif; ?>
-                        <?php if ( $invoice->paid_at ) : ?><br /><?php esc_html_e( 'Payée le', 'scavio' ); ?> : <?php echo esc_html( date_i18n( 'd/m/Y', strtotime( $invoice->paid_at ) ) ); ?><?php endif; ?>
+                        <?php esc_html_e( 'Date', 'clielo' ); ?> : <?php echo esc_html( date_i18n( 'd/m/Y', strtotime( $invoice->created_at ) ) ); ?>
+                        <?php if ( $invoice->order_id ) : ?><br /><?php esc_html_e( 'Commande', 'clielo' ); ?> : #CMD-<?php echo esc_html( $invoice->order_id ); ?><?php endif; ?>
+                        <?php if ( $invoice->paid_at ) : ?><br /><?php esc_html_e( 'Payée le', 'clielo' ); ?> : <?php echo esc_html( date_i18n( 'd/m/Y', strtotime( $invoice->paid_at ) ) ); ?><?php endif; ?>
                     </p>
                 </div>
             </div>
@@ -2404,7 +2404,7 @@ class Scavio_Invoices {
             <!-- Émetteur + Client côte à côte -->
             <div class="serviceflow-inv-parties">
                 <div class="serviceflow-inv-emetteur">
-                    <h3><?php esc_html_e( 'Émetteur', 'scavio' ); ?></h3>
+                    <h3><?php esc_html_e( 'Émetteur', 'clielo' ); ?></h3>
                     <p>
                         <strong><?php echo esc_html( $s['company_name'] ); ?></strong><br />
                         <?php if ( $s['company_address'] ) : ?><?php echo nl2br( esc_html( $s['company_address'] ) ); ?><br /><?php endif; ?>
@@ -2417,7 +2417,7 @@ class Scavio_Invoices {
                     </p>
                 </div>
                 <div class="serviceflow-inv-client">
-                <h3><?php esc_html_e( 'Client', 'scavio' ); ?></h3>
+                <h3><?php esc_html_e( 'Client', 'clielo' ); ?></h3>
                 <?php if ( $client_info ) : ?>
                     <p>
                         <strong><?php echo esc_html( $client_info->name ); ?></strong><br />
@@ -2428,7 +2428,7 @@ class Scavio_Invoices {
                         <?php if ( ! empty( $client_info->vat_number ) ) : ?>TVA : <?php echo esc_html( $client_info->vat_number ); ?><?php endif; ?>
                     </p>
                 <?php else : ?>
-                    <p style="color:#999"><?php esc_html_e( 'Client inconnu', 'scavio' ); ?></p>
+                    <p style="color:#999"><?php esc_html_e( 'Client inconnu', 'clielo' ); ?></p>
                 <?php endif; ?>
                 </div>
             </div>
@@ -2437,10 +2437,10 @@ class Scavio_Invoices {
             <table class="serviceflow-inv-items-table">
                 <thead>
                     <tr>
-                        <th><?php esc_html_e( 'Description', 'scavio' ); ?></th>
-                        <th class="text-right"><?php esc_html_e( 'Qté', 'scavio' ); ?></th>
-                        <th class="text-right"><?php esc_html_e( 'Prix unitaire HT', 'scavio' ); ?></th>
-                        <th class="text-right"><?php esc_html_e( 'Total HT', 'scavio' ); ?></th>
+                        <th><?php esc_html_e( 'Description', 'clielo' ); ?></th>
+                        <th class="text-right"><?php esc_html_e( 'Qté', 'clielo' ); ?></th>
+                        <th class="text-right"><?php esc_html_e( 'Prix unitaire HT', 'clielo' ); ?></th>
+                        <th class="text-right"><?php esc_html_e( 'Total HT', 'clielo' ); ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -2456,7 +2456,7 @@ class Scavio_Invoices {
                             </td>
                             <td class="text-right"><?php echo esc_html( $item['quantity'] ?? 1 ); ?></td>
                             <?php if ( $is_info ) : ?>
-                            <td class="text-right" style="color:#aaa"><?php esc_html_e( 'Inclus', 'scavio' ); ?></td>
+                            <td class="text-right" style="color:#aaa"><?php esc_html_e( 'Inclus', 'clielo' ); ?></td>
                             <td class="text-right" style="color:#aaa">—</td>
                             <?php else : ?>
                             <td class="text-right"><?php echo esc_html( number_format( floatval( $item['unit_price'] ?? 0 ), 2, ',', ' ' ) ); ?> &euro;</td>
@@ -2471,20 +2471,20 @@ class Scavio_Invoices {
             <div class="serviceflow-inv-totals">
                 <?php if ( floatval( $invoice->tax_rate ) > 0 ) : ?>
                     <div class="serviceflow-inv-totals-row">
-                        <span><?php esc_html_e( 'Sous-total HT', 'scavio' ); ?></span>
+                        <span><?php esc_html_e( 'Sous-total HT', 'clielo' ); ?></span>
                         <span><?php echo esc_html( number_format( (float) $invoice->subtotal, 2, ',', ' ' ) ); ?> &euro;</span>
                     </div>
                     <div class="serviceflow-inv-totals-row">
-                        <span><?php esc_html_e( 'TVA', 'scavio' ); ?> (<?php echo esc_html( $invoice->tax_rate ); ?>%)</span>
+                        <span><?php esc_html_e( 'TVA', 'clielo' ); ?> (<?php echo esc_html( $invoice->tax_rate ); ?>%)</span>
                         <span><?php echo esc_html( number_format( (float) $invoice->tax_amount, 2, ',', ' ' ) ); ?> &euro;</span>
                     </div>
                     <div class="serviceflow-inv-totals-row total-row">
-                        <span><?php esc_html_e( 'Total TTC', 'scavio' ); ?></span>
+                        <span><?php esc_html_e( 'Total TTC', 'clielo' ); ?></span>
                         <span><?php echo esc_html( number_format( (float) $invoice->total, 2, ',', ' ' ) ); ?> &euro;</span>
                     </div>
                 <?php else : ?>
                     <div class="serviceflow-inv-totals-row total-row">
-                        <span><?php esc_html_e( 'Total', 'scavio' ); ?></span>
+                        <span><?php esc_html_e( 'Total', 'clielo' ); ?></span>
                         <span><?php echo esc_html( number_format( (float) $invoice->total, 2, ',', ' ' ) ); ?> &euro;</span>
                     </div>
                     <?php if ( ! empty( $s['tax_notice'] ) ) : ?>
@@ -2498,7 +2498,7 @@ class Scavio_Invoices {
             <!-- Notes -->
             <?php if ( ! empty( $invoice->notes ) ) : ?>
                 <div class="serviceflow-inv-notes">
-                    <strong><?php esc_html_e( 'Conditions', 'scavio' ); ?></strong><br />
+                    <strong><?php esc_html_e( 'Conditions', 'clielo' ); ?></strong><br />
                     <?php echo nl2br( esc_html( $invoice->notes ) ); ?>
                 </div>
             <?php endif; ?>
@@ -2512,31 +2512,31 @@ class Scavio_Invoices {
         <!-- Actions (non imprimables) -->
         <div class="serviceflow-inv-actions no-print" style="max-width:800px;margin:0 auto">
             <button onclick="sfPrintInvoice()" style="background:<?php echo esc_attr( $color ); ?>;color:#fff">
-                <?php esc_html_e( 'Imprimer', 'scavio' ); ?>
+                <?php esc_html_e( 'Imprimer', 'clielo' ); ?>
             </button>
             <?php if ( $is_admin ) : ?>
                 <?php if ( in_array( $invoice->status, [ self::STATUS_DRAFT, self::STATUS_PENDING ], true ) ) : ?>
-                    <button class="serviceflow-inv-view-action" data-action="scavio_invoice_validate" data-id="<?php echo (int) $invoice->id; ?>" style="background:#10b981;color:#fff">
-                        <?php esc_html_e( 'Valider', 'scavio' ); ?>
+                    <button class="serviceflow-inv-view-action" data-action="clielo_invoice_validate" data-id="<?php echo (int) $invoice->id; ?>" style="background:#10b981;color:#fff">
+                        <?php esc_html_e( 'Valider', 'clielo' ); ?>
                     </button>
                 <?php endif; ?>
                 <?php if ( $invoice->status === self::STATUS_VALIDATED ) : ?>
-                    <button class="serviceflow-inv-view-action" data-action="scavio_invoice_mark_paid" data-id="<?php echo (int) $invoice->id; ?>" style="background:#10b981;color:#fff">
-                        <?php esc_html_e( 'Marquer comme payée', 'scavio' ); ?>
+                    <button class="serviceflow-inv-view-action" data-action="clielo_invoice_mark_paid" data-id="<?php echo (int) $invoice->id; ?>" style="background:#10b981;color:#fff">
+                        <?php esc_html_e( 'Marquer comme payée', 'clielo' ); ?>
                     </button>
                 <?php endif; ?>
                 <?php if ( ! in_array( $invoice->status, [ self::STATUS_PAID, self::STATUS_CANCELLED ], true ) ) : ?>
-                    <button class="serviceflow-inv-view-action" data-action="scavio_invoice_cancel" data-id="<?php echo (int) $invoice->id; ?>" style="background:#ef4444;color:#fff">
-                        <?php esc_html_e( 'Annuler', 'scavio' ); ?>
+                    <button class="serviceflow-inv-view-action" data-action="clielo_invoice_cancel" data-id="<?php echo (int) $invoice->id; ?>" style="background:#ef4444;color:#fff">
+                        <?php esc_html_e( 'Annuler', 'clielo' ); ?>
                     </button>
                 <?php endif; ?>
-                <a href="<?php echo esc_url( admin_url( 'admin.php?page=serviceflow-invoices' ) ); ?>" style="padding:8px 20px;font-size:13px;text-decoration:none;color:#555">&larr; <?php esc_html_e( 'Retour à la liste', 'scavio' ); ?></a>
+                <a href="<?php echo esc_url( admin_url( 'admin.php?page=serviceflow-invoices' ) ); ?>" style="padding:8px 20px;font-size:13px;text-decoration:none;color:#555">&larr; <?php esc_html_e( 'Retour à la liste', 'clielo' ); ?></a>
             <?php endif; ?>
         </div>
 
         <?php
         wp_add_inline_script(
-            'scavio-invoices-js',
+            'clielo-invoices-js',
             'function sfPrintInvoice(){' .
             'var content=document.querySelector(".serviceflow-invoice-page");' .
             'if(!content){window.print();return;}' .
@@ -2560,7 +2560,7 @@ class Scavio_Invoices {
                 var nonce   = '<?php echo esc_js( $nonce ); ?>';
                 document.querySelectorAll('.serviceflow-inv-view-action').forEach(function(btn){
                     btn.addEventListener('click', function(){
-                        if(!confirm('<?php echo esc_js( __( 'Confirmer cette action ?', 'scavio' ) ); ?>')) return;
+                        if(!confirm('<?php echo esc_js( __( 'Confirmer cette action ?', 'clielo' ) ); ?>')) return;
                         btn.disabled = true;
                         var fd = new FormData();
                         fd.append('action', this.dataset.action);
@@ -2573,7 +2573,7 @@ class Scavio_Invoices {
                 });
             })();
             <?php
-            wp_add_inline_script( 'scavio-invoices-js', ob_get_clean() );
+            wp_add_inline_script( 'clielo-invoices-js', ob_get_clean() );
         endif; ?>
         <?php
     }

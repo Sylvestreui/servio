@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class Scavio_Orders {
+class Clielo_Orders {
 
     const STATUS_PENDING   = 'pending';
     const STATUS_PAID      = 'paid';
@@ -22,14 +22,14 @@ class Scavio_Orders {
     ];
 
     public static function init(): void {
-        add_action( 'wp_ajax_scavio_create_order',     [ __CLASS__, 'ajax_create_order' ] );
-        add_action( 'wp_ajax_scavio_order_transition',  [ __CLASS__, 'ajax_order_transition' ] );
-        add_action( 'wp_ajax_scavio_get_clients',       [ __CLASS__, 'ajax_get_clients' ] );
+        add_action( 'wp_ajax_clielo_create_order',     [ __CLASS__, 'ajax_create_order' ] );
+        add_action( 'wp_ajax_clielo_order_transition',  [ __CLASS__, 'ajax_order_transition' ] );
+        add_action( 'wp_ajax_clielo_get_clients',       [ __CLASS__, 'ajax_get_clients' ] );
     }
 
     public static function table_name(): string {
         global $wpdb;
-        return $wpdb->prefix . 'scavio_orders';
+        return $wpdb->prefix . 'clielo_orders';
     }
 
     public static function create_table(): void {
@@ -267,7 +267,7 @@ class Scavio_Orders {
     public static function get_clients_for_post( int $post_id ): array {
         global $wpdb;
 
-        $msg_table   = Scavio_DB::table_name();
+        $msg_table   = Clielo_DB::table_name();
         $order_table = self::table_name();
 
         // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -341,15 +341,15 @@ class Scavio_Orders {
 
         // Poster un message système dans le chat, scopé au client
         $actor      = get_userdata( $acting_user_id );
-        $actor_name = $actor ? $actor->display_name : __( 'Utilisateur', 'scavio' );
+        $actor_name = $actor ? $actor->display_name : __( 'Utilisateur', 'clielo' );
         $message    = self::format_status_message( $new_status, $order, $actor_name, $old_status );
 
         if ( ! empty( $message ) ) {
-            Scavio_DB::insert_message( (int) $order->post_id, 0, $message, (int) $order->client_id );
+            Clielo_DB::insert_message( (int) $order->post_id, 0, $message, (int) $order->client_id );
         }
 
         // Déclencher la notification
-        do_action( 'scavio_order_status_changed', $order_id, $new_status, $old_status, $acting_user_id );
+        do_action( 'clielo_order_status_changed', $order_id, $new_status, $old_status, $acting_user_id );
 
         return true;
     }
@@ -381,8 +381,8 @@ class Scavio_Orders {
 
         // Passage à "terminé" : toutes les tâches doivent être complétées (blocage manuel uniquement)
         // L'auto-complétion depuis ajax_toggle_todo() est exemptée car elle vérifie elle-même le 100%.
-        if ( $new_status === self::STATUS_COMPLETED && class_exists( 'Scavio_Todos' ) ) {
-            $progress = Scavio_Todos::get_progress( (int) $order->id );
+        if ( $new_status === self::STATUS_COMPLETED && class_exists( 'Clielo_Todos' ) ) {
+            $progress = Clielo_Todos::get_progress( (int) $order->id );
             if ( $progress['total'] > 0 && $progress['percent'] < 100 ) {
                 return false;
             }
@@ -402,10 +402,10 @@ class Scavio_Orders {
                 return sprintf(
                     "--- %s %s ---\n%s",
                     $order_num,
-                    __( 'Paiement reçu', 'scavio' ),
+                    __( 'Paiement reçu', 'clielo' ),
                     sprintf(
                         /* translators: %s: payment amount with currency symbol */
-                        __( 'Le paiement de %s a été reçu via Stripe. Commande confirmée.', 'scavio' ),
+                        __( 'Le paiement de %s a été reçu via Stripe. Commande confirmée.', 'clielo' ),
                         number_format( (float) $order->total_price, 2, ',', ' ' ) . ' €'
                     )
                 );
@@ -418,7 +418,7 @@ class Scavio_Orders {
                 if ( isset( $date ) && $order->total_delay > 0 ) {
                     $delay_info = sprintf(
                         /* translators: %1$d: number of days, %2$s: estimated delivery date */
-                        __( "Délai total : %1\$d jour(s)\nLivraison estimée : %2\$s", 'scavio' ),
+                        __( "Délai total : %1\$d jour(s)\nLivraison estimée : %2\$s", 'clielo' ),
                         (int) $order->total_delay,
                         $date
                     );
@@ -431,10 +431,10 @@ class Scavio_Orders {
                     return sprintf(
                         "--- %s %s ---\n%s",
                         $order_num,
-                        __( 'Retouche validée', 'scavio' ),
+                        __( 'Retouche validée', 'clielo' ),
                         sprintf(
                             /* translators: %s: actor display name */
-                            __( '%s a validé la retouche et repris la commande.', 'scavio' ),
+                            __( '%s a validé la retouche et repris la commande.', 'clielo' ),
                             $actor_name
                         )
                     ) . ( $delay_info ? "\n" . $delay_info : '' );
@@ -461,33 +461,33 @@ class Scavio_Orders {
                     if ( $payment_mode === 'single' ) {
                         $payment_line = sprintf(
                             /* translators: %s: payment amount with currency symbol */
-                            __( 'Le paiement de %s a été reçu via Stripe. Commande démarrée.', 'scavio' ),
+                            __( 'Le paiement de %s a été reçu via Stripe. Commande démarrée.', 'clielo' ),
                             number_format( $upfront, 2, ',', ' ' ) . ' €'
                         );
                     } elseif ( $payment_mode === 'monthly' ) {
                         $payment_line = sprintf(
                             /* translators: %1$d: total number of months, %2$s: amount received */
-                            __( 'Mois 1 / %1$d — %2$s reçu via Stripe. Commande démarrée.', 'scavio' ),
+                            __( 'Mois 1 / %1$d — %2$s reçu via Stripe. Commande démarrée.', 'clielo' ),
                             $n_months,
                             number_format( $upfront, 2, ',', ' ' ) . ' €'
                         ) . "\n" . sprintf(
                             /* translators: %1$d: number of months, %2$s: total amount */
-                            __( 'Total abonnement (%1$d mois) : %2$s', 'scavio' ),
+                            __( 'Total abonnement (%1$d mois) : %2$s', 'clielo' ),
                             $n_months,
                             number_format( $total, 2, ',', ' ' ) . ' €'
                         );
                     } else {
                         $label = $payment_mode === 'deposit'
-                            ? __( 'Acompte (50%)', 'scavio' )
-                            : __( 'Premier versement (40%)', 'scavio' );
+                            ? __( 'Acompte (50%)', 'clielo' )
+                            : __( 'Premier versement (40%)', 'clielo' );
                         $payment_line = sprintf(
                             /* translators: %1$s: payment label (e.g. "Acompte"), %2$s: amount received */
-                            __( '%1$s de %2$s reçu via Stripe. Commande démarrée.', 'scavio' ),
+                            __( '%1$s de %2$s reçu via Stripe. Commande démarrée.', 'clielo' ),
                             $label,
                             number_format( $upfront, 2, ',', ' ' ) . ' €'
                         ) . "\n" . sprintf(
                             /* translators: %s: total contract amount with currency symbol */
-                            __( 'Total du contrat : %s', 'scavio' ),
+                            __( 'Total du contrat : %s', 'clielo' ),
                             number_format( $total, 2, ',', ' ' ) . ' €'
                         );
                     }
@@ -495,7 +495,7 @@ class Scavio_Orders {
                     return sprintf(
                         "--- %s %s ---\n%s",
                         $order_num,
-                        __( 'Paiement reçu', 'scavio' ),
+                        __( 'Paiement reçu', 'clielo' ),
                         $payment_line
                     ) . ( $delay_info ? "\n" . $delay_info : '' );
                 }
@@ -503,10 +503,10 @@ class Scavio_Orders {
                 return sprintf(
                     "--- %s %s ---\n%s",
                     $order_num,
-                    __( 'Commande démarrée', 'scavio' ),
+                    __( 'Commande démarrée', 'clielo' ),
                     sprintf(
                         /* translators: %s: actor display name */
-                        __( '%s a démarré la commande.', 'scavio' ),
+                        __( '%s a démarré la commande.', 'clielo' ),
                         $actor_name
                     )
                 ) . ( $delay_info ? "\n" . $delay_info : '' );
@@ -515,10 +515,10 @@ class Scavio_Orders {
                 return sprintf(
                     "--- %s %s ---\n%s",
                     $order_num,
-                    __( 'Commande terminée', 'scavio' ),
+                    __( 'Commande terminée', 'clielo' ),
                     sprintf(
                         /* translators: %s: actor display name */
-                        __( '%s a marqué la commande comme terminée.', 'scavio' ),
+                        __( '%s a marqué la commande comme terminée.', 'clielo' ),
                         $actor_name
                     )
                 );
@@ -527,10 +527,10 @@ class Scavio_Orders {
                 return sprintf(
                     "--- %s %s ---\n%s",
                     $order_num,
-                    __( 'Retouche demandée', 'scavio' ),
+                    __( 'Retouche demandée', 'clielo' ),
                     sprintf(
                         /* translators: %s: actor display name */
-                        __( '%s a demandé une retouche.', 'scavio' ),
+                        __( '%s a demandé une retouche.', 'clielo' ),
                         $actor_name
                     )
                 );
@@ -539,10 +539,10 @@ class Scavio_Orders {
                 return sprintf(
                     "--- %s %s ---\n%s",
                     $order_num,
-                    __( 'Livraison acceptée', 'scavio' ),
+                    __( 'Livraison acceptée', 'clielo' ),
                     sprintf(
                         /* translators: %s: actor display name */
-                        __( '%s a accepté la livraison. Commande terminée.', 'scavio' ),
+                        __( '%s a accepté la livraison. Commande terminée.', 'clielo' ),
                         $actor_name
                     )
                 );
@@ -556,20 +556,20 @@ class Scavio_Orders {
      * AJAX : Créer une commande.
      */
     public static function ajax_create_order(): void {
-        check_ajax_referer( 'scavio_nonce', 'nonce' );
+        check_ajax_referer( 'clielo_nonce', 'nonce' );
 
         // Si Stripe est activé, les commandes doivent passer par Stripe Checkout
-        if ( Scavio_Stripe::is_enabled() ) {
-            wp_send_json_error( [ 'message' => __( 'Le paiement en ligne est requis.', 'scavio' ), 'stripe_required' => true ], 400 );
+        if ( Clielo_Stripe::is_enabled() ) {
+            wp_send_json_error( [ 'message' => __( 'Le paiement en ligne est requis.', 'clielo' ), 'stripe_required' => true ], 400 );
         }
 
         if ( ! is_user_logged_in() ) {
-            wp_send_json_error( [ 'message' => __( 'Non connecté.', 'scavio' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Non connecté.', 'clielo' ) ], 403 );
         }
 
         // Les administrateurs ne peuvent pas commander
         if ( current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( [ 'message' => __( 'Les administrateurs ne peuvent pas commander.', 'scavio' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Les administrateurs ne peuvent pas commander.', 'clielo' ) ], 403 );
         }
 
         $post_id           = absint( $_POST['post_id'] ?? 0 );
@@ -577,12 +577,12 @@ class Scavio_Orders {
         $selected_indices  = array_map( 'absint', (array) json_decode( sanitize_text_field( wp_unslash( $_POST['selected_indices'] ?? '[]' ) ), true ) );
 
         if ( ! $post_id || ! is_array( $selected_indices ) ) {
-            wp_send_json_error( [ 'message' => __( 'Données manquantes.', 'scavio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Données manquantes.', 'clielo' ) ], 400 );
         }
 
         $post = get_post( $post_id );
-        if ( ! $post || $post->post_type !== Scavio_Admin::get_post_type() ) {
-            wp_send_json_error( [ 'message' => __( 'Post invalide.', 'scavio' ) ], 400 );
+        if ( ! $post || $post->post_type !== Clielo_Admin::get_post_type() ) {
+            wp_send_json_error( [ 'message' => __( 'Post invalide.', 'clielo' ) ], 400 );
         }
 
         $client_id = get_current_user_id();
@@ -590,15 +590,15 @@ class Scavio_Orders {
         // Vérifier que la commande existante est modifiable (pending ou accepted = nouvelle commande)
         $existing = self::get_order_for_client( $post_id, $client_id );
         if ( $existing && $existing->status !== self::STATUS_PENDING && $existing->status !== self::STATUS_ACCEPTED ) {
-            wp_send_json_error( [ 'message' => __( 'La commande ne peut plus être modifiée.', 'scavio' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'La commande ne peut plus être modifiée.', 'clielo' ) ], 403 );
         }
 
         // Récupérer le pack sélectionné
-        $packs    = Scavio_Options::get_packs( $post_id );
-        $all_opts = Scavio_Options::get_options( $post_id );
+        $packs    = Clielo_Options::get_packs( $post_id );
+        $all_opts = Clielo_Options::get_options( $post_id );
 
         if ( empty( $packs ) || ! isset( $packs[ $selected_pack_idx ] ) ) {
-            wp_send_json_error( [ 'message' => __( 'Pack invalide.', 'scavio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Pack invalide.', 'clielo' ) ], 400 );
         }
 
         $base_offer = $packs[ $selected_pack_idx ];
@@ -619,7 +619,7 @@ class Scavio_Orders {
         }
 
         // Options avancées dynamiques
-        $adv_opts_raw  = get_post_meta( $post_id, '_scavio_advanced_options', true );
+        $adv_opts_raw  = get_post_meta( $post_id, '_clielo_advanced_options', true );
         $adv_opts_cfg  = $adv_opts_raw ? json_decode( $adv_opts_raw, true ) : [];
         $adv_sels_raw  = isset( $_POST['advanced_options_data'] ) ? sanitize_text_field( wp_unslash( $_POST['advanced_options_data'] ) ) : '[]';
         $adv_sels      = json_decode( $adv_sels_raw, true );
@@ -661,17 +661,17 @@ class Scavio_Orders {
         $adv_order_json = wp_json_encode( $adv_order_data );
 
         // Appliquer la TVA pour stocker le total TTC (premium uniquement)
-        $tax_rate    = scavio_is_premium() ? floatval( Scavio_Invoices::get_settings()['tax_rate'] ?? 0 ) : 0;
+        $tax_rate    = clielo_is_premium() ? floatval( Clielo_Invoices::get_settings()['tax_rate'] ?? 0 ) : 0;
         $total_price = round( $total_price * ( 1 + $tax_rate / 100 ), 2 );
 
         $order_id = self::create_order( $post_id, $client_id, $base_offer, $selected, $total_price, $total_delay, $adv_order_json );
 
         if ( ! $order_id ) {
-            wp_send_json_error( [ 'message' => __( 'Erreur création commande.', 'scavio' ) ], 500 );
+            wp_send_json_error( [ 'message' => __( 'Erreur création commande.', 'clielo' ) ], 500 );
         }
 
         // Déclencher la notification
-        do_action( 'scavio_order_created', $order_id, $post_id, $client_id );
+        do_action( 'clielo_order_created', $order_id, $post_id, $client_id );
 
         $active_order = self::build_order_response( $post_id );
         wp_send_json_success( [ 'order_id' => $order_id, 'active_order' => $active_order ] );
@@ -681,10 +681,10 @@ class Scavio_Orders {
      * AJAX : Transition de statut.
      */
     public static function ajax_order_transition(): void {
-        check_ajax_referer( 'scavio_nonce', 'nonce' );
+        check_ajax_referer( 'clielo_nonce', 'nonce' );
 
         if ( ! is_user_logged_in() ) {
-            wp_send_json_error( [ 'message' => __( 'Non connecté.', 'scavio' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Non connecté.', 'clielo' ) ], 403 );
         }
 
         $order_id   = absint( $_POST['order_id'] ?? 0 );
@@ -692,20 +692,20 @@ class Scavio_Orders {
         $post_id    = absint( $_POST['post_id'] ?? 0 );
 
         if ( ! $order_id || ! $new_status || ! $post_id ) {
-            wp_send_json_error( [ 'message' => __( 'Données manquantes.', 'scavio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Données manquantes.', 'clielo' ) ], 400 );
         }
 
         $user_id        = get_current_user_id();
         $revision_delay = absint( $_POST['revision_delay'] ?? 0 );
 
         // Vérification préalable : tâches incomplètes bloquent le passage à "terminé"
-        if ( $new_status === self::STATUS_COMPLETED && class_exists( 'Scavio_Todos' ) ) {
-            $progress = Scavio_Todos::get_progress( $order_id );
+        if ( $new_status === self::STATUS_COMPLETED && class_exists( 'Clielo_Todos' ) ) {
+            $progress = Clielo_Todos::get_progress( $order_id );
             if ( $progress['total'] > 0 && $progress['percent'] < 100 ) {
                 wp_send_json_error( [
                     'message' => sprintf(
                         /* translators: %d: todo completion percentage */
-                        __( 'Impossible de terminer la commande : les tâches ne sont complétées qu\'à %d%%.', 'scavio' ),
+                        __( 'Impossible de terminer la commande : les tâches ne sont complétées qu\'à %d%%.', 'clielo' ),
                         $progress['percent']
                     ),
                 ], 403 );
@@ -715,7 +715,7 @@ class Scavio_Orders {
         $result = self::transition_status( $order_id, $new_status, $user_id, $revision_delay );
 
         if ( ! $result ) {
-            wp_send_json_error( [ 'message' => __( 'Transition non autorisée.', 'scavio' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Transition non autorisée.', 'clielo' ) ], 403 );
         }
 
         $active_order = self::build_order_response( $post_id );
@@ -726,7 +726,7 @@ class Scavio_Orders {
      * AJAX : Liste des clients pour un post (admin uniquement).
      */
     public static function ajax_get_clients(): void {
-        check_ajax_referer( 'scavio_nonce', 'nonce' );
+        check_ajax_referer( 'clielo_nonce', 'nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_send_json_error( [], 403 );
@@ -758,7 +758,7 @@ class Scavio_Orders {
      * Construit la réponse order pour le JS (selon le rôle de l'utilisateur courant).
      */
     public static function build_order_response( int $post_id ): mixed {
-        $is_premium = function_exists( 'scavio_is_premium' ) && scavio_is_premium();
+        $is_premium = function_exists( 'clielo_is_premium' ) && clielo_is_premium();
 
         if ( current_user_can( 'manage_options' ) ) {
             $orders = self::get_active_orders_for_post( $post_id );
@@ -776,7 +776,7 @@ class Scavio_Orders {
                     'total_delay'    => (int) $o->total_delay,
                     'estimated_date' => $o->estimated_date,
                     'created_at'     => $o->created_at,
-                    'todos'          => $is_premium ? Scavio_Todos::build_todos_response( (int) $o->id ) : null,
+                    'todos'          => $is_premium ? Clielo_Todos::build_todos_response( (int) $o->id ) : null,
                 ];
             }, $orders ) );
         }
@@ -794,7 +794,7 @@ class Scavio_Orders {
             'total_delay'    => (int) $order->total_delay,
             'estimated_date' => $order->estimated_date,
             'created_at'     => $order->created_at,
-            'todos'          => $is_premium ? Scavio_Todos::build_todos_response( (int) $order->id ) : null,
+            'todos'          => $is_premium ? Clielo_Todos::build_todos_response( (int) $order->id ) : null,
         ];
     }
 }

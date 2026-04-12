@@ -4,12 +4,12 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class Scavio_Front {
+class Clielo_Front {
 
     public static function init(): void {
         add_action( 'wp_enqueue_scripts', [ __CLASS__, 'enqueue_assets' ] );
         add_action( 'wp_footer', [ __CLASS__, 'render_chat' ], 9 );
-        add_shortcode( 'scavio_options', [ __CLASS__, 'shortcode_options' ] );
+        add_shortcode( 'clielo_options', [ __CLASS__, 'shortcode_options' ] );
     }
 
     public static function enqueue_assets(): void {
@@ -21,23 +21,23 @@ class Scavio_Front {
             'serviceflow-inter',
             'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap',
             [],
-            SCAVIO_VERSION
+            CLIELO_VERSION
         );
 
         wp_enqueue_style(
             'serviceflow-style',
-            SCAVIO_PLUGIN_URL . 'assets/css/serviceflow.css',
+            CLIELO_PLUGIN_URL . 'assets/css/serviceflow.css',
             [ 'serviceflow-inter' ],
-            SCAVIO_VERSION
+            CLIELO_VERSION
         );
 
-        if ( ! wp_script_is( 'scavio-chat-js', 'registered' ) ) {
-            wp_register_script( 'scavio-chat-js', false, [ 'jquery' ], SCAVIO_VERSION, true ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
+        if ( ! wp_script_is( 'clielo-chat-js', 'registered' ) ) {
+            wp_register_script( 'clielo-chat-js', false, [ 'jquery' ], CLIELO_VERSION, true ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
         }
-        wp_enqueue_script( 'scavio-chat-js' );
+        wp_enqueue_script( 'clielo-chat-js' );
 
         // Inline CSS dynamique basé sur la couleur du plugin
-        $c     = esc_attr( Scavio_Admin::get_color() );
+        $c     = esc_attr( Clielo_Admin::get_color() );
         $hex   = ltrim( $c, '#' );
         $r_int = hexdec( substr( $hex, 0, 2 ) );
         $g_int = hexdec( substr( $hex, 2, 2 ) );
@@ -63,7 +63,7 @@ class Scavio_Front {
     }
 
     /**
-     * Shortcode [scavio_options] — affiche packs + options de service.
+     * Shortcode [clielo_options] — affiche packs + options de service.
      */
     public static function shortcode_options(): string {
         if ( ! self::is_chat_page() ) {
@@ -71,9 +71,9 @@ class Scavio_Front {
         }
 
         $post_id = get_queried_object_id();
-        $packs   = Scavio_Options::get_packs( $post_id );
-        $options = Scavio_Options::get_options( $post_id );
-        $color   = esc_attr( Scavio_Admin::get_color() );
+        $packs   = Clielo_Options::get_packs( $post_id );
+        $options = Clielo_Options::get_options( $post_id );
+        $color   = esc_attr( Clielo_Admin::get_color() );
 
         if ( empty( $packs ) ) {
             return '';
@@ -82,16 +82,16 @@ class Scavio_Front {
         $c              = $color;
         $first_price    = floatval( $packs[0]['price'] ?? 0 );
         $first_delay    = absint( $packs[0]['delay'] ?? 0 );
-        $tax_rate       = scavio_is_premium() ? floatval( Scavio_Invoices::get_settings()['tax_rate'] ?? 0 ) : 0;
-        $payment_mode        = Scavio_Options::get_payment_mode( $post_id );
-        $installments_count  = Scavio_Options::get_installments_count( $post_id );
+        $tax_rate       = clielo_is_premium() ? floatval( Clielo_Invoices::get_settings()['tax_rate'] ?? 0 ) : 0;
+        $payment_mode        = Clielo_Options::get_payment_mode( $post_id );
+        $installments_count  = Clielo_Options::get_installments_count( $post_id );
         $payment_mode_labels = [
-            'single'       => __( 'Paiement unique', 'scavio' ),
-            'deposit'      => __( 'Acompte 50% + solde à la livraison', 'scavio' ),
-            'installments' => __( 'Mensualités', 'scavio' ),
-            'monthly'      => __( 'Abonnement mensuel', 'scavio' ),
+            'single'       => __( 'Paiement unique', 'clielo' ),
+            'deposit'      => __( 'Acompte 50% + solde à la livraison', 'clielo' ),
+            'installments' => __( 'Mensualités', 'clielo' ),
+            'monthly'      => __( 'Abonnement mensuel', 'clielo' ),
         ];
-        $payment_mode_label = $payment_mode_labels[ $payment_mode ] ?? __( 'Paiement unique', 'scavio' );
+        $payment_mode_label = $payment_mode_labels[ $payment_mode ] ?? __( 'Paiement unique', 'clielo' );
 
         ob_start();
         ?>
@@ -114,11 +114,11 @@ class Scavio_Front {
         <div id="serviceflow-sc-card" style="font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif !important;border:1px solid #e0e0e0 !important;border-radius:12px !important;overflow-x:hidden !important;overflow-y:auto !important;max-height:calc(100vh - 80px) !important;background:#fff !important;box-shadow:0 2px 8px rgba(0,0,0,0.06) !important;max-width:100% !important;padding:0 !important;margin:0 0 20px 0 !important">
             <div style="display:flex !important;align-items:center !important;gap:8px !important;padding:12px 16px !important;background:<?php echo esc_attr( $c ); ?> !important;color:#fff !important;font-size:14px !important;font-weight:600 !important;margin:0 !important;border-radius:0 !important;position:sticky !important;top:0 !important;z-index:2 !important">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"></path><rect x="9" y="3" width="6" height="4" rx="1"></rect></svg>
-                <span style="color:#fff !important;font-size:14px !important;font-weight:600 !important"><?php esc_html_e( 'Options de service', 'scavio' ); ?></span>
+                <span style="color:#fff !important;font-size:14px !important;font-weight:600 !important"><?php esc_html_e( 'Options de service', 'clielo' ); ?></span>
             </div>
 
             <!-- Packs -->
-            <div style="padding:12px 16px 2px !important;font-size:12px !important;font-weight:600 !important;text-transform:uppercase !important;letter-spacing:0.5px !important;color:#888 !important;margin:0 !important"><?php esc_html_e( 'Choisissez votre pack', 'scavio' ); ?></div>
+            <div style="padding:12px 16px 2px !important;font-size:12px !important;font-weight:600 !important;text-transform:uppercase !important;letter-spacing:0.5px !important;color:#888 !important;margin:0 !important"><?php esc_html_e( 'Choisissez votre pack', 'clielo' ); ?></div>
             <div style="padding:0 16px 8px !important;margin:0 !important">
                 <span style="display:inline-flex !important;align-items:center !important;gap:4px !important;font-size:11px !important;font-weight:500 !important;color:#fff !important;background:<?php echo esc_attr( $c ); ?> !important;padding:2px 8px !important;border-radius:20px !important;opacity:0.85 !important">&#128179; <?php echo esc_html( $payment_mode_label ); ?></span>
             </div>
@@ -148,7 +148,7 @@ class Scavio_Front {
                     <div style="display:flex !important;align-items:baseline !important;gap:8px !important;margin:0 0 4px 0 !important">
                         <span style="font-size:14px !important;font-weight:800 !important;color:<?php echo esc_attr( $c_muted ); ?> !important"><?php echo esc_html( number_format( $pack['price'], 2, ',', ' ' ) ); ?> &euro;</span>
                         <?php if ( $pack_delay > 0 ) : ?>
-                            <span style="font-size:11px !important;color:#888 !important">&#9201; <?php echo esc_html( $pack_delay ); ?> <?php esc_html_e( 'jour(s)', 'scavio' ); ?></span>
+                            <span style="font-size:11px !important;color:#888 !important">&#9201; <?php echo esc_html( $pack_delay ); ?> <?php esc_html_e( 'jour(s)', 'clielo' ); ?></span>
                         <?php endif; ?>
                     </div>
                     <?php if ( is_array( $features ) && ! empty( $features ) ) : ?>
@@ -167,7 +167,7 @@ class Scavio_Front {
 
             <?php if ( ! empty( $options ) ) : ?>
             <div style="height:0 !important;border-top:1px solid #e8e8e8 !important;margin:0 !important;padding:0 !important"></div>
-            <div style="padding:12px 16px 4px !important;font-size:12px !important;font-weight:600 !important;text-transform:uppercase !important;letter-spacing:0.5px !important;color:#888 !important;margin:0 !important"><?php esc_html_e( 'Options supplémentaires', 'scavio' ); ?></div>
+            <div style="padding:12px 16px 4px !important;font-size:12px !important;font-weight:600 !important;text-transform:uppercase !important;letter-spacing:0.5px !important;color:#888 !important;margin:0 !important"><?php esc_html_e( 'Options supplémentaires', 'clielo' ); ?></div>
 
             <?php foreach ( $options as $i => $opt ) :
                 $opt_delay = absint( $opt['delay'] ?? 0 );
@@ -190,8 +190,8 @@ class Scavio_Front {
             <?php
             // Options avancées dynamiques
             $advanced_options = [];
-            if ( scavio_is_premium() ) {
-                $adv_raw = get_post_meta( $post_id, '_scavio_advanced_options', true );
+            if ( clielo_is_premium() ) {
+                $adv_raw = get_post_meta( $post_id, '_clielo_advanced_options', true );
                 $advanced_options = $adv_raw ? ( json_decode( $adv_raw, true ) ?: [] ) : [];
             }
             ?>
@@ -199,7 +199,7 @@ class Scavio_Front {
             <?php if ( ! empty( $advanced_options ) ) : ?>
             <div style="height:0 !important;border-top:1px solid #e8e8e8 !important;margin:0 !important;padding:0 !important"></div>
             <div style="padding:4px 0 0 0 !important;margin:0 !important">
-                <div style="padding:8px 16px 4px !important;font-size:12px !important;font-weight:600 !important;text-transform:uppercase !important;letter-spacing:0.5px !important;color:#888 !important;margin:0 !important"><?php esc_html_e( 'Options avancées', 'scavio' ); ?></div>
+                <div style="padding:8px 16px 4px !important;font-size:12px !important;font-weight:600 !important;text-transform:uppercase !important;letter-spacing:0.5px !important;color:#888 !important;margin:0 !important"><?php esc_html_e( 'Options avancées', 'clielo' ); ?></div>
                 <?php foreach ( $advanced_options as $opt_i => $opt ) :
                     $opt_label  = esc_html( $opt['label'] ?? '' );
                     $opt_price  = floatval( $opt['price'] ?? 0 );
@@ -210,8 +210,8 @@ class Scavio_Front {
                     $is_counter = in_array( $opt_mode, [ 'unit', 'daily' ], true );
                     $price_fmt  = esc_html( number_format( $opt_price, 2, ',', ' ' ) );
                     $mode_suffix = match ( $opt_mode ) {
-                        'monthly' => ' / ' . __( 'mois', 'scavio' ),
-                        'daily'   => ' / ' . __( 'jour', 'scavio' ),
+                        'monthly' => ' / ' . __( 'mois', 'clielo' ),
+                        'daily'   => ' / ' . __( 'jour', 'clielo' ),
                         'unit'    => $opt_unit ? ' / ' . $opt_unit : '',
                         default   => '',
                     };
@@ -263,20 +263,20 @@ class Scavio_Front {
             ?>
             <div style="padding:14px 16px !important;border-top:2px solid #e8e8e8 !important;background:#fafafa !important;margin:0 !important;position:sticky !important;bottom:0 !important;z-index:10 !important;border-radius:0 0 12px 12px !important">
                 <div style="display:flex !important;justify-content:space-between !important;align-items:center !important;font-size:12px !important;color:#888 !important;margin:0 0 2px 0 !important;padding:0 !important">
-                    <span><?php esc_html_e( 'Sous-total', 'scavio' ); ?></span>
+                    <span><?php esc_html_e( 'Sous-total', 'clielo' ); ?></span>
                     <span id="serviceflow-sc-subtotal-val"><?php echo esc_html( number_format( $first_price, 2, ',', ' ' ) ); ?> &euro;</span>
                 </div>
                 <div style="display:flex !important;justify-content:space-between !important;align-items:center !important;font-size:12px !important;color:#888 !important;margin:0 0 6px 0 !important;padding:0 !important">
                     <?php if ( $tax_rate > 0 ) : ?>
-                        <span><?php esc_html_e( 'TVA', 'scavio' ); ?> (<?php echo esc_html( $tax_rate ); ?>%)</span>
+                        <span><?php esc_html_e( 'TVA', 'clielo' ); ?> (<?php echo esc_html( $tax_rate ); ?>%)</span>
                         <span id="serviceflow-sc-tva-val"><?php echo esc_html( number_format( $first_tva, 2, ',', ' ' ) ); ?> &euro;</span>
                     <?php else : ?>
-                        <span id="serviceflow-sc-tva-val" style="font-style:italic !important"><?php esc_html_e( 'TVA : 0% (non applicable)', 'scavio' ); ?></span>
+                        <span id="serviceflow-sc-tva-val" style="font-style:italic !important"><?php esc_html_e( 'TVA : 0% (non applicable)', 'clielo' ); ?></span>
                         <span></span>
                     <?php endif; ?>
                 </div>
                 <div style="display:flex !important;justify-content:space-between !important;align-items:center !important;font-size:16px !important;font-weight:700 !important;color:#222 !important;margin:0 0 4px 0 !important;padding:0 !important;border-top:1px solid #e8e8e8 !important;padding-top:6px !important">
-                    <span style="font-size:16px !important;font-weight:700 !important;color:#222 !important"><?php esc_html_e( 'Total', 'scavio' ); ?></span>
+                    <span style="font-size:16px !important;font-weight:700 !important;color:#222 !important"><?php esc_html_e( 'Total', 'clielo' ); ?></span>
                     <span id="serviceflow-sc-total-val" style="font-size:16px !important;font-weight:700 !important;color:<?php echo esc_attr( $c_muted ); ?> !important"><?php echo esc_html( number_format( $first_total, 2, ',', ' ' ) ); ?> &euro;</span>
                 </div>
                 <?php if ( $payment_mode !== 'single' ) : ?>
@@ -285,12 +285,12 @@ class Scavio_Front {
                 <div id="serviceflow-sc-breakdown" style="display:none !important"></div>
                 <?php endif; ?>
                 <div id="serviceflow-sc-delay-row" style="display:flex !important;justify-content:space-between !important;align-items:center !important;font-size:13px !important;color:#888 !important;margin:0 0 12px 0 !important;padding:0 !important">
-                    <span style="font-size:13px !important;color:#888 !important">&#9201; <?php esc_html_e( 'Délai estimé', 'scavio' ); ?></span>
-                    <span id="serviceflow-sc-delay-val" style="font-size:13px !important;font-weight:600 !important;color:#555 !important"><?php echo esc_html( $first_delay ); ?> <?php esc_html_e( 'jour(s)', 'scavio' ); ?></span>
+                    <span style="font-size:13px !important;color:#888 !important">&#9201; <?php esc_html_e( 'Délai estimé', 'clielo' ); ?></span>
+                    <span id="serviceflow-sc-delay-val" style="font-size:13px !important;font-weight:600 !important;color:#555 !important"><?php echo esc_html( $first_delay ); ?> <?php esc_html_e( 'jour(s)', 'clielo' ); ?></span>
                 </div>
                 <button type="button" id="serviceflow-sc-order" style="display:flex !important;align-items:center !important;justify-content:center !important;gap:8px !important;width:100% !important;padding:12px !important;border:none !important;border-radius:8px !important;background:<?php echo esc_attr( $c ); ?> !important;color:#fff !important;font-size:14px !important;font-weight:600 !important;cursor:pointer !important;font-family:inherit !important;margin:0 !important;line-height:1.4 !important">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                    <?php echo ( scavio_is_premium() && Scavio_Stripe::is_enabled() ) ? esc_html__( 'Payer et commander', 'scavio' ) : esc_html__( 'Commander via le chat', 'scavio' ); ?>
+                    <?php echo ( clielo_is_premium() && Clielo_Stripe::is_enabled() ) ? esc_html__( 'Payer et commander', 'clielo' ) : esc_html__( 'Commander via le chat', 'clielo' ); ?>
                 </button>
             </div>
             <?php endif; ?>
@@ -301,18 +301,18 @@ class Scavio_Front {
         <div id="serviceflow-mobile-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:2147483645;background:#fff;box-shadow:0 -2px 12px rgba(0,0,0,0.12);padding:12px 16px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
                 <div style="flex-shrink:0">
-                    <div style="font-size:11px;color:#888;text-transform:uppercase;font-weight:600;letter-spacing:0.3px"><?php esc_html_e( 'À partir de', 'scavio' ); ?></div>
+                    <div style="font-size:11px;color:#888;text-transform:uppercase;font-weight:600;letter-spacing:0.3px"><?php esc_html_e( 'À partir de', 'clielo' ); ?></div>
                     <div id="serviceflow-mobile-price" style="font-size:16px;font-weight:600;color:<?php echo esc_attr( $c ); ?>"><?php echo esc_html( number_format( $first_price, 2, ',', ' ' ) ); ?> &euro;</div>
                 </div>
                 <button type="button" id="serviceflow-mobile-cta" style="flex:1;max-width:240px;padding:12px 16px;border:none;border-radius:8px;background:<?php echo esc_attr( $c ); ?>;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;line-height:1.4">
-                    <?php esc_html_e( 'Voir les offres', 'scavio' ); ?>
+                    <?php esc_html_e( 'Voir les offres', 'clielo' ); ?>
                 </button>
             </div>
         </div>
         <?php endif; ?>
 
         <?php
-        wp_add_inline_script( 'scavio-chat-js', '(function(){
+        wp_add_inline_script( 'clielo-chat-js', '(function(){
             var wraps = document.querySelectorAll(".serviceflow-sc-opt-wrap");
             wraps.forEach(function(w){ w.addEventListener("click", function(e){ if(e.target.type!=="checkbox"){ var cb=w.querySelector("input[type=\'checkbox\']"); if(cb&&!cb.disabled){cb.checked=!cb.checked;cb.dispatchEvent(new Event("change"));} } }); });
             var packs=document.querySelectorAll(".serviceflow-sc-pack");
@@ -323,7 +323,7 @@ class Scavio_Front {
             var pColorMuted="rgba("+rgb.r+","+rgb.g+","+rgb.b+",0.7)";
             var pColorLight="rgba("+rgb.r+","+rgb.g+","+rgb.b+",0.12)";
             var checkSvg=\'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"></path></svg>\';
-            packs.forEach(function(p){ p.addEventListener("click",function(){ if(packBox&&packBox.hasAttribute("data-frozen"))return; packs.forEach(function(pp){ pp.removeAttribute("data-selected"); pp.style.setProperty("border-color","#e0e0e0","important"); pp.style.setProperty("background","#fff","important"); var d=pp.querySelector(".serviceflow-pack-dot"); if(d){d.style.setProperty("border-color","#ccc","important");d.style.setProperty("background","transparent","important");d.innerHTML="";} }); p.setAttribute("data-selected","true"); p.style.setProperty("border-color",pColorMuted,"important"); p.style.setProperty("background",pColorLight,"important"); var d=p.querySelector(".serviceflow-pack-dot"); if(d){d.style.setProperty("border-color",pColor,"important");d.style.setProperty("background",pColor,"important");d.innerHTML=checkSvg;} document.dispatchEvent(new Event("scavio_pack_changed")); }); });
+            packs.forEach(function(p){ p.addEventListener("click",function(){ if(packBox&&packBox.hasAttribute("data-frozen"))return; packs.forEach(function(pp){ pp.removeAttribute("data-selected"); pp.style.setProperty("border-color","#e0e0e0","important"); pp.style.setProperty("background","#fff","important"); var d=pp.querySelector(".serviceflow-pack-dot"); if(d){d.style.setProperty("border-color","#ccc","important");d.style.setProperty("background","transparent","important");d.innerHTML="";} }); p.setAttribute("data-selected","true"); p.style.setProperty("border-color",pColorMuted,"important"); p.style.setProperty("background",pColorLight,"important"); var d=p.querySelector(".serviceflow-pack-dot"); if(d){d.style.setProperty("border-color",pColor,"important");d.style.setProperty("background",pColor,"important");d.innerHTML=checkSvg;} document.dispatchEvent(new Event("clielo_pack_changed")); }); });
             var mobileBar=document.getElementById("serviceflow-mobile-bar");
             var scCard=document.getElementById("serviceflow-sc-card");
             var mobileCta=document.getElementById("serviceflow-mobile-cta");
@@ -336,11 +336,11 @@ class Scavio_Front {
                 observer.observe(scCard);
                 window.addEventListener("resize",function(){if(!isMobile()){mobileBar.style.display="none";adjustChatBtn(false);}});
                 if(mobileCta){mobileCta.addEventListener("click",function(){scCard.scrollIntoView({behavior:"smooth",block:"center"});});}
-                if(mobilePrice){var syncPrice=function(){var totalEl=document.getElementById("serviceflow-sc-total-val");if(totalEl)mobilePrice.textContent=totalEl.textContent;};document.addEventListener("scavio_pack_changed",syncPrice);var checks=document.querySelectorAll(".serviceflow-sc-check");checks.forEach(function(cb){cb.addEventListener("change",function(){setTimeout(syncPrice,50);});});}
+                if(mobilePrice){var syncPrice=function(){var totalEl=document.getElementById("serviceflow-sc-total-val");if(totalEl)mobilePrice.textContent=totalEl.textContent;};document.addEventListener("clielo_pack_changed",syncPrice);var checks=document.querySelectorAll(".serviceflow-sc-check");checks.forEach(function(cb){cb.addEventListener("change",function(){setTimeout(syncPrice,50);});});}
             }
-            document.querySelectorAll(".sf-adv-qty-minus,.sf-adv-qty-plus").forEach(function(btn){btn.addEventListener("click",function(e){e.preventDefault();e.stopPropagation();var inp=document.getElementById(btn.dataset.target+"-qty");if(!inp)return;var v=parseInt(inp.value)||0;inp.value=btn.classList.contains("sf-adv-qty-minus")?Math.max(0,v-1):v+1;document.dispatchEvent(new Event("scavio_pack_changed"));});});
-            document.querySelectorAll(".sf-adv-opt-qty").forEach(function(inp){inp.addEventListener("change",function(){if(parseInt(inp.value)<0)inp.value=0;document.dispatchEvent(new Event("scavio_pack_changed"));});});
-            document.querySelectorAll(".sf-adv-opt-check").forEach(function(cb){cb.addEventListener("change",function(){document.dispatchEvent(new Event("scavio_pack_changed"));});});
+            document.querySelectorAll(".sf-adv-qty-minus,.sf-adv-qty-plus").forEach(function(btn){btn.addEventListener("click",function(e){e.preventDefault();e.stopPropagation();var inp=document.getElementById(btn.dataset.target+"-qty");if(!inp)return;var v=parseInt(inp.value)||0;inp.value=btn.classList.contains("sf-adv-qty-minus")?Math.max(0,v-1):v+1;document.dispatchEvent(new Event("clielo_pack_changed"));});});
+            document.querySelectorAll(".sf-adv-opt-qty").forEach(function(inp){inp.addEventListener("change",function(){if(parseInt(inp.value)<0)inp.value=0;document.dispatchEvent(new Event("clielo_pack_changed"));});});
+            document.querySelectorAll(".sf-adv-opt-check").forEach(function(cb){cb.addEventListener("change",function(){document.dispatchEvent(new Event("clielo_pack_changed"));});});
         })();' );
         return ob_get_clean();
     }
@@ -353,8 +353,8 @@ class Scavio_Front {
             return;
         }
 
-        $color       = esc_attr( Scavio_Admin::get_color() );
-        $position    = Scavio_Admin::get_position();
+        $color       = esc_attr( Clielo_Admin::get_color() );
+        $position    = Clielo_Admin::get_position();
         $pos_parts   = explode( '-', $position );
         $vertical    = $pos_parts[0] ?? '';
         $horizontal  = $pos_parts[1] ?? '';
@@ -409,29 +409,29 @@ class Scavio_Front {
             $horizontal . ':24px !important',
         ] );
 
-        $packs   = Scavio_Options::get_packs( $post_id );
-        $options = Scavio_Options::get_options( $post_id );
+        $packs   = Clielo_Options::get_packs( $post_id );
+        $options = Clielo_Options::get_options( $post_id );
 
         $is_admin = current_user_can( 'manage_options' );
 
         $active_order = null;
         if ( $is_logged ) {
-            $active_order = Scavio_Orders::build_order_response( $post_id );
+            $active_order = Clielo_Orders::build_order_response( $post_id );
         }
 
         // Options avancées dynamiques
         $advanced_options = [];
-        if ( scavio_is_premium() ) {
-            $adv_raw = get_post_meta( $post_id, '_scavio_advanced_options', true );
+        if ( clielo_is_premium() ) {
+            $adv_raw = get_post_meta( $post_id, '_clielo_advanced_options', true );
             $advanced_options = $adv_raw ? ( json_decode( $adv_raw, true ) ?: [] ) : [];
         }
-        $tax_rate           = scavio_is_premium() ? floatval( Scavio_Invoices::get_settings()['tax_rate'] ?? 0 ) : 0;
-        $payment_mode       = Scavio_Options::get_payment_mode( $post_id );
-        $installments_count = Scavio_Options::get_installments_count( $post_id );
+        $tax_rate           = clielo_is_premium() ? floatval( Clielo_Invoices::get_settings()['tax_rate'] ?? 0 ) : 0;
+        $payment_mode       = Clielo_Options::get_payment_mode( $post_id );
+        $installments_count = Clielo_Options::get_installments_count( $post_id );
 
         $js_config = wp_json_encode( [
             'ajax_url'     => admin_url( 'admin-ajax.php' ),
-            'nonce'        => wp_create_nonce( 'scavio_nonce' ),
+            'nonce'        => wp_create_nonce( 'clielo_nonce' ),
             'post_id'      => $post_id,
             'post_title'   => get_the_title( $post_id ),
             'user_id'      => get_current_user_id(),
@@ -446,70 +446,70 @@ class Scavio_Front {
             'tax_rate'                => $tax_rate,
             'payment_mode'            => $payment_mode,
             'installments_count'      => $installments_count,
-            'is_premium'              => scavio_is_premium(),
-            'stripe_enabled'          => Scavio_Stripe::is_enabled(),
-            'stripe_checkout_action'  => 'scavio_stripe_checkout',
+            'is_premium'              => clielo_is_premium(),
+            'stripe_enabled'          => Clielo_Stripe::is_enabled(),
+            'stripe_checkout_action'  => 'clielo_stripe_checkout',
             'i18n'         => [
-                'error'             => __( 'Erreur lors de l\'envoi.', 'scavio' ),
-                'empty'             => __( 'Pas encore de message — posez votre première question ! 👋', 'scavio' ),
-                'order_btn'         => Scavio_Stripe::is_enabled()
-                    ? __( 'Payer et commander', 'scavio' )
-                    : __( 'Commander via le chat', 'scavio' ),
-                'order_modify_btn'  => __( 'Modifier la commande', 'scavio' ),
-                'order_locked'      => __( 'Commande en cours...', 'scavio' ),
-                'order_replace'     => __( 'Vous avez déjà envoyé une commande. Voulez-vous la remplacer par cette nouvelle sélection ?', 'scavio' ),
-                'order_modify'      => __( 'Modification de commande', 'scavio' ),
-                'days'              => __( 'jour(s)', 'scavio' ),
-                'estimated'         => __( 'Livraison estimée', 'scavio' ),
-                'start_order'       => __( 'Démarrer', 'scavio' ),
-                'complete_order'    => __( 'Terminer', 'scavio' ),
-                'request_revision'  => __( 'Demander une retouche', 'scavio' ),
-                'accept_delivery'   => __( 'Accepter la livraison', 'scavio' ),
-                'validate_order'    => __( 'Valider', 'scavio' ),
-                'validate_revision' => __( 'Valider la retouche', 'scavio' ),
-                'revision_delay_placeholder' => __( 'Délai (jours)', 'scavio' ),
-                'status_pending'    => __( 'En attente', 'scavio' ),
-                'status_paid'       => __( 'Payée', 'scavio' ),
-                'status_started'    => __( 'En cours', 'scavio' ),
-                'status_completed'  => __( 'Terminée', 'scavio' ),
-                'status_revision'   => __( 'Retouche demandée', 'scavio' ),
-                'status_accepted'   => __( 'Acceptée', 'scavio' ),
-                'client'            => __( 'Client', 'scavio' ),
-                'service'           => __( 'Service', 'scavio' ),
-                'delay_total'       => __( 'Délai total', 'scavio' ),
-                'order_error'       => __( 'Erreur lors de la création de la commande.', 'scavio' ),
-                'order_no_modify'   => __( 'La commande ne peut plus être modifiée.', 'scavio' ),
-                'conversations'     => __( 'Conversations', 'scavio' ),
-                'no_conversations'  => __( 'Aucune conversation.', 'scavio' ),
-                'chat'              => __( 'Chat', 'scavio' ),
-                'today'             => __( 'Aujourd\'hui', 'scavio' ),
-                'balance'           => __( 'Solde à la livraison', 'scavio' ),
-                'monthly_then'      => __( 'puis', 'scavio' ),
-                'monthly_per_month' => __( '/mois', 'scavio' ),
-                'payment_redirect'  => __( 'Redirection vers le paiement...', 'scavio' ),
-                'payment_error'     => __( 'Erreur lors de la création du paiement.', 'scavio' ),
-                'login_required'    => __( 'Connectez-vous pour commander.', 'scavio' ),
-                'progress'          => __( 'Progression', 'scavio' ),
-                'add_note'          => __( 'Ajouter une note (optionnel)', 'scavio' ),
-                'todo_note'         => __( 'Note', 'scavio' ),
+                'error'             => __( 'Erreur lors de l\'envoi.', 'clielo' ),
+                'empty'             => __( 'Pas encore de message — posez votre première question ! 👋', 'clielo' ),
+                'order_btn'         => Clielo_Stripe::is_enabled()
+                    ? __( 'Payer et commander', 'clielo' )
+                    : __( 'Commander via le chat', 'clielo' ),
+                'order_modify_btn'  => __( 'Modifier la commande', 'clielo' ),
+                'order_locked'      => __( 'Commande en cours...', 'clielo' ),
+                'order_replace'     => __( 'Vous avez déjà envoyé une commande. Voulez-vous la remplacer par cette nouvelle sélection ?', 'clielo' ),
+                'order_modify'      => __( 'Modification de commande', 'clielo' ),
+                'days'              => __( 'jour(s)', 'clielo' ),
+                'estimated'         => __( 'Livraison estimée', 'clielo' ),
+                'start_order'       => __( 'Démarrer', 'clielo' ),
+                'complete_order'    => __( 'Terminer', 'clielo' ),
+                'request_revision'  => __( 'Demander une retouche', 'clielo' ),
+                'accept_delivery'   => __( 'Accepter la livraison', 'clielo' ),
+                'validate_order'    => __( 'Valider', 'clielo' ),
+                'validate_revision' => __( 'Valider la retouche', 'clielo' ),
+                'revision_delay_placeholder' => __( 'Délai (jours)', 'clielo' ),
+                'status_pending'    => __( 'En attente', 'clielo' ),
+                'status_paid'       => __( 'Payée', 'clielo' ),
+                'status_started'    => __( 'En cours', 'clielo' ),
+                'status_completed'  => __( 'Terminée', 'clielo' ),
+                'status_revision'   => __( 'Retouche demandée', 'clielo' ),
+                'status_accepted'   => __( 'Acceptée', 'clielo' ),
+                'client'            => __( 'Client', 'clielo' ),
+                'service'           => __( 'Service', 'clielo' ),
+                'delay_total'       => __( 'Délai total', 'clielo' ),
+                'order_error'       => __( 'Erreur lors de la création de la commande.', 'clielo' ),
+                'order_no_modify'   => __( 'La commande ne peut plus être modifiée.', 'clielo' ),
+                'conversations'     => __( 'Conversations', 'clielo' ),
+                'no_conversations'  => __( 'Aucune conversation.', 'clielo' ),
+                'chat'              => __( 'Chat', 'clielo' ),
+                'today'             => __( 'Aujourd\'hui', 'clielo' ),
+                'balance'           => __( 'Solde à la livraison', 'clielo' ),
+                'monthly_then'      => __( 'puis', 'clielo' ),
+                'monthly_per_month' => __( '/mois', 'clielo' ),
+                'payment_redirect'  => __( 'Redirection vers le paiement...', 'clielo' ),
+                'payment_error'     => __( 'Erreur lors de la création du paiement.', 'clielo' ),
+                'login_required'    => __( 'Connectez-vous pour commander.', 'clielo' ),
+                'progress'          => __( 'Progression', 'clielo' ),
+                'add_note'          => __( 'Ajouter une note (optionnel)', 'clielo' ),
+                'todo_note'         => __( 'Note', 'clielo' ),
             ],
         ] );
         ?>
 
-        <!-- Scavio : Bouton flottant -->
+        <!-- Clielo : Bouton flottant -->
         <button id="serviceflow-toggle" style="<?php echo esc_attr( $btn_style ); ?>" aria-label="Chat">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
             <span id="serviceflow-badge" style="position:absolute;top:-2px;right:-2px;min-width:20px;height:20px;background:#e53e3e;color:#fff;border-radius:50%;font-size:11px;font-weight:700;align-items:center;justify-content:center;line-height:1;display:none"></span>
         </button>
 
-        <!-- Scavio : Popup -->
+        <!-- Clielo : Popup -->
         <div id="serviceflow-container" style="<?php echo esc_attr( $popup_style ); ?>">
             <!-- Header avec bouton retour -->
             <div id="serviceflow-header" style="background:<?php echo esc_attr( $color ); ?> !important;color:#fff !important;padding:14px 20px !important;flex-shrink:0 !important;display:flex !important;align-items:center !important;gap:10px !important;margin:0 !important">
                 <button id="serviceflow-back" type="button" style="display:none !important;background:none !important;border:none !important;color:#fff !important;cursor:pointer !important;padding:0 !important;margin:0 !important;flex-shrink:0 !important;line-height:1 !important">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg>
                 </button>
-                <h3 id="serviceflow-header-title" style="margin:0 !important;font-size:16px !important;font-weight:600 !important;color:#fff !important;flex:1 !important"><?php esc_html_e( 'Chat', 'scavio' ); ?></h3>
+                <h3 id="serviceflow-header-title" style="margin:0 !important;font-size:16px !important;font-weight:600 !important;color:#fff !important;flex:1 !important"><?php esc_html_e( 'Chat', 'clielo' ); ?></h3>
             </div>
 
             <!-- Liste de conversations (admin uniquement) -->
@@ -519,13 +519,13 @@ class Scavio_Front {
             <div id="serviceflow-todo-bar" style="display:none;padding:10px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-size:12px;flex-shrink:0;max-height:200px;overflow-y:auto"></div>
 
             <div id="serviceflow-messages" class="serviceflow-messages">
-                <div class="serviceflow-loading"><?php esc_html_e( 'Chargement...', 'scavio' ); ?></div>
+                <div class="serviceflow-loading"><?php esc_html_e( 'Chargement...', 'clielo' ); ?></div>
             </div>
 
             <?php if ( $is_logged ) : ?>
                 <form id="serviceflow-form" class="serviceflow-form" onsubmit="return false;">
                     <div class="serviceflow-input-wrapper">
-                        <textarea id="serviceflow-input" class="serviceflow-input" placeholder="<?php esc_attr_e( 'Votre message...', 'scavio' ); ?>" rows="1" maxlength="1000"></textarea>
+                        <textarea id="serviceflow-input" class="serviceflow-input" placeholder="<?php esc_attr_e( 'Votre message...', 'clielo' ); ?>" rows="1" maxlength="1000"></textarea>
                         <button type="button" id="serviceflow-send" class="serviceflow-send" style="background:<?php echo esc_attr( $color ); ?>">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"></path><path d="M22 2L15 22L11 13L2 9L22 2Z"></path></svg>
                         </button>
@@ -536,8 +536,8 @@ class Scavio_Front {
                     <p><?php
                         printf(
                             /* translators: %s: HTML link tag for login page */
-                            esc_html__( '%s pour participer au chat.', 'scavio' ),
-                            '<a href="' . esc_url( wp_login_url( get_permalink() ) ) . '">' . esc_html__( 'Connectez-vous', 'scavio' ) . '</a>'
+                            esc_html__( '%s pour participer au chat.', 'clielo' ),
+                            '<a href="' . esc_url( wp_login_url( get_permalink() ) ) . '">' . esc_html__( 'Connectez-vous', 'clielo' ) . '</a>'
                         );
                     ?></p>
                 </div>
@@ -608,7 +608,7 @@ class Scavio_Front {
                 if(!urlParams.get('sf_payment_success') || !schedId || C.is_admin) return;
 
                 // Vérifier si le paiement est confirmé (fallback si webhook pas encore reçu)
-                fetch(C.ajax_url + '?action=scavio_schedule_check&schedule_id='+schedId+'&nonce='+C.nonce)
+                fetch(C.ajax_url + '?action=clielo_schedule_check&schedule_id='+schedId+'&nonce='+C.nonce)
                 .then(function(r){ return r.json(); })
                 .then(function(res){
                     // Ouvrir le chat dans tous les cas pour que le client voit l'état
@@ -640,7 +640,7 @@ class Scavio_Front {
             function loadClientList(){
                 if(!C.is_admin) return;
                 clientList.innerHTML = '<div style="padding:30px 20px !important;text-align:center !important;color:#999 !important;font-size:14px !important">Chargement...</div>';
-                fetch(C.ajax_url+'?'+new URLSearchParams({action:'scavio_get_clients',post_id:C.post_id,nonce:C.nonce}))
+                fetch(C.ajax_url+'?'+new URLSearchParams({action:'clielo_get_clients',post_id:C.post_id,nonce:C.nonce}))
                 .then(function(r){return r.json();})
                 .then(function(res){
                     if(!res.success||!res.data||!res.data.length){
@@ -723,7 +723,7 @@ class Scavio_Front {
             var svgEdit = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
 
             /* Pack sélection — écouter l'événement du shortcode */
-            document.addEventListener('scavio_pack_changed', function(){
+            document.addEventListener('clielo_pack_changed', function(){
                 var sel = document.querySelector('.serviceflow-sc-pack[data-selected]');
                 if(sel) selectedPackIdx = parseInt(sel.dataset.index);
                 calcScTotal();
@@ -928,7 +928,7 @@ class Scavio_Front {
                         openChat();
 
                         var fd = new FormData();
-                        fd.append('action', 'scavio_create_order');
+                        fd.append('action', 'clielo_create_order');
                         fd.append('post_id', C.post_id);
                         fd.append('nonce', C.nonce);
                         fd.append('selected_pack', selectedPackIdx);
@@ -1074,7 +1074,7 @@ class Scavio_Front {
                 if(C.is_admin && !selectedClientId) return;
                 send.disabled = true;
                 var fd = new FormData();
-                fd.append('action','scavio_send');
+                fd.append('action','clielo_send');
                 fd.append('post_id', C.post_id);
                 fd.append('nonce', C.nonce);
                 fd.append('message', msg);
@@ -1097,7 +1097,7 @@ class Scavio_Front {
 
             /* ── Load ────────────────────────────────── */
             function loadMsgs(){
-                var params = {action:'scavio_load',post_id:C.post_id,nonce:C.nonce};
+                var params = {action:'clielo_load',post_id:C.post_id,nonce:C.nonce};
                 if(C.is_admin && selectedClientId) params.client_id = selectedClientId;
                 fetch(C.ajax_url+'?'+new URLSearchParams(params))
                 .then(function(r){return r.json();})
@@ -1124,7 +1124,7 @@ class Scavio_Front {
                         if(btn){
                             var span = document.createElement('span');
                             span.style.cssText = 'display:inline-block !important;margin-top:6px !important;padding:5px 14px !important;background:#10b981 !important;color:#fff !important;border-radius:6px !important;font-size:12px !important;font-weight:600 !important';
-                            span.textContent = '✅ <?php echo esc_js( __( 'Payé', 'scavio' ) ); ?>';
+                            span.textContent = '✅ <?php echo esc_js( __( 'Payé', 'clielo' ) ); ?>';
                             btn.parentNode.replaceChild(span, btn);
                         }
                     });
@@ -1135,7 +1135,7 @@ class Scavio_Front {
                         if(btn){
                             var span = document.createElement('span');
                             span.style.cssText = 'display:inline-block !important;margin-top:6px !important;padding:5px 14px !important;background:#6b7280 !important;color:#fff !important;border-radius:6px !important;font-size:12px !important;font-weight:600 !important;cursor:default !important';
-                            span.textContent = '⏱ <?php echo esc_js( __( 'Lien expiré — contactez votre prestataire', 'scavio' ) ); ?>';
+                            span.textContent = '⏱ <?php echo esc_js( __( 'Lien expiré — contactez votre prestataire', 'clielo' ) ); ?>';
                             btn.parentNode.replaceChild(span, btn);
                         }
                     });
@@ -1145,7 +1145,7 @@ class Scavio_Front {
             /* ── Poll ────────────────────────────────── */
             setInterval(function(){
                 if(C.is_admin && !selectedClientId) return;
-                var params = {action:'scavio_poll',post_id:C.post_id,last_id:lastId,nonce:C.nonce};
+                var params = {action:'clielo_poll',post_id:C.post_id,last_id:lastId,nonce:C.nonce};
                 if(C.is_admin && selectedClientId) params.client_id = selectedClientId;
 
                 fetch(C.ajax_url+'?'+new URLSearchParams(params))
@@ -1208,9 +1208,9 @@ class Scavio_Front {
                     sysHtml = esc(sysHtml).replace(/\n/g,'<br>');
                     sysHtml = sysHtml.replace(/\x00PAY_LINK:(.*?)\x00/g, function(_, url){
                         if(isPaid){
-                            return '<span style="display:inline-block !important;margin-top:6px !important;padding:5px 14px !important;background:#10b981 !important;color:#fff !important;border-radius:6px !important;font-size:12px !important;font-weight:600 !important">✅ <?php echo esc_js( __( 'Payé', 'scavio' ) ); ?></span>';
+                            return '<span style="display:inline-block !important;margin-top:6px !important;padding:5px 14px !important;background:#10b981 !important;color:#fff !important;border-radius:6px !important;font-size:12px !important;font-weight:600 !important">✅ <?php echo esc_js( __( 'Payé', 'clielo' ) ); ?></span>';
                         }
-                        return '<a href="'+url+'" target="_blank" rel="noopener"'+(schedId?' data-sf-sched-id="'+schedId+'"':'')+' style="display:inline-block !important;margin-top:6px !important;padding:5px 14px !important;background:'+C.color+' !important;color:#fff !important;border-radius:6px !important;font-size:12px !important;font-weight:600 !important;text-decoration:none !important">💳 <?php echo esc_js( __( 'Payer maintenant', 'scavio' ) ); ?></a>';
+                        return '<a href="'+url+'" target="_blank" rel="noopener"'+(schedId?' data-sf-sched-id="'+schedId+'"':'')+' style="display:inline-block !important;margin-top:6px !important;padding:5px 14px !important;background:'+C.color+' !important;color:#fff !important;border-radius:6px !important;font-size:12px !important;font-weight:600 !important;text-decoration:none !important">💳 <?php echo esc_js( __( 'Payer maintenant', 'clielo' ) ); ?></a>';
                     });
                     el.innerHTML = '<div style="background:#f0f4ff !important;border:1px solid #d0d9e8 !important;border-radius:10px !important;padding:10px 14px !important;text-align:center !important;font-size:13px !important;line-height:1.5 !important;color:#444 !important;width:100% !important">'+sysHtml+'</div>';
                     msgs.appendChild(el);
@@ -1404,7 +1404,7 @@ class Scavio_Front {
 
             function doToggleTodo(orderId, todoId, completed, note){
                 var fd = new FormData();
-                fd.append('action', 'scavio_toggle_todo');
+                fd.append('action', 'clielo_toggle_todo');
                 fd.append('nonce', C.nonce);
                 fd.append('order_id', orderId);
                 fd.append('todo_id', todoId);
@@ -1498,7 +1498,7 @@ class Scavio_Front {
 
             function doOrderTransition(orderId, newStatus, extraData){
                 var fd = new FormData();
-                fd.append('action', 'scavio_order_transition');
+                fd.append('action', 'clielo_order_transition');
                 fd.append('nonce', C.nonce);
                 fd.append('order_id', orderId);
                 fd.append('new_status', newStatus);
@@ -1545,10 +1545,10 @@ class Scavio_Front {
             }
         })();
         <?php
-        wp_add_inline_script( 'scavio-chat-js', ob_get_clean() );
+        wp_add_inline_script( 'clielo-chat-js', ob_get_clean() );
     }
 
     private static function is_chat_page(): bool {
-        return is_singular( Scavio_Admin::get_post_type() );
+        return is_singular( Clielo_Admin::get_post_type() );
     }
 }

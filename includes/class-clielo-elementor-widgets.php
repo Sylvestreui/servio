@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class Scavio_Elementor_Widgets {
+class Clielo_Elementor_Widgets {
 
     public static function init(): void {
         add_action( 'elementor/elements/categories_registered', [ __CLASS__, 'add_category' ] );
@@ -12,16 +12,16 @@ class Scavio_Elementor_Widgets {
     }
 
     public static function add_category( $elements_manager ): void {
-        $elements_manager->add_category( 'scavio', [
-            'title' => 'Scavio',
+        $elements_manager->add_category( 'clielo', [
+            'title' => 'Clielo',
             'icon'  => 'eicon-plug',
         ] );
     }
 
     public static function register_widgets( $widgets_manager ): void {
-        $widgets_manager->register( new Scavio_Widget_Pack() );
-        $widgets_manager->register( new Scavio_Widget_Option() );
-        $widgets_manager->register( new Scavio_Widget_Advanced_Price() );
+        $widgets_manager->register( new Clielo_Widget_Pack() );
+        $widgets_manager->register( new Clielo_Widget_Option() );
+        $widgets_manager->register( new Clielo_Widget_Advanced_Price() );
     }
 }
 
@@ -29,10 +29,10 @@ class Scavio_Elementor_Widgets {
  *  BASE WIDGET
  * ================================================================ */
 
-abstract class Scavio_Widget_Base extends \Elementor\Widget_Base {
+abstract class Clielo_Widget_Base extends \Elementor\Widget_Base {
 
     public function get_categories(): array {
-        return [ 'scavio' ];
+        return [ 'clielo' ];
     }
 
     protected function get_post_id(): int {
@@ -41,7 +41,7 @@ abstract class Scavio_Widget_Base extends \Elementor\Widget_Base {
 
     protected function register_html_tag_control(): void {
         $this->add_control( 'html_tag', [
-            'label'   => __( 'Balise HTML', 'scavio' ),
+            'label'   => __( 'Balise HTML', 'clielo' ),
             'type'    => \Elementor\Controls_Manager::SELECT,
             'default' => 'span',
             'options' => [
@@ -60,12 +60,12 @@ abstract class Scavio_Widget_Base extends \Elementor\Widget_Base {
 
     protected function register_style_section(): void {
         $this->start_controls_section( 'section_style', [
-            'label' => __( 'Style', 'scavio' ),
+            'label' => __( 'Style', 'clielo' ),
             'tab'   => \Elementor\Controls_Manager::TAB_STYLE,
         ] );
 
         $this->add_control( 'text_color', [
-            'label'     => __( 'Couleur', 'scavio' ),
+            'label'     => __( 'Couleur', 'clielo' ),
             'type'      => \Elementor\Controls_Manager::COLOR,
             'selectors' => [ '{{WRAPPER}} .sf-widget-text' => 'color: {{VALUE}};' ],
         ] );
@@ -76,12 +76,12 @@ abstract class Scavio_Widget_Base extends \Elementor\Widget_Base {
         );
 
         $this->add_responsive_control( 'text_align', [
-            'label'     => __( 'Alignement', 'scavio' ),
+            'label'     => __( 'Alignement', 'clielo' ),
             'type'      => \Elementor\Controls_Manager::CHOOSE,
             'options'   => [
-                'left'   => [ 'title' => __( 'Gauche', 'scavio' ),  'icon' => 'eicon-text-align-left' ],
-                'center' => [ 'title' => __( 'Centre', 'scavio' ),  'icon' => 'eicon-text-align-center' ],
-                'right'  => [ 'title' => __( 'Droite', 'scavio' ),  'icon' => 'eicon-text-align-right' ],
+                'left'   => [ 'title' => __( 'Gauche', 'clielo' ),  'icon' => 'eicon-text-align-left' ],
+                'center' => [ 'title' => __( 'Centre', 'clielo' ),  'icon' => 'eicon-text-align-center' ],
+                'right'  => [ 'title' => __( 'Droite', 'clielo' ),  'icon' => 'eicon-text-align-right' ],
             ],
             'selectors' => [ '{{WRAPPER}} .sf-widget-text' => 'text-align: {{VALUE}};' ],
         ] );
@@ -102,36 +102,36 @@ abstract class Scavio_Widget_Base extends \Elementor\Widget_Base {
  *  WIDGET PACK
  * ================================================================ */
 
-class Scavio_Widget_Pack extends Scavio_Widget_Base {
+class Clielo_Widget_Pack extends Clielo_Widget_Base {
 
     public function get_name(): string  { return 'sf_pack'; }
-    public function get_title(): string { return __( 'SF — Pack', 'scavio' ); }
+    public function get_title(): string { return __( 'SF — Pack', 'clielo' ); }
     public function get_icon(): string  { return 'eicon-archive'; }
 
     protected function register_controls(): void {
 
         /* ── Contenu ── */
         $this->start_controls_section( 'section_content', [
-            'label' => __( 'Contenu', 'scavio' ),
+            'label' => __( 'Contenu', 'clielo' ),
         ] );
 
         $this->add_control( 'field', [
-            'label'   => __( 'Champ', 'scavio' ),
+            'label'   => __( 'Champ', 'clielo' ),
             'type'    => \Elementor\Controls_Manager::SELECT,
             'default' => 'name',
             'options' => [
-                'name'          => __( 'Nom', 'scavio' ),
-                'price'         => __( 'Prix', 'scavio' ),
-                'starting_price'=> __( 'Prix de départ (min)', 'scavio' ),
-                'delay'         => __( 'Délai de livraison', 'scavio' ),
-                'description'   => __( 'Description', 'scavio' ),
-                'features'      => __( 'Caractéristiques', 'scavio' ),
-                'count'         => __( 'Nombre de packs', 'scavio' ),
+                'name'          => __( 'Nom', 'clielo' ),
+                'price'         => __( 'Prix', 'clielo' ),
+                'starting_price'=> __( 'Prix de départ (min)', 'clielo' ),
+                'delay'         => __( 'Délai de livraison', 'clielo' ),
+                'description'   => __( 'Description', 'clielo' ),
+                'features'      => __( 'Caractéristiques', 'clielo' ),
+                'count'         => __( 'Nombre de packs', 'clielo' ),
             ],
         ] );
 
         $this->add_control( 'pack_index', [
-            'label'     => __( 'N° du pack (0 = premier)', 'scavio' ),
+            'label'     => __( 'N° du pack (0 = premier)', 'clielo' ),
             'type'      => \Elementor\Controls_Manager::NUMBER,
             'default'   => 0,
             'min'       => 0,
@@ -139,32 +139,32 @@ class Scavio_Widget_Pack extends Scavio_Widget_Base {
         ] );
 
         $this->add_control( 'currency', [
-            'label'     => __( 'Devise', 'scavio' ),
+            'label'     => __( 'Devise', 'clielo' ),
             'type'      => \Elementor\Controls_Manager::TEXT,
             'default'   => '€',
             'condition' => [ 'field' => [ 'price', 'starting_price' ] ],
         ] );
 
         $this->add_control( 'delay_suffix', [
-            'label'     => __( 'Suffixe', 'scavio' ),
+            'label'     => __( 'Suffixe', 'clielo' ),
             'type'      => \Elementor\Controls_Manager::TEXT,
             'default'   => ' jour(s)',
             'condition' => [ 'field' => 'delay' ],
         ] );
 
         $this->add_control( 'features_format', [
-            'label'     => __( 'Format', 'scavio' ),
+            'label'     => __( 'Format', 'clielo' ),
             'type'      => \Elementor\Controls_Manager::SELECT,
             'default'   => 'list',
             'options'   => [
-                'list'   => __( 'Liste (ul/li)', 'scavio' ),
-                'inline' => __( 'En ligne', 'scavio' ),
+                'list'   => __( 'Liste (ul/li)', 'clielo' ),
+                'inline' => __( 'En ligne', 'clielo' ),
             ],
             'condition' => [ 'field' => 'features' ],
         ] );
 
         $this->add_control( 'features_separator', [
-            'label'     => __( 'Séparateur', 'scavio' ),
+            'label'     => __( 'Séparateur', 'clielo' ),
             'type'      => \Elementor\Controls_Manager::TEXT,
             'default'   => ', ',
             'condition' => [ 'field' => 'features', 'features_format' => 'inline' ],
@@ -179,13 +179,13 @@ class Scavio_Widget_Pack extends Scavio_Widget_Base {
 
         /* ── Style liste (features uniquement) ── */
         $this->start_controls_section( 'section_style_list', [
-            'label'     => __( 'Style liste', 'scavio' ),
+            'label'     => __( 'Style liste', 'clielo' ),
             'tab'       => \Elementor\Controls_Manager::TAB_STYLE,
             'condition' => [ 'field' => 'features' ],
         ] );
 
         $this->add_control( 'list_color', [
-            'label'     => __( 'Couleur texte', 'scavio' ),
+            'label'     => __( 'Couleur texte', 'clielo' ),
             'type'      => \Elementor\Controls_Manager::COLOR,
             'selectors' => [ '{{WRAPPER}} .sf-features-list li' => 'color: {{VALUE}};' ],
         ] );
@@ -196,7 +196,7 @@ class Scavio_Widget_Pack extends Scavio_Widget_Base {
         );
 
         $this->add_responsive_control( 'list_gap', [
-            'label'      => __( 'Espacement items', 'scavio' ),
+            'label'      => __( 'Espacement items', 'clielo' ),
             'type'       => \Elementor\Controls_Manager::SLIDER,
             'size_units' => [ 'px' ],
             'range'      => [ 'px' => [ 'min' => 0, 'max' => 40 ] ],
@@ -205,7 +205,7 @@ class Scavio_Widget_Pack extends Scavio_Widget_Base {
         ] );
 
         $this->add_control( 'list_padding', [
-            'label'      => __( 'Retrait liste', 'scavio' ),
+            'label'      => __( 'Retrait liste', 'clielo' ),
             'type'       => \Elementor\Controls_Manager::SLIDER,
             'size_units' => [ 'px' ],
             'range'      => [ 'px' => [ 'min' => 0, 'max' => 40 ] ],
@@ -218,7 +218,7 @@ class Scavio_Widget_Pack extends Scavio_Widget_Base {
 
     protected function render(): void {
         $s       = $this->get_settings_for_display();
-        $packs   = Scavio_Options::get_packs( $this->get_post_id() ) ?: [];
+        $packs   = Clielo_Options::get_packs( $this->get_post_id() ) ?: [];
         $idx     = (int) ( $s['pack_index'] ?? 0 );
         $field   = $s['field'] ?? 'name';
         $currency = esc_html( $s['currency'] ?? '€' );
@@ -275,33 +275,33 @@ class Scavio_Widget_Pack extends Scavio_Widget_Base {
  *  WIDGET OPTION
  * ================================================================ */
 
-class Scavio_Widget_Option extends Scavio_Widget_Base {
+class Clielo_Widget_Option extends Clielo_Widget_Base {
 
     public function get_name(): string  { return 'sf_option'; }
-    public function get_title(): string { return __( 'SF — Option', 'scavio' ); }
+    public function get_title(): string { return __( 'SF — Option', 'clielo' ); }
     public function get_icon(): string  { return 'eicon-plus-circle'; }
 
     protected function register_controls(): void {
 
         $this->start_controls_section( 'section_content', [
-            'label' => __( 'Contenu', 'scavio' ),
+            'label' => __( 'Contenu', 'clielo' ),
         ] );
 
         $this->add_control( 'field', [
-            'label'   => __( 'Champ', 'scavio' ),
+            'label'   => __( 'Champ', 'clielo' ),
             'type'    => \Elementor\Controls_Manager::SELECT,
             'default' => 'name',
             'options' => [
-                'name'        => __( 'Nom', 'scavio' ),
-                'price'       => __( 'Prix', 'scavio' ),
-                'delay'       => __( 'Délai', 'scavio' ),
-                'description' => __( 'Description', 'scavio' ),
-                'count'       => __( 'Nombre d\'options', 'scavio' ),
+                'name'        => __( 'Nom', 'clielo' ),
+                'price'       => __( 'Prix', 'clielo' ),
+                'delay'       => __( 'Délai', 'clielo' ),
+                'description' => __( 'Description', 'clielo' ),
+                'count'       => __( 'Nombre d\'options', 'clielo' ),
             ],
         ] );
 
         $this->add_control( 'option_index', [
-            'label'     => __( 'N° de l\'option (0 = première)', 'scavio' ),
+            'label'     => __( 'N° de l\'option (0 = première)', 'clielo' ),
             'type'      => \Elementor\Controls_Manager::NUMBER,
             'default'   => 0,
             'min'       => 0,
@@ -309,14 +309,14 @@ class Scavio_Widget_Option extends Scavio_Widget_Base {
         ] );
 
         $this->add_control( 'currency', [
-            'label'     => __( 'Devise', 'scavio' ),
+            'label'     => __( 'Devise', 'clielo' ),
             'type'      => \Elementor\Controls_Manager::TEXT,
             'default'   => '€',
             'condition' => [ 'field' => 'price' ],
         ] );
 
         $this->add_control( 'delay_suffix', [
-            'label'     => __( 'Suffixe', 'scavio' ),
+            'label'     => __( 'Suffixe', 'clielo' ),
             'type'      => \Elementor\Controls_Manager::TEXT,
             'default'   => ' jour(s)',
             'condition' => [ 'field' => 'delay' ],
@@ -331,7 +331,7 @@ class Scavio_Widget_Option extends Scavio_Widget_Base {
 
     protected function render(): void {
         $s        = $this->get_settings_for_display();
-        $opts     = Scavio_Options::get_options( $this->get_post_id() ) ?: [];
+        $opts     = Clielo_Options::get_options( $this->get_post_id() ) ?: [];
         $idx      = (int) ( $s['option_index'] ?? 0 );
         $field    = $s['field'] ?? 'name';
         $currency = esc_html( $s['currency'] ?? '€' );
@@ -367,31 +367,31 @@ class Scavio_Widget_Option extends Scavio_Widget_Base {
  *  WIDGET PRIX AVANCÉS (Premium)
  * ================================================================ */
 
-class Scavio_Widget_Advanced_Price extends Scavio_Widget_Base {
+class Clielo_Widget_Advanced_Price extends Clielo_Widget_Base {
 
     public function get_name(): string  { return 'sf_advanced_price'; }
-    public function get_title(): string { return __( 'SF — Prix avancé', 'scavio' ); }
+    public function get_title(): string { return __( 'SF — Prix avancé', 'clielo' ); }
     public function get_icon(): string  { return 'eicon-price-table'; }
 
     protected function register_controls(): void {
 
         $this->start_controls_section( 'section_content', [
-            'label' => __( 'Contenu', 'scavio' ),
+            'label' => __( 'Contenu', 'clielo' ),
         ] );
 
         $this->add_control( 'field', [
-            'label'   => __( 'Champ', 'scavio' ),
+            'label'   => __( 'Champ', 'clielo' ),
             'type'    => \Elementor\Controls_Manager::SELECT,
             'default' => 'extra_page',
             'options' => [
-                'extra_page'  => __( 'Page supplémentaire', 'scavio' ),
-                'maintenance' => __( 'Maintenance mensuelle', 'scavio' ),
-                'express'     => __( 'Livraison express (par jour)', 'scavio' ),
+                'extra_page'  => __( 'Page supplémentaire', 'clielo' ),
+                'maintenance' => __( 'Maintenance mensuelle', 'clielo' ),
+                'express'     => __( 'Livraison express (par jour)', 'clielo' ),
             ],
         ] );
 
         $this->add_control( 'currency', [
-            'label'   => __( 'Devise', 'scavio' ),
+            'label'   => __( 'Devise', 'clielo' ),
             'type'    => \Elementor\Controls_Manager::TEXT,
             'default' => '€',
         ] );
@@ -409,12 +409,12 @@ class Scavio_Widget_Advanced_Price extends Scavio_Widget_Base {
         $currency = esc_html( $s['currency'] ?? '€' );
 
         $meta_keys = [
-            'extra_page'  => '_scavio_extra_page_price',
-            'maintenance' => '_scavio_maintenance_price',
-            'express'     => '_scavio_express_price',
+            'extra_page'  => '_clielo_extra_page_price',
+            'maintenance' => '_clielo_maintenance_price',
+            'express'     => '_clielo_express_price',
         ];
 
-        $key   = $meta_keys[ $s['field'] ?? 'extra_page' ] ?? '_scavio_extra_page_price';
+        $key   = $meta_keys[ $s['field'] ?? 'extra_page' ] ?? '_clielo_extra_page_price';
         $price = (float) get_post_meta( $post_id, $key, true );
 
         $this->render_text( esc_html( number_format( $price, 2, ',', ' ' ) . ' ' . $currency ) );

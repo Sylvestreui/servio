@@ -4,40 +4,40 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class Scavio_Ajax {
+class Clielo_Ajax {
 
     public static function init(): void {
         // Envoi de message (utilisateurs connectés uniquement)
-        add_action( 'wp_ajax_scavio_send', [ __CLASS__, 'send_message' ] );
+        add_action( 'wp_ajax_clielo_send', [ __CLASS__, 'send_message' ] );
 
         // Récupération des nouveaux messages (polling)
-        add_action( 'wp_ajax_scavio_poll', [ __CLASS__, 'poll_messages' ] );
+        add_action( 'wp_ajax_clielo_poll', [ __CLASS__, 'poll_messages' ] );
 
         // Chargement initial des messages
-        add_action( 'wp_ajax_scavio_load', [ __CLASS__, 'load_messages' ] );
+        add_action( 'wp_ajax_clielo_load', [ __CLASS__, 'load_messages' ] );
     }
 
     /**
      * Envoie un message.
      */
     public static function send_message(): void {
-        check_ajax_referer( 'scavio_nonce', 'nonce' );
+        check_ajax_referer( 'clielo_nonce', 'nonce' );
 
         if ( ! is_user_logged_in() ) {
-            wp_send_json_error( [ 'message' => __( 'Vous devez être connecté.', 'scavio' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Vous devez être connecté.', 'clielo' ) ], 403 );
         }
 
         $post_id = absint( $_POST['post_id'] ?? 0 );
         $message = sanitize_textarea_field( wp_unslash( $_POST['message'] ?? '' ) );
 
         if ( ! $post_id || empty( $message ) ) {
-            wp_send_json_error( [ 'message' => __( 'Données manquantes.', 'scavio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Données manquantes.', 'clielo' ) ], 400 );
         }
 
         // Vérifier que le post existe et est du bon CPT
         $post = get_post( $post_id );
-        if ( ! $post || $post->post_type !== Scavio_Admin::get_post_type() ) {
-            wp_send_json_error( [ 'message' => __( 'Post invalide.', 'scavio' ) ], 400 );
+        if ( ! $post || $post->post_type !== Clielo_Admin::get_post_type() ) {
+            wp_send_json_error( [ 'message' => __( 'Post invalide.', 'clielo' ) ], 400 );
         }
 
         $user_id   = get_current_user_id();
@@ -47,21 +47,21 @@ class Scavio_Ajax {
         if ( current_user_can( 'manage_options' ) ) {
             // Admin : client_id obligatoire (le client sélectionné)
             if ( ! $client_id ) {
-                wp_send_json_error( [ 'message' => __( 'Client non sélectionné.', 'scavio' ) ], 400 );
+                wp_send_json_error( [ 'message' => __( 'Client non sélectionné.', 'clielo' ) ], 400 );
             }
         } else {
             // Client : forcé à son propre ID
             $client_id = $user_id;
         }
 
-        $inserted = Scavio_DB::insert_message( $post_id, $user_id, $message, $client_id );
+        $inserted = Clielo_DB::insert_message( $post_id, $user_id, $message, $client_id );
 
         if ( ! $inserted ) {
-            wp_send_json_error( [ 'message' => __( 'Erreur lors de l\'envoi.', 'scavio' ) ], 500 );
+            wp_send_json_error( [ 'message' => __( 'Erreur lors de l\'envoi.', 'clielo' ) ], 500 );
         }
 
         // Déclencher la notification
-        do_action( 'scavio_message_sent', $post_id, $user_id, $client_id, $inserted );
+        do_action( 'clielo_message_sent', $post_id, $user_id, $client_id, $inserted );
 
         $user = wp_get_current_user();
 
@@ -73,7 +73,7 @@ class Scavio_Ajax {
             'display_name' => $user->display_name,
             'message'      => $message,
             'created_at'   => current_time( 'mysql' ),
-            'avatar'       => Scavio_Account::get_user_avatar( $user_id, 40 ),
+            'avatar'       => Clielo_Account::get_user_avatar( $user_id, 40 ),
         ] );
     }
 
@@ -81,7 +81,7 @@ class Scavio_Ajax {
      * Récupère les nouveaux messages depuis le dernier ID connu.
      */
     public static function poll_messages(): void {
-        check_ajax_referer( 'scavio_nonce', 'nonce' );
+        check_ajax_referer( 'clielo_nonce', 'nonce' );
 
         if ( ! is_user_logged_in() ) {
             wp_send_json_error( [], 403 );
@@ -100,11 +100,11 @@ class Scavio_Ajax {
             $client_id = get_current_user_id();
         }
 
-        $messages = Scavio_DB::get_new_messages( $post_id, $last_id, $client_id );
+        $messages = Clielo_DB::get_new_messages( $post_id, $last_id, $client_id );
         $data     = self::format_messages( $messages );
 
         // Inclure active_order pour garder l'en-tête du chat synchronisé
-        $active_order = Scavio_Orders::build_order_response( $post_id );
+        $active_order = Clielo_Orders::build_order_response( $post_id );
 
         wp_send_json_success( [
             'messages'             => $data,
@@ -118,7 +118,7 @@ class Scavio_Ajax {
      * Charge les messages initiaux d'un post.
      */
     public static function load_messages(): void {
-        check_ajax_referer( 'scavio_nonce', 'nonce' );
+        check_ajax_referer( 'clielo_nonce', 'nonce' );
 
         if ( ! is_user_logged_in() ) {
             wp_send_json_error( [], 403 );
@@ -136,7 +136,7 @@ class Scavio_Ajax {
             $client_id = get_current_user_id();
         }
 
-        $messages = Scavio_DB::get_messages( $post_id, $client_id );
+        $messages = Clielo_DB::get_messages( $post_id, $client_id );
         $data     = self::format_messages( $messages );
 
         wp_send_json_success( [
@@ -160,8 +160,8 @@ class Scavio_Ajax {
                 $sched_ids[] = (int) $m[1];
             }
         }
-        $paid_sched_ids = class_exists( 'Scavio_Payments' ) && ! empty( $sched_ids )
-            ? Scavio_Payments::get_paid_by_ids( $sched_ids )
+        $paid_sched_ids = class_exists( 'Clielo_Payments' ) && ! empty( $sched_ids )
+            ? Clielo_Payments::get_paid_by_ids( $sched_ids )
             : [];
 
         return array_map( function ( $msg ) use ( $current_user_id, $paid_sched_ids ) {
@@ -178,10 +178,10 @@ class Scavio_Ajax {
                 'id'            => (int) $msg->id,
                 'post_id'       => (int) $msg->post_id,
                 'user_id'       => (int) $msg->user_id,
-                'display_name'  => $is_system ? __( 'Système', 'scavio' ) : ( $msg->display_name ?? '' ),
+                'display_name'  => $is_system ? __( 'Système', 'clielo' ) : ( $msg->display_name ?? '' ),
                 'message'       => $msg->message,
                 'created_at'    => $msg->created_at,
-                'avatar'        => $is_system ? '' : Scavio_Account::get_user_avatar( (int) $msg->user_id, 40 ),
+                'avatar'        => $is_system ? '' : Clielo_Account::get_user_avatar( (int) $msg->user_id, 40 ),
                 'is_mine'       => (int) $msg->user_id === $current_user_id,
                 'is_system'     => $is_system,
                 'schedule_id'   => $schedule_id,
@@ -194,16 +194,16 @@ class Scavio_Ajax {
      * Retourne les IDs d'échéancier payés pour un post donné.
      */
     private static function paid_schedule_ids_for_post( int $post_id ): array {
-        if ( ! class_exists( 'Scavio_Payments' ) ) {
+        if ( ! class_exists( 'Clielo_Payments' ) ) {
             return [];
         }
-        return Scavio_Payments::get_paid_schedule_ids_for_post( $post_id );
+        return Clielo_Payments::get_paid_schedule_ids_for_post( $post_id );
     }
 
     private static function expired_schedule_ids_for_post( int $post_id ): array {
-        if ( ! class_exists( 'Scavio_Payments' ) ) {
+        if ( ! class_exists( 'Clielo_Payments' ) ) {
             return [];
         }
-        return Scavio_Payments::get_expired_schedule_ids_for_post( $post_id );
+        return Clielo_Payments::get_expired_schedule_ids_for_post( $post_id );
     }
 }

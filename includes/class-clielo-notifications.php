@@ -4,49 +4,49 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class Scavio_Notifications {
+class Clielo_Notifications {
 
     private static int $instance = 0;
 
     public static function init(): void {
-        add_shortcode( 'scavio_notifications', [ __CLASS__, 'shortcode_bell' ] );
+        add_shortcode( 'clielo_notifications', [ __CLASS__, 'shortcode_bell' ] );
 
-        add_action( 'wp_ajax_scavio_notif_count',    [ __CLASS__, 'ajax_count' ] );
-        add_action( 'wp_ajax_scavio_notif_list',      [ __CLASS__, 'ajax_list' ] );
-        add_action( 'wp_ajax_scavio_notif_read_all',  [ __CLASS__, 'ajax_read_all' ] );
+        add_action( 'wp_ajax_clielo_notif_count',    [ __CLASS__, 'ajax_count' ] );
+        add_action( 'wp_ajax_clielo_notif_list',      [ __CLASS__, 'ajax_list' ] );
+        add_action( 'wp_ajax_clielo_notif_read_all',  [ __CLASS__, 'ajax_read_all' ] );
 
         // Hooks sur les événements du plugin (in-app notifications = free, emails = premium)
-        add_action( 'scavio_message_sent',         [ __CLASS__, 'on_message_sent' ], 10, 4 );
-        add_action( 'scavio_order_created',         [ __CLASS__, 'on_order_created' ], 10, 3 );
-        add_action( 'scavio_order_status_changed',  [ __CLASS__, 'on_order_status_changed' ], 10, 4 );
+        add_action( 'clielo_message_sent',         [ __CLASS__, 'on_message_sent' ], 10, 4 );
+        add_action( 'clielo_order_created',         [ __CLASS__, 'on_order_created' ], 10, 3 );
+        add_action( 'clielo_order_status_changed',  [ __CLASS__, 'on_order_status_changed' ], 10, 4 );
 
         add_action( 'wp_enqueue_scripts',    [ __CLASS__, 'enqueue_frontend_assets' ] );
         add_action( 'admin_enqueue_scripts', [ __CLASS__, 'enqueue_admin_assets' ] );
 
-        if ( scavio_is_premium() ) {
+        if ( clielo_is_premium() ) {
             add_action( 'admin_menu', [ __CLASS__, 'add_menu' ] );
             add_action( 'admin_init', [ __CLASS__, 'register_settings' ] );
-            add_action( 'wp_ajax_scavio_preview_email', [ __CLASS__, 'ajax_preview_email' ] );
+            add_action( 'wp_ajax_clielo_preview_email', [ __CLASS__, 'ajax_preview_email' ] );
         }
     }
 
     public static function enqueue_frontend_assets(): void {
-        if ( ! wp_script_is( 'scavio-notif-js', 'registered' ) ) {
-            wp_register_script( 'scavio-notif-js', false, [ 'jquery' ], SCAVIO_VERSION, true ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
+        if ( ! wp_script_is( 'clielo-notif-js', 'registered' ) ) {
+            wp_register_script( 'clielo-notif-js', false, [ 'jquery' ], CLIELO_VERSION, true ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
         }
-        wp_enqueue_script( 'scavio-notif-js' );
+        wp_enqueue_script( 'clielo-notif-js' );
     }
 
     public static function enqueue_admin_assets( string $hook ): void {
         if ( strpos( $hook, 'serviceflow-notifications' ) === false ) {
             return;
         }
-        if ( ! wp_script_is( 'scavio-notif-admin-js', 'registered' ) ) {
-            wp_register_script( 'scavio-notif-admin-js', false, [ 'jquery' ], SCAVIO_VERSION, true ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
+        if ( ! wp_script_is( 'clielo-notif-admin-js', 'registered' ) ) {
+            wp_register_script( 'clielo-notif-admin-js', false, [ 'jquery' ], CLIELO_VERSION, true ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
         }
-        wp_enqueue_script( 'scavio-notif-admin-js' );
+        wp_enqueue_script( 'clielo-notif-admin-js' );
 
-        $color = esc_attr( Scavio_Admin::get_color() );
+        $color = esc_attr( Clielo_Admin::get_color() );
         wp_add_inline_style(
             'wp-admin',
             '.serviceflow-notif-section{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:24px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}' .
@@ -87,7 +87,7 @@ class Scavio_Notifications {
 
     public static function table_name(): string {
         global $wpdb;
-        return $wpdb->prefix . 'scavio_notifications';
+        return $wpdb->prefix . 'clielo_notifications';
     }
 
     public static function create_table(): void {
@@ -142,7 +142,7 @@ class Scavio_Notifications {
             'tpl_body_payment_link'    => "Votre {installment_label} de {amount} € pour le service « {service_name} » est disponible.\n\nCliquez sur le bouton ci-dessous pour procéder au règlement.",
             'tpl_body_payment_reminder' => "Rappel : votre {installment_label} de {amount} € pour le service « {service_name} » (commande {order_number}) est due le {due_date}.\n\nMerci de procéder au règlement.",
         ];
-        $saved = get_option( 'scavio_notif_settings', [] );
+        $saved = get_option( 'clielo_notif_settings', [] );
         if ( ! is_array( $saved ) ) {
             $saved = [];
         }
@@ -151,9 +151,9 @@ class Scavio_Notifications {
 
     public static function add_menu(): void {
         add_submenu_page(
-            'scavio',
-            __( 'Notifications', 'scavio' ),
-            __( 'Notifications', 'scavio' ),
+            'clielo',
+            __( 'Notifications', 'clielo' ),
+            __( 'Notifications', 'clielo' ),
             'manage_options',
             'serviceflow-notifications',
             [ __CLASS__, 'render_settings_page' ]
@@ -161,7 +161,7 @@ class Scavio_Notifications {
     }
 
     public static function register_settings(): void {
-        register_setting( 'scavio_notif_settings', 'scavio_notif_settings', [
+        register_setting( 'clielo_notif_settings', 'clielo_notif_settings', [
             'type'              => 'array',
             'sanitize_callback' => [ __CLASS__, 'sanitize_settings' ],
         ] );
@@ -203,38 +203,38 @@ class Scavio_Notifications {
         }
 
         $settings = self::get_settings();
-        $color    = Scavio_Admin::get_color();
+        $color    = Clielo_Admin::get_color();
         ?>
         <div class="wrap serviceflow-dashboard">
             <h1 style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
                 <span class="dashicons dashicons-bell" style="font-size:28px;width:28px;height:28px;color:<?php echo esc_attr( $color ); ?>"></span>
-                <?php esc_html_e( 'Scavio — Notifications', 'scavio' ); ?>
+                <?php esc_html_e( 'Clielo — Notifications', 'clielo' ); ?>
             </h1>
 
             <form method="post" action="options.php">
-                <?php settings_fields( 'scavio_notif_settings' ); ?>
+                <?php settings_fields( 'clielo_notif_settings' ); ?>
 
 
                 <!-- Section Expéditeur -->
                 <div class="serviceflow-notif-section">
                     <h2>
                         <span class="dashicons dashicons-email" style="color:<?php echo esc_attr( $color ); ?>"></span>
-                        <?php esc_html_e( 'Expéditeur des emails', 'scavio' ); ?>
+                        <?php esc_html_e( 'Expéditeur des emails', 'clielo' ); ?>
                     </h2>
 
                     <div class="serviceflow-notif-field">
-                        <label for="scavio_sender_name"><?php esc_html_e( 'Nom de l\'expéditeur', 'scavio' ); ?></label>
-                        <input type="text" id="scavio_sender_name"
-                               name="scavio_notif_settings[sender_name]"
+                        <label for="clielo_sender_name"><?php esc_html_e( 'Nom de l\'expéditeur', 'clielo' ); ?></label>
+                        <input type="text" id="clielo_sender_name"
+                               name="clielo_notif_settings[sender_name]"
                                value="<?php echo esc_attr( $settings['sender_name'] ); ?>"
                                class="serviceflow-notif-input"
                                placeholder="<?php echo esc_attr( get_bloginfo( 'name' ) ); ?>">
                     </div>
 
                     <div class="serviceflow-notif-field">
-                        <label for="scavio_sender_email"><?php esc_html_e( 'Adresse email de l\'expéditeur', 'scavio' ); ?></label>
-                        <input type="email" id="scavio_sender_email"
-                               name="scavio_notif_settings[sender_email]"
+                        <label for="clielo_sender_email"><?php esc_html_e( 'Adresse email de l\'expéditeur', 'clielo' ); ?></label>
+                        <input type="email" id="clielo_sender_email"
+                               name="clielo_notif_settings[sender_email]"
                                value="<?php echo esc_attr( $settings['sender_email'] ); ?>"
                                class="serviceflow-notif-input"
                                placeholder="<?php echo esc_attr( get_bloginfo( 'admin_email' ) ); ?>">
@@ -245,62 +245,62 @@ class Scavio_Notifications {
                 <div class="serviceflow-notif-section">
                     <h2>
                         <span class="dashicons dashicons-bell" style="color:<?php echo esc_attr( $color ); ?>"></span>
-                        <?php esc_html_e( 'Notifications par email', 'scavio' ); ?>
+                        <?php esc_html_e( 'Notifications par email', 'clielo' ); ?>
                     </h2>
 
                     <div class="serviceflow-notif-row">
                         <div>
-                            <div class="serviceflow-notif-row-label"><?php esc_html_e( 'Nouveau message', 'scavio' ); ?></div>
-                            <div class="serviceflow-notif-row-desc"><?php esc_html_e( 'Envoyer un email lorsqu\'un nouveau message est reçu dans le chat.', 'scavio' ); ?></div>
+                            <div class="serviceflow-notif-row-label"><?php esc_html_e( 'Nouveau message', 'clielo' ); ?></div>
+                            <div class="serviceflow-notif-row-desc"><?php esc_html_e( 'Envoyer un email lorsqu\'un nouveau message est reçu dans le chat.', 'clielo' ); ?></div>
                         </div>
                         <label class="serviceflow-toggle-sw">
-                            <input type="checkbox" name="scavio_notif_settings[email_new_message]" value="1" <?php checked( $settings['email_new_message'], '1' ); ?>>
+                            <input type="checkbox" name="clielo_notif_settings[email_new_message]" value="1" <?php checked( $settings['email_new_message'], '1' ); ?>>
                             <span class="serviceflow-toggle-slider"></span>
                         </label>
                     </div>
 
                     <div class="serviceflow-notif-row">
                         <div>
-                            <div class="serviceflow-notif-row-label"><?php esc_html_e( 'Nouvelle commande', 'scavio' ); ?></div>
-                            <div class="serviceflow-notif-row-desc"><?php esc_html_e( 'Envoyer un email à l\'administrateur lorsqu\'une nouvelle commande est passée.', 'scavio' ); ?></div>
+                            <div class="serviceflow-notif-row-label"><?php esc_html_e( 'Nouvelle commande', 'clielo' ); ?></div>
+                            <div class="serviceflow-notif-row-desc"><?php esc_html_e( 'Envoyer un email à l\'administrateur lorsqu\'une nouvelle commande est passée.', 'clielo' ); ?></div>
                         </div>
                         <label class="serviceflow-toggle-sw">
-                            <input type="checkbox" name="scavio_notif_settings[email_new_order]" value="1" <?php checked( $settings['email_new_order'], '1' ); ?>>
+                            <input type="checkbox" name="clielo_notif_settings[email_new_order]" value="1" <?php checked( $settings['email_new_order'], '1' ); ?>>
                             <span class="serviceflow-toggle-slider"></span>
                         </label>
                     </div>
 
                     <div class="serviceflow-notif-row">
                         <div>
-                            <div class="serviceflow-notif-row-label"><?php esc_html_e( 'Changement de statut de commande', 'scavio' ); ?></div>
-                            <div class="serviceflow-notif-row-desc"><?php esc_html_e( 'Envoyer un email lorsque le statut d\'une commande change (démarrée, terminée, retouche, etc.).', 'scavio' ); ?></div>
+                            <div class="serviceflow-notif-row-label"><?php esc_html_e( 'Changement de statut de commande', 'clielo' ); ?></div>
+                            <div class="serviceflow-notif-row-desc"><?php esc_html_e( 'Envoyer un email lorsque le statut d\'une commande change (démarrée, terminée, retouche, etc.).', 'clielo' ); ?></div>
                         </div>
                         <label class="serviceflow-toggle-sw">
-                            <input type="checkbox" name="scavio_notif_settings[email_order_status]" value="1" <?php checked( $settings['email_order_status'], '1' ); ?>>
+                            <input type="checkbox" name="clielo_notif_settings[email_order_status]" value="1" <?php checked( $settings['email_order_status'], '1' ); ?>>
                             <span class="serviceflow-toggle-slider"></span>
                         </label>
                     </div>
 
                     <div class="serviceflow-notif-row">
                         <div>
-                            <div class="serviceflow-notif-row-label"><?php esc_html_e( 'Lien de paiement mensualité', 'scavio' ); ?></div>
-                            <div class="serviceflow-notif-row-desc"><?php esc_html_e( 'Envoyer un email au client avec le lien de paiement Stripe lorsqu\'une mensualité est envoyée.', 'scavio' ); ?></div>
+                            <div class="serviceflow-notif-row-label"><?php esc_html_e( 'Lien de paiement mensualité', 'clielo' ); ?></div>
+                            <div class="serviceflow-notif-row-desc"><?php esc_html_e( 'Envoyer un email au client avec le lien de paiement Stripe lorsqu\'une mensualité est envoyée.', 'clielo' ); ?></div>
                         </div>
                         <label class="serviceflow-toggle-sw">
-                            <input type="checkbox" name="scavio_notif_settings[email_payment_link]" value="1" <?php checked( $settings['email_payment_link'], '1' ); ?>>
+                            <input type="checkbox" name="clielo_notif_settings[email_payment_link]" value="1" <?php checked( $settings['email_payment_link'], '1' ); ?>>
                             <span class="serviceflow-toggle-slider"></span>
                         </label>
                     </div>
 
                     <div class="serviceflow-notif-row">
                         <div>
-                            <div class="serviceflow-notif-row-label"><?php esc_html_e( 'Rappel de paiement', 'scavio' ); ?></div>
+                            <div class="serviceflow-notif-row-label"><?php esc_html_e( 'Rappel de paiement', 'clielo' ); ?></div>
                             <div class="serviceflow-notif-row-desc">
-                                <?php esc_html_e( 'Envoyer un rappel email avant la date d\'échéance d\'une mensualité.', 'scavio' ); ?>
+                                <?php esc_html_e( 'Envoyer un rappel email avant la date d\'échéance d\'une mensualité.', 'clielo' ); ?>
                                 <br>
                                 <label style="margin-top:6px;display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#555">
-                                    <?php esc_html_e( 'Jours avant échéance :', 'scavio' ); ?>
-                                    <input type="number" name="scavio_notif_settings[reminder_days_before]"
+                                    <?php esc_html_e( 'Jours avant échéance :', 'clielo' ); ?>
+                                    <input type="number" name="clielo_notif_settings[reminder_days_before]"
                                            value="<?php echo (int) $settings['reminder_days_before']; ?>"
                                            min="0" max="30"
                                            style="width:60px;padding:2px 6px;border:1px solid #ddd;border-radius:4px;font-size:12px">
@@ -308,7 +308,7 @@ class Scavio_Notifications {
                             </div>
                         </div>
                         <label class="serviceflow-toggle-sw">
-                            <input type="checkbox" name="scavio_notif_settings[email_payment_reminder]" value="1" <?php checked( $settings['email_payment_reminder'], '1' ); ?>>
+                            <input type="checkbox" name="clielo_notif_settings[email_payment_reminder]" value="1" <?php checked( $settings['email_payment_reminder'], '1' ); ?>>
                             <span class="serviceflow-toggle-slider"></span>
                         </label>
                     </div>
@@ -318,16 +318,16 @@ class Scavio_Notifications {
                 <div class="serviceflow-notif-section">
                     <h2>
                         <span class="dashicons dashicons-edit" style="color:<?php echo esc_attr( $color ); ?>"></span>
-                        <?php esc_html_e( 'Templates d\'emails', 'scavio' ); ?>
+                        <?php esc_html_e( 'Templates d\'emails', 'clielo' ); ?>
                     </h2>
                     <p style="margin:0 0 16px 0;font-size:13px;color:#666;line-height:1.6">
-                        <?php esc_html_e( 'Personnalisez le contenu des emails envoyés automatiquement. Utilisez les variables entre accolades pour insérer des données dynamiques.', 'scavio' ); ?>
+                        <?php esc_html_e( 'Personnalisez le contenu des emails envoyés automatiquement. Utilisez les variables entre accolades pour insérer des données dynamiques.', 'clielo' ); ?>
                     </p>
 
 
                     <!-- Template : Nouveau message -->
                     <div class="serviceflow-tpl-block" data-email-type="new_message">
-                        <h3><?php esc_html_e( 'Nouveau message', 'scavio' ); ?></h3>
+                        <h3><?php esc_html_e( 'Nouveau message', 'clielo' ); ?></h3>
                         <div class="serviceflow-tpl-vars">
                             <span class="serviceflow-tpl-var" data-var="{sender_name}">{sender_name}</span>
                             <span class="serviceflow-tpl-var" data-var="{service_name}">{service_name}</span>
@@ -335,18 +335,18 @@ class Scavio_Notifications {
                             <span class="serviceflow-tpl-var" data-var="{recipient_name}">{recipient_name}</span>
                         </div>
                         <div class="serviceflow-tpl-field">
-                            <label><?php esc_html_e( 'Sujet', 'scavio' ); ?></label>
-                            <input type="text" name="scavio_notif_settings[tpl_subject_new_message]" value="<?php echo esc_attr( $settings['tpl_subject_new_message'] ); ?>">
+                            <label><?php esc_html_e( 'Sujet', 'clielo' ); ?></label>
+                            <input type="text" name="clielo_notif_settings[tpl_subject_new_message]" value="<?php echo esc_attr( $settings['tpl_subject_new_message'] ); ?>">
                         </div>
                         <div class="serviceflow-tpl-field">
-                            <label><?php esc_html_e( 'Corps du message', 'scavio' ); ?></label>
-                            <textarea name="scavio_notif_settings[tpl_body_new_message]"><?php echo esc_textarea( $settings['tpl_body_new_message'] ); ?></textarea>
+                            <label><?php esc_html_e( 'Corps du message', 'clielo' ); ?></label>
+                            <textarea name="clielo_notif_settings[tpl_body_new_message]"><?php echo esc_textarea( $settings['tpl_body_new_message'] ); ?></textarea>
                         </div>
                     </div>
 
                     <!-- Template : Nouvelle commande -->
                     <div class="serviceflow-tpl-block" data-email-type="new_order">
-                        <h3><?php esc_html_e( 'Nouvelle commande', 'scavio' ); ?></h3>
+                        <h3><?php esc_html_e( 'Nouvelle commande', 'clielo' ); ?></h3>
                         <div class="serviceflow-tpl-vars">
                             <span class="serviceflow-tpl-var" data-var="{client_name}">{client_name}</span>
                             <span class="serviceflow-tpl-var" data-var="{service_name}">{service_name}</span>
@@ -355,18 +355,18 @@ class Scavio_Notifications {
                             <span class="serviceflow-tpl-var" data-var="{recipient_name}">{recipient_name}</span>
                         </div>
                         <div class="serviceflow-tpl-field">
-                            <label><?php esc_html_e( 'Sujet', 'scavio' ); ?></label>
-                            <input type="text" name="scavio_notif_settings[tpl_subject_new_order]" value="<?php echo esc_attr( $settings['tpl_subject_new_order'] ); ?>">
+                            <label><?php esc_html_e( 'Sujet', 'clielo' ); ?></label>
+                            <input type="text" name="clielo_notif_settings[tpl_subject_new_order]" value="<?php echo esc_attr( $settings['tpl_subject_new_order'] ); ?>">
                         </div>
                         <div class="serviceflow-tpl-field">
-                            <label><?php esc_html_e( 'Corps du message', 'scavio' ); ?></label>
-                            <textarea name="scavio_notif_settings[tpl_body_new_order]"><?php echo esc_textarea( $settings['tpl_body_new_order'] ); ?></textarea>
+                            <label><?php esc_html_e( 'Corps du message', 'clielo' ); ?></label>
+                            <textarea name="clielo_notif_settings[tpl_body_new_order]"><?php echo esc_textarea( $settings['tpl_body_new_order'] ); ?></textarea>
                         </div>
                     </div>
 
                     <!-- Template : Changement de statut -->
                     <div class="serviceflow-tpl-block" data-email-type="order_status">
-                        <h3><?php esc_html_e( 'Changement de statut de commande', 'scavio' ); ?></h3>
+                        <h3><?php esc_html_e( 'Changement de statut de commande', 'clielo' ); ?></h3>
                         <div class="serviceflow-tpl-vars">
                             <span class="serviceflow-tpl-var" data-var="{order_number}">{order_number}</span>
                             <span class="serviceflow-tpl-var" data-var="{status_label}">{status_label}</span>
@@ -374,48 +374,48 @@ class Scavio_Notifications {
                             <span class="serviceflow-tpl-var" data-var="{recipient_name}">{recipient_name}</span>
                         </div>
                         <div class="serviceflow-tpl-field">
-                            <label><?php esc_html_e( 'Sujet', 'scavio' ); ?></label>
-                            <input type="text" name="scavio_notif_settings[tpl_subject_order_status]" value="<?php echo esc_attr( $settings['tpl_subject_order_status'] ); ?>">
+                            <label><?php esc_html_e( 'Sujet', 'clielo' ); ?></label>
+                            <input type="text" name="clielo_notif_settings[tpl_subject_order_status]" value="<?php echo esc_attr( $settings['tpl_subject_order_status'] ); ?>">
                         </div>
                         <div class="serviceflow-tpl-field">
-                            <label><?php esc_html_e( 'Corps du message', 'scavio' ); ?></label>
-                            <textarea name="scavio_notif_settings[tpl_body_order_status]"><?php echo esc_textarea( $settings['tpl_body_order_status'] ); ?></textarea>
+                            <label><?php esc_html_e( 'Corps du message', 'clielo' ); ?></label>
+                            <textarea name="clielo_notif_settings[tpl_body_order_status]"><?php echo esc_textarea( $settings['tpl_body_order_status'] ); ?></textarea>
                         </div>
                     </div>
 
                     <!-- Lien de paiement -->
                     <div class="serviceflow-tpl-block" data-email-type="payment_link">
-                        <h3>💳 <?php esc_html_e( 'Lien de paiement mensualité', 'scavio' ); ?></h3>
+                        <h3>💳 <?php esc_html_e( 'Lien de paiement mensualité', 'clielo' ); ?></h3>
                         <div class="serviceflow-tpl-vars">
                             <?php foreach ( [ '{service_name}', '{order_number}', '{installment_label}', '{amount}', '{recipient_name}' ] as $v ) : ?>
                                 <span class="serviceflow-tpl-var" data-var="<?php echo esc_attr( $v ); ?>"><?php echo esc_html( $v ); ?></span>
                             <?php endforeach; ?>
                         </div>
                         <div class="serviceflow-tpl-field">
-                            <label><?php esc_html_e( 'Sujet', 'scavio' ); ?></label>
-                            <input type="text" name="scavio_notif_settings[tpl_subject_payment_link]" value="<?php echo esc_attr( $settings['tpl_subject_payment_link'] ); ?>">
+                            <label><?php esc_html_e( 'Sujet', 'clielo' ); ?></label>
+                            <input type="text" name="clielo_notif_settings[tpl_subject_payment_link]" value="<?php echo esc_attr( $settings['tpl_subject_payment_link'] ); ?>">
                         </div>
                         <div class="serviceflow-tpl-field">
-                            <label><?php esc_html_e( 'Corps du message', 'scavio' ); ?></label>
-                            <textarea name="scavio_notif_settings[tpl_body_payment_link]"><?php echo esc_textarea( $settings['tpl_body_payment_link'] ); ?></textarea>
+                            <label><?php esc_html_e( 'Corps du message', 'clielo' ); ?></label>
+                            <textarea name="clielo_notif_settings[tpl_body_payment_link]"><?php echo esc_textarea( $settings['tpl_body_payment_link'] ); ?></textarea>
                         </div>
                     </div>
 
                     <!-- Rappel de paiement -->
                     <div class="serviceflow-tpl-block" data-email-type="payment_reminder">
-                        <h3>⏰ <?php esc_html_e( 'Rappel de paiement', 'scavio' ); ?></h3>
+                        <h3>⏰ <?php esc_html_e( 'Rappel de paiement', 'clielo' ); ?></h3>
                         <div class="serviceflow-tpl-vars">
                             <?php foreach ( [ '{service_name}', '{order_number}', '{installment_label}', '{amount}', '{due_date}', '{recipient_name}' ] as $v ) : ?>
                                 <span class="serviceflow-tpl-var" data-var="<?php echo esc_attr( $v ); ?>"><?php echo esc_html( $v ); ?></span>
                             <?php endforeach; ?>
                         </div>
                         <div class="serviceflow-tpl-field">
-                            <label><?php esc_html_e( 'Sujet', 'scavio' ); ?></label>
-                            <input type="text" name="scavio_notif_settings[tpl_subject_payment_reminder]" value="<?php echo esc_attr( $settings['tpl_subject_payment_reminder'] ); ?>">
+                            <label><?php esc_html_e( 'Sujet', 'clielo' ); ?></label>
+                            <input type="text" name="clielo_notif_settings[tpl_subject_payment_reminder]" value="<?php echo esc_attr( $settings['tpl_subject_payment_reminder'] ); ?>">
                         </div>
                         <div class="serviceflow-tpl-field">
-                            <label><?php esc_html_e( 'Corps du message', 'scavio' ); ?></label>
-                            <textarea name="scavio_notif_settings[tpl_body_payment_reminder]"><?php echo esc_textarea( $settings['tpl_body_payment_reminder'] ); ?></textarea>
+                            <label><?php esc_html_e( 'Corps du message', 'clielo' ); ?></label>
+                            <textarea name="clielo_notif_settings[tpl_body_payment_reminder]"><?php echo esc_textarea( $settings['tpl_body_payment_reminder'] ); ?></textarea>
                         </div>
                     </div>
                 </div>
@@ -426,7 +426,7 @@ class Scavio_Notifications {
                 ?>
                 (function(){
                     var color='<?php echo esc_js( $color ); ?>';
-                    var btnLabel='<?php echo esc_js( __( '👁 Prévisualiser', 'scavio' ) ); ?>';
+                    var btnLabel='<?php echo esc_js( __( '👁 Prévisualiser', 'clielo' ) ); ?>';
                     ['new_message','new_order','order_status','payment_link','payment_reminder'].forEach(function(et){
                         var block=document.querySelector('[data-email-type="'+et+'"]');
                         if(!block) return;
@@ -445,7 +445,7 @@ class Scavio_Notifications {
                     });
                 })();
                 <?php
-                wp_add_inline_script( 'scavio-notif-admin-js', ob_get_clean() );
+                wp_add_inline_script( 'clielo-notif-admin-js', ob_get_clean() );
 
                 ob_start();
                 ?>
@@ -477,12 +477,12 @@ class Scavio_Notifications {
                         '<div style="max-width:660px;margin:0 auto;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.3)">'
                         +'<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:<?php echo esc_js( $color ); ?>;color:#fff">'
                         +'<div>'
-                        +'<div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px"><?php echo esc_js( __( 'Objet :', 'scavio' ) ); ?></div>'
+                        +'<div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px"><?php echo esc_js( __( 'Objet :', 'clielo' ) ); ?></div>'
                         +'<div id="sf-preview-subject" style="font-size:14px;font-weight:600"></div>'
                         +'</div>'
                         +'<button id="sf-preview-close" type="button" style="background:rgba(255,255,255,0.2);border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:18px;line-height:1;flex-shrink:0">&times;</button>'
                         +'</div>'
-                        +'<div id="sf-preview-loading" style="padding:40px;text-align:center;color:#999;font-size:13px"><?php echo esc_js( __( 'Chargement…', 'scavio' ) ); ?></div>'
+                        +'<div id="sf-preview-loading" style="padding:40px;text-align:center;color:#999;font-size:13px"><?php echo esc_js( __( 'Chargement…', 'clielo' ) ); ?></div>'
                         +'<iframe id="sf-preview-frame" style="display:none;width:100%;border:none;min-height:500px"></iframe>'
                         +'</div>';
                     document.body.appendChild(overlay);
@@ -503,8 +503,8 @@ class Scavio_Notifications {
                     var frame=document.getElementById('sf-preview-frame');
                     frame.style.display='none';
                     var fd=new FormData();
-                    fd.append('action','scavio_preview_email');
-                    fd.append('nonce','<?php echo esc_js( wp_create_nonce( 'scavio_nonce' ) ); ?>');
+                    fd.append('action','clielo_preview_email');
+                    fd.append('nonce','<?php echo esc_js( wp_create_nonce( 'clielo_nonce' ) ); ?>');
                     fd.append('type',type);
                     fd.append('subject',subject);
                     fd.append('body',body);
@@ -518,21 +518,21 @@ class Scavio_Notifications {
                             frame.srcdoc=res.data.html;
                         } else {
                             document.getElementById('sf-preview-loading').style.display='block';
-                            document.getElementById('sf-preview-loading').textContent='<?php echo esc_js( __( 'Erreur lors du chargement.', 'scavio' ) ); ?>';
+                            document.getElementById('sf-preview-loading').textContent='<?php echo esc_js( __( 'Erreur lors du chargement.', 'clielo' ) ); ?>';
                         }
                     })
                     .catch(function(){
                         document.getElementById('sf-preview-loading').style.display='block';
-                        document.getElementById('sf-preview-loading').textContent='<?php echo esc_js( __( 'Erreur réseau.', 'scavio' ) ); ?>';
+                        document.getElementById('sf-preview-loading').textContent='<?php echo esc_js( __( 'Erreur réseau.', 'clielo' ) ); ?>';
                     });
                 }
                 <?php
-                wp_add_inline_script( 'scavio-notif-admin-js', ob_get_clean() );
+                wp_add_inline_script( 'clielo-notif-admin-js', ob_get_clean() );
                 ?>
 
                 <p class="submit">
                     <button type="submit" class="button" style="background:<?php echo esc_attr( $color ); ?>;color:#fff;border:none;padding:8px 24px;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer">
-                        <?php esc_html_e( 'Enregistrer les modifications', 'scavio' ); ?>
+                        <?php esc_html_e( 'Enregistrer les modifications', 'clielo' ); ?>
                     </button>
                 </p>
             </form>
@@ -582,7 +582,7 @@ class Scavio_Notifications {
 
         // Récupérer un extrait du message
         global $wpdb;
-        $msg_table = Scavio_DB::table_name();
+        $msg_table = Clielo_DB::table_name();
         $msg_row   = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $wpdb->prepare(
                 "SELECT message FROM {$msg_table} WHERE id = %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $msg_table is a plugin-defined constant.
@@ -613,7 +613,7 @@ class Scavio_Notifications {
     public static function on_order_created( int $order_id, int $post_id, int $client_id ): void {
         $client  = get_userdata( $client_id );
         $service = get_the_title( $post_id );
-        $order   = Scavio_Orders::get_order( $order_id );
+        $order   = Clielo_Orders::get_order( $order_id );
 
         $data = [
             'client_name'  => $client ? $client->display_name : '',
@@ -630,7 +630,7 @@ class Scavio_Notifications {
     }
 
     public static function on_order_status_changed( int $order_id, string $new_status, string $old_status, int $acting_user_id ): void {
-        $order = Scavio_Orders::get_order( $order_id );
+        $order = Clielo_Orders::get_order( $order_id );
         if ( ! $order ) {
             return;
         }
@@ -638,12 +638,12 @@ class Scavio_Notifications {
         $service = get_the_title( (int) $order->post_id );
 
         $status_labels = [
-            'pending'   => __( 'En attente', 'scavio' ),
-            'paid'      => __( 'Payée', 'scavio' ),
-            'started'   => __( 'En cours', 'scavio' ),
-            'completed' => __( 'Terminée', 'scavio' ),
-            'revision'  => __( 'Retouche', 'scavio' ),
-            'accepted'  => __( 'Acceptée', 'scavio' ),
+            'pending'   => __( 'En attente', 'clielo' ),
+            'paid'      => __( 'Payée', 'clielo' ),
+            'started'   => __( 'En cours', 'clielo' ),
+            'completed' => __( 'Terminée', 'clielo' ),
+            'revision'  => __( 'Retouche', 'clielo' ),
+            'accepted'  => __( 'Acceptée', 'clielo' ),
         ];
 
         $data = [
@@ -671,11 +671,11 @@ class Scavio_Notifications {
      * ================================================================ */
 
     /**
-     * Appelé depuis Scavio_Payments::send_payment_link().
+     * Appelé depuis Clielo_Payments::send_payment_link().
      * Envoie un email au client avec le lien de paiement Stripe.
      */
     public static function on_payment_link_sent( object $row, object $order, string $checkout_url ): void {
-        if ( ! scavio_is_premium() ) {
+        if ( ! clielo_is_premium() ) {
             return;
         }
 
@@ -684,9 +684,9 @@ class Scavio_Notifications {
             return;
         }
 
-        $service_name    = get_the_title( (int) $order->post_id ) ?: 'Scavio';
-        $installment_label = class_exists( 'Scavio_Payments' )
-            ? Scavio_Payments::get_type_label( $row->type, (int) $row->installment_no )
+        $service_name    = get_the_title( (int) $order->post_id ) ?: 'Clielo';
+        $installment_label = class_exists( 'Clielo_Payments' )
+            ? Clielo_Payments::get_type_label( $row->type, (int) $row->installment_no )
             : ( 'Mensualité ' . (int) $row->installment_no );
         $amount_fmt      = number_format( floatval( $row->amount_ttc ), 2, ',', ' ' );
 
@@ -706,7 +706,7 @@ class Scavio_Notifications {
      * Appelé depuis le cron quotidien pour envoyer les rappels N jours avant échéance.
      */
     public static function on_payment_reminder( object $row, object $order ): void {
-        if ( ! scavio_is_premium() ) {
+        if ( ! clielo_is_premium() ) {
             return;
         }
 
@@ -715,9 +715,9 @@ class Scavio_Notifications {
             return;
         }
 
-        $service_name      = get_the_title( (int) $order->post_id ) ?: 'Scavio';
-        $installment_label = class_exists( 'Scavio_Payments' )
-            ? Scavio_Payments::get_type_label( $row->type, (int) $row->installment_no )
+        $service_name      = get_the_title( (int) $order->post_id ) ?: 'Clielo';
+        $installment_label = class_exists( 'Clielo_Payments' )
+            ? Clielo_Payments::get_type_label( $row->type, (int) $row->installment_no )
             : ( 'Mensualité ' . (int) $row->installment_no );
         $amount_fmt        = number_format( floatval( $row->amount_ttc ), 2, ',', ' ' );
         $due_date_fmt      = $row->due_date ? date_i18n( get_option( 'date_format' ), strtotime( $row->due_date ) ) : '';
@@ -764,7 +764,7 @@ class Scavio_Notifications {
      * ================================================================ */
 
     private static function maybe_send_email( string $type, int $recipient_id, array $data, int $post_id ): void {
-        if ( ! scavio_is_premium() ) {
+        if ( ! clielo_is_premium() ) {
             return;
         }
 
@@ -809,14 +809,14 @@ class Scavio_Notifications {
         $template = $settings[ $key ] ?? '';
 
         if ( ! $template ) {
-            return __( 'Notification Scavio', 'scavio' );
+            return __( 'Notification Clielo', 'clielo' );
         }
 
         return self::replace_placeholders( $template, $data );
     }
 
     private static function get_email_body( string $type, array $data, WP_User $recipient, int $post_id ): string {
-        $color       = Scavio_Admin::get_color();
+        $color       = Clielo_Admin::get_color();
         $site_name   = get_bloginfo( 'name' );
         $service_url = get_permalink( $post_id ) ?: home_url();
         $name        = $recipient->display_name ?: $recipient->user_login;
@@ -858,13 +858,13 @@ class Scavio_Notifications {
 
         // Bouton
         $btn_labels = [
-            'new_message'      => __( 'Voir le chat', 'scavio' ),
-            'new_order'        => __( 'Voir la commande', 'scavio' ),
-            'order_status'     => __( 'Voir la commande', 'scavio' ),
-            'payment_link'     => __( '💳 Payer maintenant', 'scavio' ),
-            'payment_reminder' => __( 'Voir mes paiements', 'scavio' ),
+            'new_message'      => __( 'Voir le chat', 'clielo' ),
+            'new_order'        => __( 'Voir la commande', 'clielo' ),
+            'order_status'     => __( 'Voir la commande', 'clielo' ),
+            'payment_link'     => __( '💳 Payer maintenant', 'clielo' ),
+            'payment_reminder' => __( 'Voir mes paiements', 'clielo' ),
         ];
-        $btn_label = $btn_labels[ $type ] ?? __( 'Voir', 'scavio' );
+        $btn_label = $btn_labels[ $type ] ?? __( 'Voir', 'clielo' );
 
         // Pour payment_link : le bouton pointe directement vers Stripe
         if ( $type === 'payment_link' && ! empty( $data['payment_url'] ) ) {
@@ -882,7 +882,7 @@ class Scavio_Notifications {
             . '<div style="background:#fff;padding:24px;border-left:1px solid #e0e0e0;border-right:1px solid #e0e0e0">'
             . '<p style="margin:0 0 20px 0;font-size:15px;color:#333">'
             /* translators: %s: recipient display name */
-            . sprintf( esc_html__( 'Bonjour %s,', 'scavio' ), esc_html( $name ) )
+            . sprintf( esc_html__( 'Bonjour %s,', 'clielo' ), esc_html( $name ) )
             . '</p>'
             . $content_html
             . '<p style="margin:20px 0 0 0;text-align:center">'
@@ -892,7 +892,7 @@ class Scavio_Notifications {
             . '</div>'
             // Footer
             . '<div style="padding:16px 24px;text-align:center;font-size:12px;color:#999;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 8px 8px;background:#fafafa">'
-            . esc_html__( 'Cet email a été envoyé automatiquement par le système de chat.', 'scavio' )
+            . esc_html__( 'Cet email a été envoyé automatiquement par le système de chat.', 'clielo' )
             . '</div>'
             . '</div>'
             . '</body></html>';
@@ -922,7 +922,7 @@ class Scavio_Notifications {
      * ================================================================ */
 
     public static function ajax_preview_email(): void {
-        check_ajax_referer( 'scavio_nonce', 'nonce' );
+        check_ajax_referer( 'clielo_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_send_json_error( [], 403 );
         }
@@ -996,16 +996,16 @@ class Scavio_Notifications {
         $fake_user->user_email   = 'exemple@votresite.com';
 
         // Surcharger temporairement les settings
-        $original = get_option( 'scavio_notif_settings', [] );
+        $original = get_option( 'clielo_notif_settings', [] );
         $override  = is_array( $original ) ? $original : [];
         $override[ 'tpl_body_' . $type ]    = $body;
         $override[ 'tpl_subject_' . $type ] = $subject;
-        update_option( 'scavio_notif_settings', $override );
+        update_option( 'clielo_notif_settings', $override );
 
         $html = self::get_email_body( $type, $data, $fake_user, 0 );
 
         // Restaurer
-        update_option( 'scavio_notif_settings', $original );
+        update_option( 'clielo_notif_settings', $original );
 
         wp_send_json_success( [
             'subject' => $rendered_subject,
@@ -1018,7 +1018,7 @@ class Scavio_Notifications {
      * ================================================================ */
 
     public static function ajax_count(): void {
-        check_ajax_referer( 'scavio_notif_nonce', 'nonce' );
+        check_ajax_referer( 'clielo_notif_nonce', 'nonce' );
 
         if ( ! is_user_logged_in() ) {
             wp_send_json_error( [], 403 );
@@ -1037,7 +1037,7 @@ class Scavio_Notifications {
     }
 
     public static function ajax_list(): void {
-        check_ajax_referer( 'scavio_notif_nonce', 'nonce' );
+        check_ajax_referer( 'clielo_notif_nonce', 'nonce' );
 
         if ( ! is_user_logged_in() ) {
             wp_send_json_error( [], 403 );
@@ -1069,7 +1069,7 @@ class Scavio_Notifications {
     }
 
     public static function ajax_read_all(): void {
-        check_ajax_referer( 'scavio_notif_nonce', 'nonce' );
+        check_ajax_referer( 'clielo_notif_nonce', 'nonce' );
 
         if ( ! is_user_logged_in() ) {
             wp_send_json_error( [], 403 );
@@ -1095,14 +1095,14 @@ class Scavio_Notifications {
             case 'new_message':
                 return sprintf(
                     /* translators: %1$s: sender name, %2$s: service name */
-                    __( '%1$s vous a envoyé un message sur « %2$s »', 'scavio' ),
+                    __( '%1$s vous a envoyé un message sur « %2$s »', 'clielo' ),
                     $data['sender_name'] ?? '',
                     $data['service_name'] ?? ''
                 );
             case 'new_order':
                 return sprintf(
                     /* translators: %1$s: client name, %2$s: service name, %3$s: total price */
-                    __( 'Nouvelle commande de %1$s sur « %2$s » — %3$s €', 'scavio' ),
+                    __( 'Nouvelle commande de %1$s sur « %2$s » — %3$s €', 'clielo' ),
                     $data['client_name'] ?? '',
                     $data['service_name'] ?? '',
                     number_format( (float) ( $data['total_price'] ?? 0 ), 2, ',', ' ' )
@@ -1110,12 +1110,12 @@ class Scavio_Notifications {
             case 'order_status':
                 return sprintf(
                     /* translators: %1$s: order number, %2$s: status label */
-                    __( 'Commande %1$s — Statut : %2$s', 'scavio' ),
+                    __( 'Commande %1$s — Statut : %2$s', 'clielo' ),
                     $data['order_number'] ?? '',
                     $data['status_label'] ?? ''
                 );
             default:
-                return __( 'Nouvelle notification', 'scavio' );
+                return __( 'Nouvelle notification', 'clielo' );
         }
     }
 
@@ -1125,29 +1125,29 @@ class Scavio_Notifications {
         $diff = $now - $time;
 
         if ( $diff < 60 ) {
-            return __( 'À l\'instant', 'scavio' );
+            return __( 'À l\'instant', 'clielo' );
         }
         if ( $diff < 3600 ) {
             $m = (int) floor( $diff / 60 );
             /* translators: %d: number of minutes ago */
-            return sprintf( __( 'Il y a %d min', 'scavio' ), $m );
+            return sprintf( __( 'Il y a %d min', 'clielo' ), $m );
         }
         if ( $diff < 86400 ) {
             $h = (int) floor( $diff / 3600 );
             /* translators: %d: number of hours ago */
-            return sprintf( __( 'Il y a %d h', 'scavio' ), $h );
+            return sprintf( __( 'Il y a %d h', 'clielo' ), $h );
         }
         if ( $diff < 604800 ) {
             $d = (int) floor( $diff / 86400 );
             /* translators: %d: number of days ago */
-            return sprintf( __( 'Il y a %d j', 'scavio' ), $d );
+            return sprintf( __( 'Il y a %d j', 'clielo' ), $d );
         }
 
         return date_i18n( 'd/m/Y', $time );
     }
 
     /* ================================================================
-     *  SHORTCODE — Bell notifications [scavio_notifications]
+     *  SHORTCODE — Bell notifications [clielo_notifications]
      * ================================================================ */
 
     public static function shortcode_bell(): string {
@@ -1157,8 +1157,8 @@ class Scavio_Notifications {
 
         self::$instance++;
         $n     = self::$instance;
-        $color = Scavio_Admin::get_color();
-        $nonce = wp_create_nonce( 'scavio_notif_nonce' );
+        $color = Clielo_Admin::get_color();
+        $nonce = wp_create_nonce( 'clielo_notif_nonce' );
         $ajax  = admin_url( 'admin-ajax.php' );
 
         // Compteur initial
@@ -1184,12 +1184,12 @@ class Scavio_Notifications {
             <div id="serviceflow-notif-drop-<?php echo absint( $n ); ?>" style="display:none !important;position:absolute !important;top:calc(100% + 6px) !important;right:0 !important;width:360px !important;max-width:calc(100vw - 32px) !important;background:#fff !important;border:1px solid #e0e0e0 !important;border-radius:10px !important;box-shadow:0 8px 30px rgba(0,0,0,0.12) !important;z-index:999999 !important;overflow:hidden !important">
                 <!-- Header -->
                 <div style="padding:14px 16px !important;border-bottom:1px solid #eee !important;display:flex !important;align-items:center !important;justify-content:space-between !important">
-                    <span style="font-size:15px !important;font-weight:700 !important;color:#222 !important"><?php esc_html_e( 'Notifications', 'scavio' ); ?></span>
-                    <button id="serviceflow-notif-readall-<?php echo absint( $n ); ?>" type="button" style="background:none !important;border:none !important;color:<?php echo esc_attr( $color ); ?> !important;font-size:12px !important;font-weight:600 !important;cursor:pointer !important;padding:0 !important"><?php esc_html_e( 'Tout marquer comme lu', 'scavio' ); ?></button>
+                    <span style="font-size:15px !important;font-weight:700 !important;color:#222 !important"><?php esc_html_e( 'Notifications', 'clielo' ); ?></span>
+                    <button id="serviceflow-notif-readall-<?php echo absint( $n ); ?>" type="button" style="background:none !important;border:none !important;color:<?php echo esc_attr( $color ); ?> !important;font-size:12px !important;font-weight:600 !important;cursor:pointer !important;padding:0 !important"><?php esc_html_e( 'Tout marquer comme lu', 'clielo' ); ?></button>
                 </div>
                 <!-- Liste -->
                 <div id="serviceflow-notif-list-<?php echo absint( $n ); ?>" style="max-height:360px !important;overflow-y:auto !important">
-                    <div style="padding:30px 16px !important;text-align:center !important;color:#999 !important;font-size:13px !important"><?php esc_html_e( 'Chargement…', 'scavio' ); ?></div>
+                    <div style="padding:30px 16px !important;text-align:center !important;color:#999 !important;font-size:13px !important"><?php esc_html_e( 'Chargement…', 'clielo' ); ?></div>
                 </div>
             </div>
         </div>
@@ -1241,7 +1241,7 @@ class Scavio_Notifications {
 
             function loadList(){
                 var xhr=new XMLHttpRequest();
-                xhr.open('GET',ajax+'?action=scavio_notif_list&nonce='+encodeURIComponent(nonce));
+                xhr.open('GET',ajax+'?action=clielo_notif_list&nonce='+encodeURIComponent(nonce));
                 xhr.onload=function(){
                     try{
                         var r=JSON.parse(xhr.responseText);
@@ -1258,7 +1258,7 @@ class Scavio_Notifications {
                                     var links=list.querySelectorAll('a');
                                     for(var i=0;i<links.length;i++){links[i].style.setProperty('background','#fff','important');}
                                 };
-                                x2.send('action=scavio_notif_read_all&nonce='+encodeURIComponent(nonce));
+                                x2.send('action=clielo_notif_read_all&nonce='+encodeURIComponent(nonce));
                             }
                         }
                     }catch(e){}
@@ -1268,7 +1268,7 @@ class Scavio_Notifications {
 
             function renderList(items){
                 if(!items.length){
-                    list.innerHTML='<div style="padding:30px 16px;text-align:center;color:#999;font-size:13px"><?php echo esc_js( __( 'Aucune notification', 'scavio' ) ); ?></div>';
+                    list.innerHTML='<div style="padding:30px 16px;text-align:center;color:#999;font-size:13px"><?php echo esc_js( __( 'Aucune notification', 'clielo' ) ); ?></div>';
                     return;
                 }
                 var html='';
@@ -1299,13 +1299,13 @@ class Scavio_Notifications {
                         links[i].style.setProperty('background','#fff','important');
                     }
                 };
-                xhr.send('action=scavio_notif_read_all&nonce='+encodeURIComponent(nonce));
+                xhr.send('action=clielo_notif_read_all&nonce='+encodeURIComponent(nonce));
             });
 
             // Polling toutes les 30 secondes
             setInterval(function(){
                 var xhr=new XMLHttpRequest();
-                xhr.open('GET',ajax+'?action=scavio_notif_count&nonce='+encodeURIComponent(nonce));
+                xhr.open('GET',ajax+'?action=clielo_notif_count&nonce='+encodeURIComponent(nonce));
                 xhr.onload=function(){
                     try{
                         var r=JSON.parse(xhr.responseText);
@@ -1320,7 +1320,7 @@ class Scavio_Notifications {
             },30000);
         })();
         <?php
-        wp_add_inline_script( 'scavio-notif-js', ob_get_clean() );
+        wp_add_inline_script( 'clielo-notif-js', ob_get_clean() );
         ?>
         <?php
         return ob_get_clean();

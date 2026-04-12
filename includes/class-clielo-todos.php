@@ -4,17 +4,17 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class Scavio_Todos {
+class Clielo_Todos {
 
     public static function init(): void {
-        if ( ! scavio_is_premium() ) {
+        if ( ! clielo_is_premium() ) {
             return;
         }
 
-        add_action( 'wp_ajax_scavio_toggle_todo', [ __CLASS__, 'ajax_toggle_todo' ] );
-        add_action( 'wp_ajax_scavio_get_todos',   [ __CLASS__, 'ajax_get_todos' ] );
+        add_action( 'wp_ajax_clielo_toggle_todo', [ __CLASS__, 'ajax_toggle_todo' ] );
+        add_action( 'wp_ajax_clielo_get_todos',   [ __CLASS__, 'ajax_get_todos' ] );
 
-        add_action( 'scavio_order_status_changed', [ __CLASS__, 'on_order_status_changed' ], 10, 4 );
+        add_action( 'clielo_order_status_changed', [ __CLASS__, 'on_order_status_changed' ], 10, 4 );
     }
 
     /* ================================================================
@@ -23,7 +23,7 @@ class Scavio_Todos {
 
     public static function table_name(): string {
         global $wpdb;
-        return $wpdb->prefix . 'scavio_todos';
+        return $wpdb->prefix . 'clielo_todos';
     }
 
     public static function create_table(): void {
@@ -55,7 +55,7 @@ class Scavio_Todos {
      * ================================================================ */
 
     public static function on_order_status_changed( int $order_id, string $new_status, string $old_status, int $acting_user_id ): void {
-        if ( ! scavio_is_premium() ) {
+        if ( ! clielo_is_premium() ) {
             return;
         }
 
@@ -70,7 +70,7 @@ class Scavio_Todos {
             return;
         }
 
-        $order = Scavio_Orders::get_order( $order_id );
+        $order = Clielo_Orders::get_order( $order_id );
         if ( ! $order ) {
             return;
         }
@@ -202,14 +202,14 @@ class Scavio_Todos {
      * ================================================================ */
 
     public static function ajax_toggle_todo(): void {
-        check_ajax_referer( 'scavio_nonce', 'nonce' );
+        check_ajax_referer( 'clielo_nonce', 'nonce' );
 
-        if ( ! scavio_is_premium() ) {
+        if ( ! clielo_is_premium() ) {
             wp_send_json_error( [ 'message' => 'Premium required.' ], 403 );
         }
 
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'scavio' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'clielo' ) ], 403 );
         }
 
         $todo_id   = absint( $_POST['todo_id'] ?? 0 );
@@ -218,40 +218,40 @@ class Scavio_Todos {
         $note      = sanitize_textarea_field( wp_unslash( $_POST['note'] ?? '' ) );
 
         if ( ! $todo_id || ! $order_id ) {
-            wp_send_json_error( [ 'message' => __( 'Données manquantes.', 'scavio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Données manquantes.', 'clielo' ) ], 400 );
         }
 
         $result = self::toggle_todo( $todo_id, $completed, $note );
         if ( ! $result ) {
-            wp_send_json_error( [ 'message' => __( 'Erreur.', 'scavio' ) ], 500 );
+            wp_send_json_error( [ 'message' => __( 'Erreur.', 'clielo' ) ], 500 );
         }
 
         // Message système dans le chat si une étape est complétée
         if ( $completed ) {
             $todo  = self::get_todo( $todo_id );
-            $order = Scavio_Orders::get_order( $order_id );
+            $order = Clielo_Orders::get_order( $order_id );
 
             if ( $todo && $order ) {
                 $progress = self::get_progress( $order_id );
                 /* translators: %1$d: order ID, %2$s: section label */
-                $msg  = sprintf( "--- #CMD-%d %s ---\n", $order_id, __( 'Étape terminée', 'scavio' ) );
+                $msg  = sprintf( "--- #CMD-%d %s ---\n", $order_id, __( 'Étape terminée', 'clielo' ) );
                 /* translators: %s: todo item label */
-                $msg .= sprintf( __( '✅ « %s » complétée.', 'scavio' ), $todo->label );
+                $msg .= sprintf( __( '✅ « %s » complétée.', 'clielo' ), $todo->label );
 
                 if ( ! empty( $note ) ) {
                     /* translators: %s: admin note text */
-                    $msg .= "\n" . sprintf( __( '📝 Note : %s', 'scavio' ), $note );
+                    $msg .= "\n" . sprintf( __( '📝 Note : %s', 'clielo' ), $note );
                 }
 
                 $msg .= "\n" . sprintf(
                     /* translators: %1$d: completed tasks, %2$d: total tasks, %3$d: percentage */
-                    __( '📊 Progression : %1$d/%2$d (%3$d%%)', 'scavio' ),
+                    __( '📊 Progression : %1$d/%2$d (%3$d%%)', 'clielo' ),
                     $progress['completed'],
                     $progress['total'],
                     $progress['percent']
                 );
 
-                Scavio_DB::insert_message( (int) $order->post_id, 0, $msg, (int) $order->client_id );
+                Clielo_DB::insert_message( (int) $order->post_id, 0, $msg, (int) $order->client_id );
             }
         }
 
@@ -259,10 +259,10 @@ class Scavio_Todos {
         $order_completed = false;
         if ( $completed ) {
             $progress = isset( $progress ) ? $progress : self::get_progress( $order_id );
-            $order    = isset( $order ) ? $order : Scavio_Orders::get_order( $order_id );
+            $order    = isset( $order ) ? $order : Clielo_Orders::get_order( $order_id );
             if ( $progress['total'] > 0 && (int) $progress['completed'] === (int) $progress['total'] ) {
                 if ( $order && $order->status === 'started' ) {
-                    $done = Scavio_Orders::transition_status( $order_id, 'completed', get_current_user_id() );
+                    $done = Clielo_Orders::transition_status( $order_id, 'completed', get_current_user_id() );
                     $order_completed = $done;
                 }
             }
@@ -273,25 +273,25 @@ class Scavio_Todos {
     }
 
     public static function ajax_get_todos(): void {
-        check_ajax_referer( 'scavio_nonce', 'nonce' );
+        check_ajax_referer( 'clielo_nonce', 'nonce' );
 
-        if ( ! scavio_is_premium() ) {
+        if ( ! clielo_is_premium() ) {
             wp_send_json_error( [ 'message' => 'Premium required.' ], 403 );
         }
 
         $order_id = absint( $_GET['order_id'] ?? $_POST['order_id'] ?? 0 );
         if ( ! $order_id ) {
-            wp_send_json_error( [ 'message' => __( 'Données manquantes.', 'scavio' ) ], 400 );
+            wp_send_json_error( [ 'message' => __( 'Données manquantes.', 'clielo' ) ], 400 );
         }
 
         // Vérifier que l'utilisateur a accès à cette commande
-        $order = Scavio_Orders::get_order( $order_id );
+        $order = Clielo_Orders::get_order( $order_id );
         if ( ! $order ) {
-            wp_send_json_error( [ 'message' => __( 'Commande introuvable.', 'scavio' ) ], 404 );
+            wp_send_json_error( [ 'message' => __( 'Commande introuvable.', 'clielo' ) ], 404 );
         }
 
         if ( ! current_user_can( 'manage_options' ) && (int) $order->client_id !== get_current_user_id() ) {
-            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'scavio' ) ], 403 );
+            wp_send_json_error( [ 'message' => __( 'Non autorisé.', 'clielo' ) ], 403 );
         }
 
         $todos = self::build_todos_response( $order_id );

@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class Scavio_Options {
+class Clielo_Options {
 
     public static function init(): void {
         add_action( 'add_meta_boxes', [ __CLASS__, 'add_meta_box' ] );
@@ -13,11 +13,11 @@ class Scavio_Options {
     }
 
     public static function add_meta_box(): void {
-        $cpt = Scavio_Admin::get_post_type();
+        $cpt = Clielo_Admin::get_post_type();
 
         add_meta_box(
-            'scavio_options',
-            __( 'Options de service', 'scavio' ),
+            'clielo_options',
+            __( 'Options de service', 'clielo' ),
             [ __CLASS__, 'render_meta_box' ],
             $cpt,
             'normal',
@@ -30,12 +30,12 @@ class Scavio_Options {
      */
     public static function count_active_services( int $exclude_id = 0 ): int {
         global $wpdb;
-        $cpt = Scavio_Admin::get_post_type();
+        $cpt = Clielo_Admin::get_post_type();
         $sql = $wpdb->prepare(
             "SELECT COUNT(DISTINCT p.ID) FROM {$wpdb->posts} p
              INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
              WHERE p.post_type = %s AND p.post_status IN ('publish','draft')
-             AND pm.meta_key = '_scavio_packs' AND pm.meta_value != '' AND pm.meta_value != 'a:0:{}'
+             AND pm.meta_key = '_clielo_packs' AND pm.meta_value != '' AND pm.meta_value != 'a:0:{}'
              AND p.ID != %d",
             $cpt,
             $exclude_id
@@ -44,25 +44,25 @@ class Scavio_Options {
     }
 
     public static function render_meta_box( \WP_Post $post ): void {
-        wp_nonce_field( 'scavio_options_save', 'scavio_options_nonce' );
+        wp_nonce_field( 'clielo_options_save', 'clielo_options_nonce' );
 
-        $packs   = get_post_meta( $post->ID, '_scavio_packs', true );
-        $options = get_post_meta( $post->ID, '_scavio_options', true );
+        $packs   = get_post_meta( $post->ID, '_clielo_packs', true );
+        $options = get_post_meta( $post->ID, '_clielo_options', true );
 
         // Free = 1 seul service autorisé
-        if ( ! scavio_is_premium() && empty( $packs ) && self::count_active_services( $post->ID ) >= 1 ) {
+        if ( ! clielo_is_premium() && empty( $packs ) && self::count_active_services( $post->ID ) >= 1 ) {
             printf(
                 '<div style="padding:20px;text-align:center;color:#666"><p>%s</p><a href="%s" class="button button-primary">%s</a></div>',
-                esc_html__( 'La version gratuite est limitée à 1 service. Passez à Pro pour des services illimités.', 'scavio' ),
+                esc_html__( 'La version gratuite est limitée à 1 service. Passez à Pro pour des services illimités.', 'clielo' ),
                 esc_url( admin_url( 'admin.php?page=serviceflow-pricing' ) ),
-                esc_html__( 'Passer à Pro', 'scavio' )
+                esc_html__( 'Passer à Pro', 'clielo' )
             );
             return;
         }
 
         // Migration : ancien format base_offer → packs
         if ( ! is_array( $packs ) || empty( $packs ) ) {
-            $base = get_post_meta( $post->ID, '_scavio_base_offer', true );
+            $base = get_post_meta( $post->ID, '_clielo_base_offer', true );
             if ( is_array( $base ) && ! empty( $base['name'] ) ) {
                 $packs = [ $base ];
             } else {
@@ -75,70 +75,70 @@ class Scavio_Options {
         ?>
         <!-- Packs -->
         <div class="serviceflow-meta-section">
-            <h4><?php esc_html_e( 'Packs', 'scavio' ); ?></h4>
-            <p class="serviceflow-section-desc"><?php esc_html_e( 'Le client en choisit un seul. Ajoutez au moins un pack.', 'scavio' ); ?></p>
+            <h4><?php esc_html_e( 'Packs', 'clielo' ); ?></h4>
+            <p class="serviceflow-section-desc"><?php esc_html_e( 'Le client en choisit un seul. Ajoutez au moins un pack.', 'clielo' ); ?></p>
             <div id="serviceflow-packs-list">
                 <?php foreach ( $packs as $i => $pack ) : ?>
                     <div class="serviceflow-pack-item" data-index="<?php echo absint( $i ); ?>">
-                        <button type="button" class="serviceflow-pack-remove"><?php esc_html_e( 'Supprimer', 'scavio' ); ?></button>
+                        <button type="button" class="serviceflow-pack-remove"><?php esc_html_e( 'Supprimer', 'clielo' ); ?></button>
                         <div class="serviceflow-meta-row">
                             <div class="serviceflow-field">
-                                <label><?php esc_html_e( 'Nom', 'scavio' ); ?></label>
-                                <input type="text" name="scavio_packs[<?php echo absint( $i ); ?>][name]" value="<?php echo esc_attr( $pack['name'] ?? '' ); ?>" placeholder="<?php esc_attr_e( 'Ex: Pack Basique', 'scavio' ); ?>" />
+                                <label><?php esc_html_e( 'Nom', 'clielo' ); ?></label>
+                                <input type="text" name="clielo_packs[<?php echo absint( $i ); ?>][name]" value="<?php echo esc_attr( $pack['name'] ?? '' ); ?>" placeholder="<?php esc_attr_e( 'Ex: Pack Basique', 'clielo' ); ?>" />
                             </div>
                             <div class="serviceflow-field-price">
-                                <label><?php esc_html_e( 'Prix (€)', 'scavio' ); ?></label>
-                                <input type="number" name="scavio_packs[<?php echo absint( $i ); ?>][price]" value="<?php echo esc_attr( $pack['price'] ?? '' ); ?>" min="0" step="0.01" />
+                                <label><?php esc_html_e( 'Prix (€)', 'clielo' ); ?></label>
+                                <input type="number" name="clielo_packs[<?php echo absint( $i ); ?>][price]" value="<?php echo esc_attr( $pack['price'] ?? '' ); ?>" min="0" step="0.01" />
                             </div>
                             <div class="serviceflow-field-price">
-                                <label><?php esc_html_e( 'Délai (jours)', 'scavio' ); ?></label>
-                                <input type="number" name="scavio_packs[<?php echo absint( $i ); ?>][delay]" value="<?php echo esc_attr( $pack['delay'] ?? '' ); ?>" min="0" step="1" />
+                                <label><?php esc_html_e( 'Délai (jours)', 'clielo' ); ?></label>
+                                <input type="number" name="clielo_packs[<?php echo absint( $i ); ?>][delay]" value="<?php echo esc_attr( $pack['delay'] ?? '' ); ?>" min="0" step="1" />
                             </div>
                         </div>
                         <div class="serviceflow-meta-row">
                             <div class="serviceflow-field">
-                                <label><?php esc_html_e( 'Description (infobulle)', 'scavio' ); ?></label>
-                                <input type="text" name="scavio_packs[<?php echo absint( $i ); ?>][description]" value="<?php echo esc_attr( $pack['description'] ?? '' ); ?>" placeholder="<?php esc_attr_e( 'Texte affiché au survol de l\'icône info', 'scavio' ); ?>" />
+                                <label><?php esc_html_e( 'Description (infobulle)', 'clielo' ); ?></label>
+                                <input type="text" name="clielo_packs[<?php echo absint( $i ); ?>][description]" value="<?php echo esc_attr( $pack['description'] ?? '' ); ?>" placeholder="<?php esc_attr_e( 'Texte affiché au survol de l\'icône info', 'clielo' ); ?>" />
                             </div>
                         </div>
                         <div class="serviceflow-features-section">
-                            <label><?php esc_html_e( 'Caractéristiques du pack', 'scavio' ); ?></label>
+                            <label><?php esc_html_e( 'Caractéristiques du pack', 'clielo' ); ?></label>
                             <div class="serviceflow-features-list">
                                 <?php
                                 $features = $pack['features'] ?? [];
                                 if ( is_array( $features ) ) :
                                     foreach ( $features as $fi => $feat ) : ?>
                                         <div class="serviceflow-feature-item">
-                                            <input type="text" name="scavio_packs[<?php echo absint( $i ); ?>][features][]" value="<?php echo esc_attr( $feat ); ?>" placeholder="<?php esc_attr_e( 'Ex: 5 pages incluses', 'scavio' ); ?>" />
+                                            <input type="text" name="clielo_packs[<?php echo absint( $i ); ?>][features][]" value="<?php echo esc_attr( $feat ); ?>" placeholder="<?php esc_attr_e( 'Ex: 5 pages incluses', 'clielo' ); ?>" />
                                             <button type="button" class="serviceflow-feature-rm">&times;</button>
                                         </div>
                                     <?php endforeach;
                                 endif; ?>
                             </div>
-                            <button type="button" class="serviceflow-add-feature" data-pack-index="<?php echo absint( $i ); ?>">+ <?php esc_html_e( 'Ajouter une caractéristique', 'scavio' ); ?></button>
+                            <button type="button" class="serviceflow-add-feature" data-pack-index="<?php echo absint( $i ); ?>">+ <?php esc_html_e( 'Ajouter une caractéristique', 'clielo' ); ?></button>
                         </div>
                     </div>
                 <?php endforeach; ?>
             </div>
-            <button type="button" id="serviceflow-add-pack" class="button"><?php esc_html_e( '+ Ajouter un pack', 'scavio' ); ?></button>
+            <button type="button" id="serviceflow-add-pack" class="button"><?php esc_html_e( '+ Ajouter un pack', 'clielo' ); ?></button>
         </div>
 
-        <?php if ( scavio_is_premium() ) :
-            $adv_opts_raw = get_post_meta( $post->ID, '_scavio_advanced_options', true );
+        <?php if ( clielo_is_premium() ) :
+            $adv_opts_raw = get_post_meta( $post->ID, '_clielo_advanced_options', true );
             $adv_opts     = $adv_opts_raw ? json_decode( $adv_opts_raw, true ) : [];
             if ( ! is_array( $adv_opts ) ) {
                 $adv_opts = [];
             }
             $mode_labels = [
-                'unit'    => __( 'Par unité', 'scavio' ),
-                'monthly' => __( 'Par mois', 'scavio' ),
-                'fixed'   => __( 'Forfait', 'scavio' ),
-                'daily'   => __( 'Express (jours)', 'scavio' ),
+                'unit'    => __( 'Par unité', 'clielo' ),
+                'monthly' => __( 'Par mois', 'clielo' ),
+                'fixed'   => __( 'Forfait', 'clielo' ),
+                'daily'   => __( 'Express (jours)', 'clielo' ),
             ];
         ?>
         <div class="serviceflow-meta-section">
-            <h4><?php esc_html_e( 'Options avancées', 'scavio' ); ?></h4>
-            <p class="serviceflow-section-desc"><?php esc_html_e( 'Ajoutez des options avec tarification flexible. Chaque option est affichée sur le widget de commande.', 'scavio' ); ?></p>
+            <h4><?php esc_html_e( 'Options avancées', 'clielo' ); ?></h4>
+            <p class="serviceflow-section-desc"><?php esc_html_e( 'Ajoutez des options avec tarification flexible. Chaque option est affichée sur le widget de commande.', 'clielo' ); ?></p>
 
             <div id="sf-adv-opts-list">
                 <?php foreach ( $adv_opts as $i => $opt ) :
@@ -151,11 +151,11 @@ class Scavio_Options {
                     <div class="sf-adv-opt-handle" style="cursor:grab;color:#aaa;padding:0 6px;font-size:18px;line-height:36px">&#8942;&#8942;</div>
                     <div class="sf-adv-opt-fields" style="flex:1;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px;align-items:end">
                         <div>
-                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Libellé', 'scavio' ); ?></label>
-                            <input type="text" name="sf_adv_opt_label[]" value="<?php echo esc_attr( $opt_label ); ?>" placeholder="<?php esc_attr_e( 'Nom de l\'option', 'scavio' ); ?>" style="width:100%" required />
+                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Libellé', 'clielo' ); ?></label>
+                            <input type="text" name="sf_adv_opt_label[]" value="<?php echo esc_attr( $opt_label ); ?>" placeholder="<?php esc_attr_e( 'Nom de l\'option', 'clielo' ); ?>" style="width:100%" required />
                         </div>
                         <div>
-                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Mode', 'scavio' ); ?></label>
+                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Mode', 'clielo' ); ?></label>
                             <select name="sf_adv_opt_mode[]" class="sf-adv-opt-mode" style="width:100%">
                                 <?php foreach ( $mode_labels as $mval => $mlabel ) : ?>
                                 <option value="<?php echo esc_attr( $mval ); ?>" <?php selected( $opt_mode, $mval ); ?>><?php echo esc_html( $mlabel ); ?></option>
@@ -163,15 +163,15 @@ class Scavio_Options {
                             </select>
                         </div>
                         <div class="sf-adv-opt-unit-wrap" <?php if ( in_array( $opt_mode, [ 'monthly', 'fixed' ], true ) ) : ?>style="visibility:hidden"<?php endif; ?>>
-                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Libellé unité', 'scavio' ); ?></label>
-                            <input type="text" name="sf_adv_opt_unit[]" value="<?php echo esc_attr( $opt_unit_label ); ?>" placeholder="<?php esc_attr_e( 'ex. page, heure...', 'scavio' ); ?>" style="width:100%" />
+                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Libellé unité', 'clielo' ); ?></label>
+                            <input type="text" name="sf_adv_opt_unit[]" value="<?php echo esc_attr( $opt_unit_label ); ?>" placeholder="<?php esc_attr_e( 'ex. page, heure...', 'clielo' ); ?>" style="width:100%" />
                         </div>
                         <div>
-                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Prix (€)', 'scavio' ); ?></label>
+                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Prix (€)', 'clielo' ); ?></label>
                             <input type="number" name="sf_adv_opt_price[]" value="<?php echo esc_attr( $opt_price ); ?>" min="0" step="0.01" placeholder="0" style="width:100%" />
                         </div>
                     </div>
-                    <button type="button" class="sf-adv-opt-remove button-link" style="color:#a00;margin-left:8px;padding:0 6px;line-height:36px;font-size:18px" title="<?php esc_attr_e( 'Supprimer', 'scavio' ); ?>">&times;</button>
+                    <button type="button" class="sf-adv-opt-remove button-link" style="color:#a00;margin-left:8px;padding:0 6px;line-height:36px;font-size:18px" title="<?php esc_attr_e( 'Supprimer', 'clielo' ); ?>">&times;</button>
                 </div>
                 <?php endforeach; ?>
             </div>
@@ -181,58 +181,58 @@ class Scavio_Options {
                     <div class="sf-adv-opt-handle" style="cursor:grab;color:#aaa;padding:0 6px;font-size:18px;line-height:36px">&#8942;&#8942;</div>
                     <div class="sf-adv-opt-fields" style="flex:1;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px;align-items:end">
                         <div>
-                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Libellé', 'scavio' ); ?></label>
-                            <input type="text" name="sf_adv_opt_label[]" value="" placeholder="<?php esc_attr_e( 'Nom de l\'option', 'scavio' ); ?>" style="width:100%" required />
+                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Libellé', 'clielo' ); ?></label>
+                            <input type="text" name="sf_adv_opt_label[]" value="" placeholder="<?php esc_attr_e( 'Nom de l\'option', 'clielo' ); ?>" style="width:100%" required />
                         </div>
                         <div>
-                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Mode', 'scavio' ); ?></label>
+                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Mode', 'clielo' ); ?></label>
                             <select name="sf_adv_opt_mode[]" class="sf-adv-opt-mode" style="width:100%">
-                                <option value="unit"><?php esc_html_e( 'Par unité', 'scavio' ); ?></option>
-                                <option value="monthly"><?php esc_html_e( 'Par mois', 'scavio' ); ?></option>
-                                <option value="fixed"><?php esc_html_e( 'Forfait', 'scavio' ); ?></option>
-                                <option value="daily"><?php esc_html_e( 'Express (jours)', 'scavio' ); ?></option>
+                                <option value="unit"><?php esc_html_e( 'Par unité', 'clielo' ); ?></option>
+                                <option value="monthly"><?php esc_html_e( 'Par mois', 'clielo' ); ?></option>
+                                <option value="fixed"><?php esc_html_e( 'Forfait', 'clielo' ); ?></option>
+                                <option value="daily"><?php esc_html_e( 'Express (jours)', 'clielo' ); ?></option>
                             </select>
                         </div>
                         <div class="sf-adv-opt-unit-wrap">
-                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Libellé unité', 'scavio' ); ?></label>
-                            <input type="text" name="sf_adv_opt_unit[]" value="" placeholder="<?php esc_attr_e( 'ex. page, heure...', 'scavio' ); ?>" style="width:100%" />
+                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Libellé unité', 'clielo' ); ?></label>
+                            <input type="text" name="sf_adv_opt_unit[]" value="" placeholder="<?php esc_attr_e( 'ex. page, heure...', 'clielo' ); ?>" style="width:100%" />
                         </div>
                         <div>
-                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Prix (€)', 'scavio' ); ?></label>
+                            <label style="font-size:11px;color:#666;display:block;margin-bottom:3px"><?php esc_html_e( 'Prix (€)', 'clielo' ); ?></label>
                             <input type="number" name="sf_adv_opt_price[]" value="" min="0" step="0.01" placeholder="0" style="width:100%" />
                         </div>
                     </div>
-                    <button type="button" class="sf-adv-opt-remove button-link" style="color:#a00;margin-left:8px;padding:0 6px;line-height:36px;font-size:18px" title="<?php esc_attr_e( 'Supprimer', 'scavio' ); ?>">&times;</button>
+                    <button type="button" class="sf-adv-opt-remove button-link" style="color:#a00;margin-left:8px;padding:0 6px;line-height:36px;font-size:18px" title="<?php esc_attr_e( 'Supprimer', 'clielo' ); ?>">&times;</button>
                 </div>
             </template>
 
             <button type="button" id="sf-adv-opts-add" class="button" style="margin-top:10px">
-                + <?php esc_html_e( 'Ajouter une option', 'scavio' ); ?>
+                + <?php esc_html_e( 'Ajouter une option', 'clielo' ); ?>
             </button>
         </div>
 
         <?php endif; ?>
 
-        <?php if ( scavio_is_premium() && Scavio_Stripe::is_enabled() ) :
-            $payment_mode       = get_post_meta( $post->ID, '_scavio_payment_mode', true ) ?: ( Scavio_Stripe::get_settings()['default_payment_mode'] ?? 'single' );
-            $installments_count = (int) get_post_meta( $post->ID, '_scavio_installments_count', true ) ?: 3;
+        <?php if ( clielo_is_premium() && Clielo_Stripe::is_enabled() ) :
+            $payment_mode       = get_post_meta( $post->ID, '_clielo_payment_mode', true ) ?: ( Clielo_Stripe::get_settings()['default_payment_mode'] ?? 'single' );
+            $installments_count = (int) get_post_meta( $post->ID, '_clielo_installments_count', true ) ?: 3;
         ?>
         <div class="serviceflow-meta-section">
-            <h4><?php esc_html_e( 'Mode de paiement', 'scavio' ); ?></h4>
+            <h4><?php esc_html_e( 'Mode de paiement', 'clielo' ); ?></h4>
             <div class="serviceflow-meta-row">
                 <div class="serviceflow-field">
-                    <label><?php esc_html_e( 'Type de paiement', 'scavio' ); ?></label>
-                    <select name="scavio_payment_mode" id="sf-payment-mode-select">
-                        <option value="single"       <?php selected( $payment_mode, 'single' ); ?>><?php esc_html_e( 'Paiement unique', 'scavio' ); ?></option>
-                        <option value="deposit"      <?php selected( $payment_mode, 'deposit' ); ?>><?php esc_html_e( 'Acompte 50% + solde à la livraison', 'scavio' ); ?></option>
-                        <option value="installments" <?php selected( $payment_mode, 'installments' ); ?>><?php esc_html_e( 'Mensualités (40% initial + N mensualités)', 'scavio' ); ?></option>
-                        <option value="monthly"      <?php selected( $payment_mode, 'monthly' ); ?>><?php esc_html_e( 'Abonnement mensuel pur (N × tarif mensuel)', 'scavio' ); ?></option>
+                    <label><?php esc_html_e( 'Type de paiement', 'clielo' ); ?></label>
+                    <select name="clielo_payment_mode" id="sf-payment-mode-select">
+                        <option value="single"       <?php selected( $payment_mode, 'single' ); ?>><?php esc_html_e( 'Paiement unique', 'clielo' ); ?></option>
+                        <option value="deposit"      <?php selected( $payment_mode, 'deposit' ); ?>><?php esc_html_e( 'Acompte 50% + solde à la livraison', 'clielo' ); ?></option>
+                        <option value="installments" <?php selected( $payment_mode, 'installments' ); ?>><?php esc_html_e( 'Mensualités (40% initial + N mensualités)', 'clielo' ); ?></option>
+                        <option value="monthly"      <?php selected( $payment_mode, 'monthly' ); ?>><?php esc_html_e( 'Abonnement mensuel pur (N × tarif mensuel)', 'clielo' ); ?></option>
                     </select>
-                    <p id="sf-monthly-hint" style="font-size:11px;color:#888;margin:4px 0 0;<?php echo $payment_mode !== 'monthly' ? 'display:none' : ''; ?>"><?php esc_html_e( 'Le prix du pack = tarif mensuel. Le 1er mois est réglé au départ, les suivants sont envoyés manuellement.', 'scavio' ); ?></p>
+                    <p id="sf-monthly-hint" style="font-size:11px;color:#888;margin:4px 0 0;<?php echo $payment_mode !== 'monthly' ? 'display:none' : ''; ?>"><?php esc_html_e( 'Le prix du pack = tarif mensuel. Le 1er mois est réglé au départ, les suivants sont envoyés manuellement.', 'clielo' ); ?></p>
                 </div>
                 <div class="serviceflow-field-price" id="sf-installments-field" style="<?php echo in_array( $payment_mode, [ 'installments', 'monthly' ], true ) ? '' : 'display:none'; ?>">
-                    <label id="sf-installments-label"><?php echo $payment_mode === 'monthly' ? esc_html__( 'Nombre de mois', 'scavio' ) : esc_html__( 'Nombre de mensualités', 'scavio' ); ?></label>
-                    <input type="number" name="scavio_installments_count" value="<?php echo esc_attr( $installments_count ); ?>" min="1" max="60" step="1" />
+                    <label id="sf-installments-label"><?php echo $payment_mode === 'monthly' ? esc_html__( 'Nombre de mois', 'clielo' ) : esc_html__( 'Nombre de mensualités', 'clielo' ); ?></label>
+                    <input type="number" name="clielo_installments_count" value="<?php echo esc_attr( $installments_count ); ?>" min="1" max="60" step="1" />
                 </div>
             </div>
         </div>
@@ -240,36 +240,36 @@ class Scavio_Options {
 
         <!-- Options supplémentaires -->
         <div class="serviceflow-meta-section">
-            <h4><?php esc_html_e( 'Options supplémentaires', 'scavio' ); ?></h4>
-            <p class="serviceflow-section-desc"><?php esc_html_e( 'Cumulables avec le pack choisi.', 'scavio' ); ?></p>
+            <h4><?php esc_html_e( 'Options supplémentaires', 'clielo' ); ?></h4>
+            <p class="serviceflow-section-desc"><?php esc_html_e( 'Cumulables avec le pack choisi.', 'clielo' ); ?></p>
             <div id="serviceflow-options-list">
                 <?php foreach ( $options as $i => $opt ) : ?>
                     <div class="serviceflow-option-item" data-index="<?php echo absint( $i ); ?>">
-                        <button type="button" class="serviceflow-option-remove"><?php esc_html_e( 'Supprimer', 'scavio' ); ?></button>
+                        <button type="button" class="serviceflow-option-remove"><?php esc_html_e( 'Supprimer', 'clielo' ); ?></button>
                         <div class="serviceflow-meta-row">
                             <div class="serviceflow-field">
-                                <label><?php esc_html_e( 'Nom', 'scavio' ); ?></label>
-                                <input type="text" name="scavio_opts[<?php echo absint( $i ); ?>][name]" value="<?php echo esc_attr( $opt['name'] ?? '' ); ?>" />
+                                <label><?php esc_html_e( 'Nom', 'clielo' ); ?></label>
+                                <input type="text" name="clielo_opts[<?php echo absint( $i ); ?>][name]" value="<?php echo esc_attr( $opt['name'] ?? '' ); ?>" />
                             </div>
                             <div class="serviceflow-field-price">
-                                <label><?php esc_html_e( 'Prix (€)', 'scavio' ); ?></label>
-                                <input type="number" name="scavio_opts[<?php echo absint( $i ); ?>][price]" value="<?php echo esc_attr( $opt['price'] ?? '' ); ?>" min="0" step="0.01" />
+                                <label><?php esc_html_e( 'Prix (€)', 'clielo' ); ?></label>
+                                <input type="number" name="clielo_opts[<?php echo absint( $i ); ?>][price]" value="<?php echo esc_attr( $opt['price'] ?? '' ); ?>" min="0" step="0.01" />
                             </div>
                             <div class="serviceflow-field-price">
-                                <label><?php esc_html_e( 'Délai (jours)', 'scavio' ); ?></label>
-                                <input type="number" name="scavio_opts[<?php echo absint( $i ); ?>][delay]" value="<?php echo esc_attr( $opt['delay'] ?? '' ); ?>" min="0" step="1" />
+                                <label><?php esc_html_e( 'Délai (jours)', 'clielo' ); ?></label>
+                                <input type="number" name="clielo_opts[<?php echo absint( $i ); ?>][delay]" value="<?php echo esc_attr( $opt['delay'] ?? '' ); ?>" min="0" step="1" />
                             </div>
                         </div>
                         <div class="serviceflow-meta-row">
                             <div class="serviceflow-field">
-                                <label><?php esc_html_e( 'Description', 'scavio' ); ?></label>
-                                <input type="text" name="scavio_opts[<?php echo absint( $i ); ?>][description]" value="<?php echo esc_attr( $opt['description'] ?? '' ); ?>" />
+                                <label><?php esc_html_e( 'Description', 'clielo' ); ?></label>
+                                <input type="text" name="clielo_opts[<?php echo absint( $i ); ?>][description]" value="<?php echo esc_attr( $opt['description'] ?? '' ); ?>" />
                             </div>
                         </div>
                     </div>
                 <?php endforeach; ?>
             </div>
-            <button type="button" id="serviceflow-add-option" class="button"><?php esc_html_e( '+ Ajouter une option', 'scavio' ); ?></button>
+            <button type="button" id="serviceflow-add-option" class="button"><?php esc_html_e( '+ Ajouter une option', 'clielo' ); ?></button>
         </div>
         <?php
     }
@@ -280,7 +280,7 @@ class Scavio_Options {
         }
 
         $screen = get_current_screen();
-        if ( ! $screen || $screen->post_type !== Scavio_Admin::get_post_type() ) {
+        if ( ! $screen || $screen->post_type !== Clielo_Admin::get_post_type() ) {
             return;
         }
 
@@ -310,7 +310,7 @@ class Scavio_Options {
             '.sf-adv-opt-row{display:flex;align-items:center;background:#f9f9f9;border:1px solid #e0e0e0;border-radius:4px;padding:8px;margin-bottom:6px}' .
             '.sf-adv-opt-handle{cursor:grab}.sf-adv-opt-handle:active{cursor:grabbing}' .
             '.sf-adv-opt-placeholder{background:#e8f0fe;border:2px dashed #4a90d9;border-radius:4px;margin-bottom:6px}' .
-            '#sf-adv-opts-list:empty::before{content:"' . esc_js( __( 'Aucune option. Cliquez sur Ajouter.', 'scavio' ) ) . '";color:#999;font-style:italic;font-size:12px;display:block;padding:8px 0}'
+            '#sf-adv-opts-list:empty::before{content:"' . esc_js( __( 'Aucune option. Cliquez sur Ajouter.', 'clielo' ) ) . '";color:#999;font-style:italic;font-size:12px;display:block;padding:8px 0}'
         );
 
         wp_add_inline_script( 'jquery-ui-sortable', '
@@ -357,7 +357,7 @@ class Scavio_Options {
                     sel.addEventListener("change",function(){
                         var v=sel.value;
                         field.style.display=(v==="installments"||v==="monthly")?"":"none";
-                        if(lbl) lbl.textContent=v==="monthly"?"' . esc_js( __( 'Nombre de mois', 'scavio' ) ) . '":"' . esc_js( __( 'Nombre de mensualités', 'scavio' ) ) . '";
+                        if(lbl) lbl.textContent=v==="monthly"?"' . esc_js( __( 'Nombre de mois', 'clielo' ) ) . '":"' . esc_js( __( 'Nombre de mensualités', 'clielo' ) ) . '";
                         if(hint) hint.style.display=v==="monthly"?"":"none";
                     });
                 }
@@ -372,19 +372,19 @@ class Scavio_Options {
 
                 $('#serviceflow-add-pack').on('click', function(){
                     var html = '<div class=\"serviceflow-pack-item\" data-index=\"'+packIdx+'\">' +
-                        '<button type=\"button\" class=\"serviceflow-pack-remove\">" . esc_js( __( 'Supprimer', 'scavio' ) ) . "</button>' +
+                        '<button type=\"button\" class=\"serviceflow-pack-remove\">" . esc_js( __( 'Supprimer', 'clielo' ) ) . "</button>' +
                         '<div class=\"serviceflow-meta-row\">' +
-                            '<div class=\"serviceflow-field\"><label>" . esc_js( __( 'Nom', 'scavio' ) ) . "</label><input type=\"text\" name=\"scavio_packs['+packIdx+'][name]\" placeholder=\"" . esc_js( __( 'Ex: Pack Basique', 'scavio' ) ) . "\" /></div>' +
-                            '<div class=\"serviceflow-field-price\"><label>" . esc_js( __( 'Prix (€)', 'scavio' ) ) . "</label><input type=\"number\" name=\"scavio_packs['+packIdx+'][price]\" min=\"0\" step=\"0.01\" /></div>' +
-                            '<div class=\"serviceflow-field-price\"><label>" . esc_js( __( 'Délai (jours)', 'scavio' ) ) . "</label><input type=\"number\" name=\"scavio_packs['+packIdx+'][delay]\" min=\"0\" step=\"1\" /></div>' +
+                            '<div class=\"serviceflow-field\"><label>" . esc_js( __( 'Nom', 'clielo' ) ) . "</label><input type=\"text\" name=\"clielo_packs['+packIdx+'][name]\" placeholder=\"" . esc_js( __( 'Ex: Pack Basique', 'clielo' ) ) . "\" /></div>' +
+                            '<div class=\"serviceflow-field-price\"><label>" . esc_js( __( 'Prix (€)', 'clielo' ) ) . "</label><input type=\"number\" name=\"clielo_packs['+packIdx+'][price]\" min=\"0\" step=\"0.01\" /></div>' +
+                            '<div class=\"serviceflow-field-price\"><label>" . esc_js( __( 'Délai (jours)', 'clielo' ) ) . "</label><input type=\"number\" name=\"clielo_packs['+packIdx+'][delay]\" min=\"0\" step=\"1\" /></div>' +
                         '</div>' +
                         '<div class=\"serviceflow-meta-row\">' +
-                            '<div class=\"serviceflow-field\"><label>" . esc_js( __( 'Description (infobulle)', 'scavio' ) ) . "</label><input type=\"text\" name=\"scavio_packs['+packIdx+'][description]\" placeholder=\"" . esc_js( __( "Texte affiché au survol de l'icône info", 'scavio' ) ) . "\" /></div>' +
+                            '<div class=\"serviceflow-field\"><label>" . esc_js( __( 'Description (infobulle)', 'clielo' ) ) . "</label><input type=\"text\" name=\"clielo_packs['+packIdx+'][description]\" placeholder=\"" . esc_js( __( "Texte affiché au survol de l'icône info", 'clielo' ) ) . "\" /></div>' +
                         '</div>' +
                         '<div class=\"serviceflow-features-section\">' +
-                            '<label>" . esc_js( __( 'Caractéristiques du pack', 'scavio' ) ) . "</label>' +
+                            '<label>" . esc_js( __( 'Caractéristiques du pack', 'clielo' ) ) . "</label>' +
                             '<div class=\"serviceflow-features-list\"></div>' +
-                            '<button type=\"button\" class=\"serviceflow-add-feature\" data-pack-index=\"'+packIdx+'\">+ " . esc_js( __( 'Ajouter une caractéristique', 'scavio' ) ) . "</button>' +
+                            '<button type=\"button\" class=\"serviceflow-add-feature\" data-pack-index=\"'+packIdx+'\">+ " . esc_js( __( 'Ajouter une caractéristique', 'clielo' ) ) . "</button>' +
                         '</div>' +
                     '</div>';
                     $('#serviceflow-packs-list').append(html);
@@ -399,7 +399,7 @@ class Scavio_Options {
                 $(document).on('click', '.serviceflow-add-feature', function(){
                     var idx = $(this).closest('.serviceflow-pack-item').data('index');
                     var html = '<div class=\"serviceflow-feature-item\">' +
-                        '<input type=\"text\" name=\"scavio_packs['+idx+'][features][]\" placeholder=\"" . esc_js( __( 'Ex: 5 pages incluses', 'scavio' ) ) . "\" />' +
+                        '<input type=\"text\" name=\"clielo_packs['+idx+'][features][]\" placeholder=\"" . esc_js( __( 'Ex: 5 pages incluses', 'clielo' ) ) . "\" />' +
                         '<button type=\"button\" class=\"serviceflow-feature-rm\">&times;</button>' +
                     '</div>';
                     $(this).siblings('.serviceflow-features-list').append(html);
@@ -414,14 +414,14 @@ class Scavio_Options {
 
                 $('#serviceflow-add-option').on('click', function(){
                     var html = '<div class=\"serviceflow-option-item\" data-index=\"'+optIdx+'\">' +
-                        '<button type=\"button\" class=\"serviceflow-option-remove\">" . esc_js( __( 'Supprimer', 'scavio' ) ) . "</button>' +
+                        '<button type=\"button\" class=\"serviceflow-option-remove\">" . esc_js( __( 'Supprimer', 'clielo' ) ) . "</button>' +
                         '<div class=\"serviceflow-meta-row\">' +
-                            '<div class=\"serviceflow-field\"><label>" . esc_js( __( 'Nom', 'scavio' ) ) . "</label><input type=\"text\" name=\"scavio_opts['+optIdx+'][name]\" /></div>' +
-                            '<div class=\"serviceflow-field-price\"><label>" . esc_js( __( 'Prix (€)', 'scavio' ) ) . "</label><input type=\"number\" name=\"scavio_opts['+optIdx+'][price]\" min=\"0\" step=\"0.01\" /></div>' +
-                            '<div class=\"serviceflow-field-price\"><label>" . esc_js( __( 'Délai (jours)', 'scavio' ) ) . "</label><input type=\"number\" name=\"scavio_opts['+optIdx+'][delay]\" min=\"0\" step=\"1\" /></div>' +
+                            '<div class=\"serviceflow-field\"><label>" . esc_js( __( 'Nom', 'clielo' ) ) . "</label><input type=\"text\" name=\"clielo_opts['+optIdx+'][name]\" /></div>' +
+                            '<div class=\"serviceflow-field-price\"><label>" . esc_js( __( 'Prix (€)', 'clielo' ) ) . "</label><input type=\"number\" name=\"clielo_opts['+optIdx+'][price]\" min=\"0\" step=\"0.01\" /></div>' +
+                            '<div class=\"serviceflow-field-price\"><label>" . esc_js( __( 'Délai (jours)', 'clielo' ) ) . "</label><input type=\"number\" name=\"clielo_opts['+optIdx+'][delay]\" min=\"0\" step=\"1\" /></div>' +
                         '</div>' +
                         '<div class=\"serviceflow-meta-row\">' +
-                            '<div class=\"serviceflow-field\"><label>" . esc_js( __( 'Description', 'scavio' ) ) . "</label><input type=\"text\" name=\"scavio_opts['+optIdx+'][description]\" /></div>' +
+                            '<div class=\"serviceflow-field\"><label>" . esc_js( __( 'Description', 'clielo' ) ) . "</label><input type=\"text\" name=\"clielo_opts['+optIdx+'][description]\" /></div>' +
                         '</div>' +
                     '</div>';
                     $('#serviceflow-options-list').append(html);
@@ -436,16 +436,16 @@ class Scavio_Options {
     }
 
     public static function save_meta( int $post_id, \WP_Post $post ): void {
-        if ( ! isset( $_POST['scavio_options_nonce'] ) ) {
+        if ( ! isset( $_POST['clielo_options_nonce'] ) ) {
             return;
         }
-        if ( ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['scavio_options_nonce'] ) ), 'scavio_options_save' ) ) {
+        if ( ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['clielo_options_nonce'] ) ), 'clielo_options_save' ) ) {
             return;
         }
         if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
             return;
         }
-        if ( $post->post_type !== Scavio_Admin::get_post_type() ) {
+        if ( $post->post_type !== Clielo_Admin::get_post_type() ) {
             return;
         }
         if ( ! current_user_can( 'edit_post', $post_id ) ) {
@@ -453,15 +453,15 @@ class Scavio_Options {
         }
 
         // Free = 1 seul service autorisé
-        if ( ! scavio_is_premium() ) {
-            $existing_packs = get_post_meta( $post_id, '_scavio_packs', true );
+        if ( ! clielo_is_premium() ) {
+            $existing_packs = get_post_meta( $post_id, '_clielo_packs', true );
             if ( empty( $existing_packs ) && self::count_active_services( $post_id ) >= 1 ) {
                 return;
             }
         }
 
         // Packs
-        $packs_raw = wp_unslash( $_POST['scavio_packs'] ?? [] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field is sanitized individually in the loop below.
+        $packs_raw = wp_unslash( $_POST['clielo_packs'] ?? [] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field is sanitized individually in the loop below.
         $packs = [];
         if ( is_array( $packs_raw ) ) {
             foreach ( $packs_raw as $pack ) {
@@ -482,10 +482,10 @@ class Scavio_Options {
                 ];
             }
         }
-        update_post_meta( $post_id, '_scavio_packs', $packs );
+        update_post_meta( $post_id, '_clielo_packs', $packs );
 
         // Options supplémentaires
-        $opts_raw = wp_unslash( $_POST['scavio_opts'] ?? [] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field is sanitized individually in the loop below.
+        $opts_raw = wp_unslash( $_POST['clielo_opts'] ?? [] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field is sanitized individually in the loop below.
         $opts = [];
         if ( is_array( $opts_raw ) ) {
             foreach ( $opts_raw as $opt ) {
@@ -501,7 +501,7 @@ class Scavio_Options {
                 ];
             }
         }
-        update_post_meta( $post_id, '_scavio_options', $opts );
+        update_post_meta( $post_id, '_clielo_options', $opts );
 
         // Options avancées dynamiques
         $adv_opts   = [];
@@ -522,46 +522,46 @@ class Scavio_Options {
                 'unit_label' => sanitize_text_field( $adv_units[ $i ] ?? '' ),
             ];
         }
-        update_post_meta( $post_id, '_scavio_advanced_options', wp_json_encode( $adv_opts, JSON_UNESCAPED_UNICODE ) );
+        update_post_meta( $post_id, '_clielo_advanced_options', wp_json_encode( $adv_opts, JSON_UNESCAPED_UNICODE ) );
 
         // Mode de paiement
-        if ( isset( $_POST['scavio_payment_mode'] ) ) {
-            $mode = sanitize_text_field( wp_unslash( $_POST['scavio_payment_mode'] ) );
+        if ( isset( $_POST['clielo_payment_mode'] ) ) {
+            $mode = sanitize_text_field( wp_unslash( $_POST['clielo_payment_mode'] ) );
             if ( in_array( $mode, [ 'single', 'deposit', 'installments', 'monthly' ], true ) ) {
-                update_post_meta( $post_id, '_scavio_payment_mode', $mode );
+                update_post_meta( $post_id, '_clielo_payment_mode', $mode );
             }
         }
-        if ( isset( $_POST['scavio_installments_count'] ) ) {
-            update_post_meta( $post_id, '_scavio_installments_count', absint( wp_unslash( $_POST['scavio_installments_count'] ) ) );
+        if ( isset( $_POST['clielo_installments_count'] ) ) {
+            update_post_meta( $post_id, '_clielo_installments_count', absint( wp_unslash( $_POST['clielo_installments_count'] ) ) );
         }
     }
 
     public static function get_payment_mode( int $post_id ): string {
-        if ( ! scavio_is_premium() ) {
+        if ( ! clielo_is_premium() ) {
             return 'single';
         }
-        $meta = get_post_meta( $post_id, '_scavio_payment_mode', true );
+        $meta = get_post_meta( $post_id, '_clielo_payment_mode', true );
         if ( in_array( $meta, [ 'single', 'deposit', 'installments', 'monthly' ], true ) ) {
             return $meta;
         }
-        return Scavio_Stripe::get_settings()['default_payment_mode'] ?? 'single';
+        return Clielo_Stripe::get_settings()['default_payment_mode'] ?? 'single';
     }
 
     public static function get_installments_count( int $post_id ): int {
-        return max( 1, (int) get_post_meta( $post_id, '_scavio_installments_count', true ) ?: 3 );
+        return max( 1, (int) get_post_meta( $post_id, '_clielo_installments_count', true ) ?: 3 );
     }
 
     /**
      * Récupère les packs d'un post (avec migration depuis l'ancien format).
      */
     public static function get_packs( int $post_id ): array {
-        $packs = get_post_meta( $post_id, '_scavio_packs', true );
+        $packs = get_post_meta( $post_id, '_clielo_packs', true );
         if ( is_array( $packs ) && ! empty( $packs ) ) {
             return $packs;
         }
 
         // Migration : ancien format base_offer → pack unique
-        $base = get_post_meta( $post_id, '_scavio_base_offer', true );
+        $base = get_post_meta( $post_id, '_clielo_base_offer', true );
         if ( is_array( $base ) && ! empty( $base['name'] ) ) {
             return [ $base ];
         }
@@ -573,7 +573,7 @@ class Scavio_Options {
      * Récupère les options supplémentaires d'un post.
      */
     public static function get_options( int $post_id ): array {
-        $opts = get_post_meta( $post_id, '_scavio_options', true );
+        $opts = get_post_meta( $post_id, '_clielo_options', true );
         return is_array( $opts ) ? $opts : [];
     }
 }

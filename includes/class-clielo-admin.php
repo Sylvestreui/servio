@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class Scavio_Admin {
+class Clielo_Admin {
 
     public static function init(): void {
         add_action( 'admin_menu', [ __CLASS__, 'add_menu' ] );
@@ -13,9 +13,9 @@ class Scavio_Admin {
 
     public static function add_menu(): void {
         add_submenu_page(
-            'scavio',
-            __( 'Scavio - Réglages', 'scavio' ),
-            __( 'Réglages', 'scavio' ),
+            'clielo',
+            __( 'Clielo - Réglages', 'clielo' ),
+            __( 'Réglages', 'clielo' ),
             'manage_options',
             'serviceflow-settings',
             [ __CLASS__, 'render_settings_page' ]
@@ -24,21 +24,21 @@ class Scavio_Admin {
 
     public static function register_settings(): void {
         // CPT
-        register_setting( 'scavio_settings', 'scavio_post_type', [
+        register_setting( 'clielo_settings', 'clielo_post_type', [
             'type'              => 'string',
             'sanitize_callback' => 'sanitize_text_field',
             'default'           => 'annonce',
         ] );
 
         // Couleur principale
-        register_setting( 'scavio_settings', 'scavio_color', [
+        register_setting( 'clielo_settings', 'clielo_color', [
             'type'              => 'string',
             'sanitize_callback' => 'sanitize_hex_color',
             'default'           => '#0073aa',
         ] );
 
         // Position du bouton
-        register_setting( 'scavio_settings', 'scavio_position', [
+        register_setting( 'clielo_settings', 'clielo_position', [
             'type'              => 'string',
             'sanitize_callback' => 'sanitize_text_field',
             'default'           => 'bottom-right',
@@ -46,51 +46,51 @@ class Scavio_Admin {
 
         // Section générale
         add_settings_section(
-            'scavio_main_section',
-            __( 'Configuration générale', 'scavio' ),
+            'clielo_main_section',
+            __( 'Configuration générale', 'clielo' ),
             null,
             'serviceflow-settings'
         );
 
         add_settings_field(
-            'scavio_post_type',
-            __( 'Custom Post Type', 'scavio' ),
+            'clielo_post_type',
+            __( 'Custom Post Type', 'clielo' ),
             [ __CLASS__, 'render_post_type_field' ],
             'serviceflow-settings',
-            'scavio_main_section'
+            'clielo_main_section'
         );
 
         // Section apparence
         add_settings_section(
-            'scavio_style_section',
-            __( 'Apparence', 'scavio' ),
+            'clielo_style_section',
+            __( 'Apparence', 'clielo' ),
             null,
             'serviceflow-settings'
         );
 
         add_settings_field(
-            'scavio_color',
-            __( 'Couleur du chat', 'scavio' ),
+            'clielo_color',
+            __( 'Couleur du chat', 'clielo' ),
             [ __CLASS__, 'render_color_field' ],
             'serviceflow-settings',
-            'scavio_style_section'
+            'clielo_style_section'
         );
 
         add_settings_field(
-            'scavio_position',
-            __( 'Position du bouton', 'scavio' ),
+            'clielo_position',
+            __( 'Position du bouton', 'clielo' ),
             [ __CLASS__, 'render_position_field' ],
             'serviceflow-settings',
-            'scavio_style_section'
+            'clielo_style_section'
         );
 
     }
 
     public static function render_post_type_field(): void {
-        $current    = get_option( 'scavio_post_type', 'annonce' );
+        $current    = get_option( 'clielo_post_type', 'annonce' );
         $post_types = get_post_types( [ 'public' => true ], 'objects' );
 
-        echo '<select name="scavio_post_type" id="scavio_post_type">';
+        echo '<select name="clielo_post_type" id="clielo_post_type">';
         foreach ( $post_types as $pt ) {
             printf(
                 '<option value="%s" %s>%s (%s)</option>',
@@ -101,29 +101,29 @@ class Scavio_Admin {
             );
         }
         echo '</select>';
-        echo '<p class="description">' . esc_html__( 'Sélectionnez le CPT sur lequel activer le chat.', 'scavio' ) . '</p>';
+        echo '<p class="description">' . esc_html__( 'Sélectionnez le CPT sur lequel activer le chat.', 'clielo' ) . '</p>';
     }
 
     public static function render_color_field(): void {
-        $color = get_option( 'scavio_color', '#0073aa' );
+        $color = get_option( 'clielo_color', '#0073aa' );
         printf(
-            '<input type="color" name="scavio_color" id="scavio_color" value="%s" />',
+            '<input type="color" name="clielo_color" id="clielo_color" value="%s" />',
             esc_attr( $color )
         );
-        echo '<p class="description">' . esc_html__( 'Couleur principale du bouton et du header du chat.', 'scavio' ) . '</p>';
+        echo '<p class="description">' . esc_html__( 'Couleur principale du bouton et du header du chat.', 'clielo' ) . '</p>';
     }
 
     public static function render_position_field(): void {
-        $current = get_option( 'scavio_position', 'bottom-right' );
+        $current = get_option( 'clielo_position', 'bottom-right' );
 
         $positions = [
-            'bottom-right' => __( 'Bas droite', 'scavio' ),
-            'bottom-left'  => __( 'Bas gauche', 'scavio' ),
-            'top-right'    => __( 'Haut droite', 'scavio' ),
-            'top-left'     => __( 'Haut gauche', 'scavio' ),
+            'bottom-right' => __( 'Bas droite', 'clielo' ),
+            'bottom-left'  => __( 'Bas gauche', 'clielo' ),
+            'top-right'    => __( 'Haut droite', 'clielo' ),
+            'top-left'     => __( 'Haut gauche', 'clielo' ),
         ];
 
-        echo '<select name="scavio_position" id="scavio_position">';
+        echo '<select name="clielo_position" id="clielo_position">';
         foreach ( $positions as $value => $label ) {
             printf(
                 '<option value="%s" %s>%s</option>',
@@ -144,9 +144,9 @@ class Scavio_Admin {
             <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
             <form action="options.php" method="post">
                 <?php
-                settings_fields( 'scavio_settings' );
+                settings_fields( 'clielo_settings' );
                 do_settings_sections( 'serviceflow-settings' );
-                submit_button( __( 'Enregistrer', 'scavio' ) );
+                submit_button( __( 'Enregistrer', 'clielo' ) );
                 ?>
             </form>
         </div>
@@ -157,47 +157,47 @@ class Scavio_Admin {
         if ( ! $post_id ) {
             return false;
         }
-        return get_post_meta( $post_id, '_scavio_extra_pages_enabled', true ) === '1';
+        return get_post_meta( $post_id, '_clielo_extra_pages_enabled', true ) === '1';
     }
 
     public static function is_maintenance_enabled( int $post_id = 0 ): bool {
         if ( ! $post_id ) {
             return false;
         }
-        return get_post_meta( $post_id, '_scavio_maintenance_enabled', true ) === '1';
+        return get_post_meta( $post_id, '_clielo_maintenance_enabled', true ) === '1';
     }
 
     public static function is_express_enabled( int $post_id = 0 ): bool {
         if ( ! $post_id ) {
             return false;
         }
-        return get_post_meta( $post_id, '_scavio_express_enabled', true ) === '1';
+        return get_post_meta( $post_id, '_clielo_express_enabled', true ) === '1';
     }
 
     public static function get_extra_pages_label( int $post_id = 0 ): string {
-        $label = $post_id ? get_post_meta( $post_id, '_scavio_extra_pages_label', true ) : '';
-        return $label ?: __( 'Pages supplémentaires', 'scavio' );
+        $label = $post_id ? get_post_meta( $post_id, '_clielo_extra_pages_label', true ) : '';
+        return $label ?: __( 'Pages supplémentaires', 'clielo' );
     }
 
     public static function get_maintenance_label( int $post_id = 0 ): string {
-        $label = $post_id ? get_post_meta( $post_id, '_scavio_maintenance_label', true ) : '';
-        return $label ?: __( 'Maintenance mensuelle', 'scavio' );
+        $label = $post_id ? get_post_meta( $post_id, '_clielo_maintenance_label', true ) : '';
+        return $label ?: __( 'Maintenance mensuelle', 'clielo' );
     }
 
     public static function get_express_label( int $post_id = 0 ): string {
-        $label = $post_id ? get_post_meta( $post_id, '_scavio_express_label', true ) : '';
-        return $label ?: __( 'Livraison express', 'scavio' );
+        $label = $post_id ? get_post_meta( $post_id, '_clielo_express_label', true ) : '';
+        return $label ?: __( 'Livraison express', 'clielo' );
     }
 
     public static function get_post_type(): string {
-        return get_option( 'scavio_post_type', 'annonce' );
+        return get_option( 'clielo_post_type', 'annonce' );
     }
 
     public static function get_color(): string {
-        return get_option( 'scavio_color', '#0073aa' );
+        return get_option( 'clielo_color', '#0073aa' );
     }
 
     public static function get_position(): string {
-        return get_option( 'scavio_position', 'bottom-right' );
+        return get_option( 'clielo_position', 'bottom-right' );
     }
 }

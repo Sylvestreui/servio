@@ -4,9 +4,9 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class Scavio_DB {
+class Clielo_DB {
 
-    const TABLE_NAME = 'scavio_messages';
+    const TABLE_NAME = 'clielo_messages';
 
     /**
      * Retourne le nom complet de la table avec le préfixe WP.
@@ -41,7 +41,7 @@ class Scavio_DB {
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         dbDelta( $sql );
 
-        update_option( 'scavio_db_version', SCAVIO_VERSION );
+        update_option( 'clielo_db_version', CLIELO_VERSION );
     }
 
     /**
@@ -154,7 +154,7 @@ class Scavio_DB {
     public static function migrate_client_ids(): void {
         global $wpdb;
 
-        if ( get_option( 'scavio_client_id_migrated' ) ) {
+        if ( get_option( 'clielo_client_id_migrated' ) ) {
             return;
         }
 
@@ -180,7 +180,7 @@ class Scavio_DB {
         }
 
         // Étape 2 : Messages admin/système → chercher le client via les commandes
-        $order_table = Scavio_Orders::table_name();
+        $order_table = Clielo_Orders::table_name();
         // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $orphan_posts = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             "SELECT DISTINCT post_id FROM {$table} WHERE client_id = 0"
@@ -204,6 +204,6 @@ class Scavio_DB {
             }
         }
 
-        update_option( 'scavio_client_id_migrated', '1' );
+        update_option( 'clielo_client_id_migrated', '1' );
     }
 }

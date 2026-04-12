@@ -1,20 +1,20 @@
-# Scavio — Build script
+# Clielo — Build script
 # Usage:
 #   .\build.ps1              → zip WP.org (version gratuite)
-#   .\build.ps1 -Premium     → zip Freemius premium (scavio-1.0.0-premium.zip)
+#   .\build.ps1 -Premium     → zip Freemius premium (clielo-1.0.0-premium.zip)
 
 param(
     [switch]$Premium
 )
 
-$pluginSlug    = "scavio"
+$pluginSlug    = "clielo"
 $pluginVersion = "1.0.0"
 $rootDir       = $PSScriptRoot
 $distDir       = Join-Path $rootDir "dist"
 
 # Le dossier racine dans le zip doit correspondre au dossier WordPress attendu :
-# - version gratuite  → scavio/
-# - version premium   → scavio-premium/  (Freemius l'installe dans ce dossier)
+# - version gratuite  → clielo/
+# - version premium   → clielo-premium/  (Freemius l'installe dans ce dossier)
 if ($Premium) {
     $zipSlug  = "$pluginSlug-premium"
     $zipPath  = Join-Path $distDir "$pluginSlug-$pluginVersion-premium.zip"
@@ -74,14 +74,14 @@ foreach ($exc in $exclude) {
     }
 }
 
-# Pour le zip premium : activer is_premium + wp_org_gatekeeper dans scavio.php
-$mainFile = Join-Path $buildDir "scavio.php"
+# Pour le zip premium : activer is_premium + wp_org_gatekeeper dans clielo.php
+$mainFile = Join-Path $buildDir "clielo.php"
 if ($Premium -and (Test-Path $mainFile)) {
     (Get-Content $mainFile -Raw) `
         -replace "'is_premium'\s+=>\s+false,", "'is_premium'          => true," `
         -replace "// 'wp_org_gatekeeper'", "'wp_org_gatekeeper'" |
         Set-Content $mainFile -NoNewline
-    Write-Host "Premium mode applied to scavio.php" -ForegroundColor Yellow
+    Write-Host "Premium mode applied to clielo.php" -ForegroundColor Yellow
 }
 
 # Créer le zip avec forward slashes (compatibilité Linux/serveur)
