@@ -302,49 +302,49 @@ class Clielo_Invoices {
     public static function add_menu(): void {
         add_submenu_page(
             'clielo',
-            __( 'Factures', 'clielo' ),
-            __( 'Factures', 'clielo' ),
+            __( 'Invoices', 'clielo' ),
+            __( 'Invoices', 'clielo' ),
             'manage_options',
             'serviceflow-invoices',
             [ __CLASS__, 'render_invoices_list' ]
         );
         add_submenu_page(
             'clielo',
-            __( 'Nouvelle facture', 'clielo' ),
-            __( 'Nouvelle facture', 'clielo' ),
+            __( 'New invoice', 'clielo' ),
+            __( 'New invoice', 'clielo' ),
             'manage_options',
             'serviceflow-invoice-new',
             [ __CLASS__, 'render_invoice_new' ]
         );
         add_submenu_page(
             'clielo',
-            __( 'Clients externes', 'clielo' ),
-            __( 'Clients externes', 'clielo' ),
+            __( 'External clients', 'clielo' ),
+            __( 'External clients', 'clielo' ),
             'manage_options',
             'serviceflow-clients',
             [ __CLASS__, 'render_clients_page' ]
         );
         add_submenu_page(
             'clielo',
-            __( 'Réglages facturation', 'clielo' ),
-            __( 'Réglages facturation', 'clielo' ),
+            __( 'Invoice settings', 'clielo' ),
+            __( 'Invoice settings', 'clielo' ),
             'manage_options',
             'serviceflow-invoice-settings',
             [ __CLASS__, 'render_settings_page' ]
         );
-        // Page cachée pour voir une facture
+        // Hidden page to view an invoice
         add_submenu_page(
             null,
-            __( 'Voir facture', 'clielo' ),
+            __( 'View invoice', 'clielo' ),
             '',
             'manage_options',
             'serviceflow-invoice-view',
             [ __CLASS__, 'render_invoice_view' ]
         );
-        // Page cachée pour modifier une facture brouillon
+        // Hidden page to edit a draft invoice
         add_submenu_page(
             null,
-            __( 'Modifier facture', 'clielo' ),
+            __( 'Edit invoice', 'clielo' ),
             '',
             'manage_options',
             'serviceflow-invoice-edit',
@@ -1266,7 +1266,7 @@ class Clielo_Invoices {
 <?php
         self::render_invoice_html( $invoice, false );
         ?>
-<script>function sfPrintInvoice(){window.print();}</script>
+<script>function clieloPrintInvoice(){window.print();}</script>
 </body>
 </html>
 <?php
@@ -2511,7 +2511,7 @@ class Clielo_Invoices {
 
         <!-- Actions (non imprimables) -->
         <div class="serviceflow-inv-actions no-print" style="max-width:800px;margin:0 auto">
-            <button onclick="sfPrintInvoice()" style="background:<?php echo esc_attr( $color ); ?>;color:#fff">
+            <button onclick="clieloPrintInvoice()" style="background:<?php echo esc_attr( $color ); ?>;color:#fff">
                 <?php esc_html_e( 'Imprimer', 'clielo' ); ?>
             </button>
             <?php if ( $is_admin ) : ?>
@@ -2537,7 +2537,7 @@ class Clielo_Invoices {
         <?php
         wp_add_inline_script(
             'clielo-invoices-js',
-            'function sfPrintInvoice(){' .
+            'function clieloPrintInvoice(){' .
             'var content=document.querySelector(".serviceflow-invoice-page");' .
             'if(!content){window.print();return;}' .
             'var styles="";' .

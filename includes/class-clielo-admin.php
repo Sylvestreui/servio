@@ -14,8 +14,8 @@ class Clielo_Admin {
     public static function add_menu(): void {
         add_submenu_page(
             'clielo',
-            __( 'Clielo - Réglages', 'clielo' ),
-            __( 'Réglages', 'clielo' ),
+            __( 'Clielo - Settings', 'clielo' ),
+            __( 'Settings', 'clielo' ),
             'manage_options',
             'serviceflow-settings',
             [ __CLASS__, 'render_settings_page' ]
@@ -47,7 +47,7 @@ class Clielo_Admin {
         // Section générale
         add_settings_section(
             'clielo_main_section',
-            __( 'Configuration générale', 'clielo' ),
+            __( 'General settings', 'clielo' ),
             null,
             'serviceflow-settings'
         );
@@ -63,7 +63,7 @@ class Clielo_Admin {
         // Section apparence
         add_settings_section(
             'clielo_style_section',
-            __( 'Apparence', 'clielo' ),
+            __( 'Appearance', 'clielo' ),
             null,
             'serviceflow-settings'
         );

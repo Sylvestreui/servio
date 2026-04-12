@@ -20,7 +20,7 @@ if ($Premium) {
     $zipPath  = Join-Path $distDir "$pluginSlug-$pluginVersion-premium.zip"
 } else {
     $zipSlug  = $pluginSlug
-    $zipPath  = Join-Path $distDir "$pluginSlug-$pluginVersion.zip"
+    $zipPath  = Join-Path $distDir "$pluginSlug.zip"
 }
 $buildDir = Join-Path $distDir $zipSlug
 
@@ -107,7 +107,7 @@ $zipStream.Close()
 
 # Stats
 $zipSize  = [math]::Round((Get-Item $zipPath).Length / 1MB, 2)
-$zipLabel = if ($Premium) { "$pluginSlug-$pluginVersion-premium.zip" } else { "$pluginSlug-$pluginVersion.zip" }
+$zipLabel = if ($Premium) { "$pluginSlug-$pluginVersion-premium.zip" } else { "$pluginSlug.zip" }
 Write-Host ""
 Write-Host "Done! $zipLabel ($zipSize MB)" -ForegroundColor Green
 Write-Host "Path: $zipPath" -ForegroundColor Green
